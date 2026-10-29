@@ -19,16 +19,29 @@ struct WorkflowFileEditor: View {
 
     var body: some View {
         @Bindable var editor = editor
-        Group {
+        ZStack {
             if let text = editor.initialText {
                 CodeTextView(editor: editor, text: text)
-                    .safeAreaInset(edge: .bottom) {
-                        EditorBar(editor: editor)
-                    }
+            }
+        }
+        .ignoresSafeArea(.keyboard)
+        .safeAreaInset(edge: .top) {
+            if let problem = editor.problem {
+                Label(problem, systemImage: "exclamationmark.triangle.fill")
+                    .font(.footnote)
+                    .symbolRenderingMode(.multicolor)
+                    .lineLimit(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
             }
         }
         .navigationTitle(file.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .onAppear(perform: editor.load)
         .onDisappear(perform: editor.save)
         .onChange(of: scenePhase) {
@@ -155,6 +168,10 @@ private final class WorkflowFileEditorModel: TextViewDelegate {
         updateUndoState()
     }
 
+    func hideKeyboard() {
+        textView?.resignFirstResponder()
+    }
+
     func find() {
         textView?.findInteraction?.presentFindNavigator(showingReplace: false)
     }
@@ -228,12 +245,48 @@ private struct CodeTextView: UIViewRepresentable {
         case .unknown:
             textView.indentStrategy = .space(length: 2)
         }
+        let accessory = UIHostingController(rootView: EditorBar(editor: editor))
+        accessory.sizingOptions = .intrinsicContentSize
+        accessory.safeAreaRegions = []
+        accessory.view.backgroundColor = .clear
+        accessory.view.autoresizingMask = .flexibleHeight
+        textView.inputAccessoryView = accessory.view
+        context.coordinator.accessory = accessory
+        context.coordinator.textView = textView
         textView.editorDelegate = editor
         editor.textView = textView
         return textView
     }
 
     func updateUIView(_ textView: TextView, context: Context) {}
+
+    func makeCoordinator() -> CodeTextViewCoordinator {
+        CodeTextViewCoordinator()
+    }
+}
+
+@available(iOS 27, *)
+private final class CodeTextViewCoordinator: NSObject {
+    weak var textView: TextView?
+    var accessory: UIHostingController<EditorBar>?
+
+    override init() {
+        super.init()
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillChangeFrame), name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+    }
+
+    @objc private func keyboardWillChangeFrame(_ notification: Notification) {
+        guard let textView, let window = textView.window, let screen = window.windowScene?.screen,
+            let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+        else { return }
+        let keyboard = window.convert(frame, from: screen.coordinateSpace)
+        let overlap = max(0, textView.convert(textView.bounds, to: window).maxY - keyboard.minY)
+        textView.contentInset.bottom = overlap
+        textView.verticalScrollIndicatorInsets.bottom = overlap
+        if textView.isEditing {
+            textView.scrollRangeToVisible(textView.selectedRange)
+        }
+    }
 }
 
 @available(iOS 27, *)
@@ -241,17 +294,7 @@ private struct EditorBar: View {
     let editor: WorkflowFileEditorModel
 
     var body: some View {
-        VStack(spacing: 8) {
-            if let problem = editor.problem {
-                Label(problem, systemImage: "exclamationmark.triangle.fill")
-                    .font(.footnote)
-                    .symbolRenderingMode(.multicolor)
-                    .lineLimit(3)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
-            }
+        HStack(spacing: 0) {
             ScrollView(.horizontal) {
                 HStack(spacing: 0) {
                     action("Undo", systemImage: "arrow.uturn.backward", perform: editor.undo)
@@ -277,12 +320,16 @@ private struct EditorBar: View {
                         }
                     }
                 }
-                .padding(.horizontal, 8)
+                .padding(.leading, 8)
             }
             .scrollIndicators(.hidden)
-            .buttonStyle(.borderless)
-            .glassEffect(.regular.interactive(), in: .capsule)
+            Divider()
+                .frame(height: 20)
+            action("Hide Keyboard", systemImage: "keyboard.chevron.compact.down", perform: editor.hideKeyboard)
+                .padding(.trailing, 8)
         }
+        .buttonStyle(.borderless)
+        .glassEffect(.regular.interactive(), in: .capsule)
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
     }
