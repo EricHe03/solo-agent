@@ -54,6 +54,7 @@ type apiInput struct {
 
 type Options struct {
 	Token  string
+	Path   string
 	Logger logger.ContextLogger
 }
 
@@ -124,16 +125,33 @@ func New(runner *Runner, options Options) *Server {
 		Title:       "Reset the phone JavaScript state",
 		Description: "Interrupt the `js` calls in progress and clear the top-level bindings of earlier ones.",
 	}, s.jsReset)
-	mux := http.NewServeMux()
-	mux.Handle("/", mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return server }, &mcp.StreamableHTTPOptions{
+	mcpHandler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return server }, &mcp.StreamableHTTPOptions{
 		SessionTimeout: sessionIdle,
-	}))
-	mux.HandleFunc("/debug/pprof/", pprof.Index)
-	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	var handler http.Handler = mux
+	})
+	var handler http.Handler
+	if options.Path == "" {
+		mux := http.NewServeMux()
+		mux.Handle("/", mcpHandler)
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+		handler = mux
+	} else {
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case r.URL.Path != options.Path:
+				http.NotFound(w, r)
+			// Quick Tunnels hold back the body of a GET text/event-stream response until it ends.
+			case r.Method == http.MethodGet:
+				w.Header().Set("Allow", "POST, DELETE")
+				http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+			default:
+				mcpHandler.ServeHTTP(w, r)
+			}
+		})
+	}
 	if options.Token != "" {
 		authorized := handler
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

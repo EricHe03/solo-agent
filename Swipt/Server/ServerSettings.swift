@@ -18,6 +18,17 @@ final class ServerSettings {
         static let mcpPort = "serverMCPPort"
         static let mcpAuthenticates = "serverMCPAuthenticates"
         static let mcpToken = "serverMCPToken"
+        static let localMCPEnabled = "serverMCPLocalEnabled"
+        static let cloudflareEnabled = "serverCloudflareEnabled"
+        static let cloudflareMode = "serverCloudflareMode"
+        static let cloudflarePath = "serverCloudflarePath"
+        static let cloudflareToken = "serverCloudflareToken"
+        static let cloudflareAccount = "serverCloudflareAccount"
+        static let cloudflareZone = "serverCloudflareZone"
+        static let cloudflareHostname = "serverCloudflareHostname"
+        static let cloudflareQuickTunnel = "serverCloudflareQuickTunnel"
+        static let cloudflareQuickHostname = "serverCloudflareQuickHostname"
+        static let cloudflareNamedTunnel = "serverCloudflareNamedTunnel"
     }
 
     var runsInBackground: Bool {
@@ -56,6 +67,50 @@ final class ServerSettings {
         didSet { store.set(mcpToken, for: Key.mcpToken) }
     }
 
+    var isLocalMCPEnabled: Bool {
+        didSet { store.set(isLocalMCPEnabled, for: Key.localMCPEnabled) }
+    }
+
+    var isCloudflareEnabled: Bool {
+        didSet { store.set(isCloudflareEnabled, for: Key.cloudflareEnabled) }
+    }
+
+    var cloudflareMode: CloudflareMode {
+        didSet { store.set(cloudflareMode, for: Key.cloudflareMode) }
+    }
+
+    var cloudflarePath: String {
+        didSet { store.set(cloudflarePath, for: Key.cloudflarePath) }
+    }
+
+    var cloudflareToken: String {
+        didSet { store.set(cloudflareToken, for: Key.cloudflareToken) }
+    }
+
+    var cloudflareAccount: String {
+        didSet { store.set(cloudflareAccount, for: Key.cloudflareAccount) }
+    }
+
+    var cloudflareZone: String {
+        didSet { store.set(cloudflareZone, for: Key.cloudflareZone) }
+    }
+
+    var cloudflareHostname: String {
+        didSet { store.set(cloudflareHostname, for: Key.cloudflareHostname) }
+    }
+
+    var cloudflareQuickTunnel: String {
+        didSet { store.set(cloudflareQuickTunnel, for: Key.cloudflareQuickTunnel) }
+    }
+
+    var cloudflareQuickHostname: String {
+        didSet { store.set(cloudflareQuickHostname, for: Key.cloudflareQuickHostname) }
+    }
+
+    var cloudflareNamedTunnel: String {
+        didSet { store.set(cloudflareNamedTunnel, for: Key.cloudflareNamedTunnel) }
+    }
+
     private let store = PreferenceStore.shared
 
     init() {
@@ -68,10 +123,31 @@ final class ServerSettings {
         mcpPort = store.value(Int.self, for: Key.mcpPort) ?? Self.defaultMCPPort
         mcpAuthenticates = store.value(Bool.self, for: Key.mcpAuthenticates) ?? false
         mcpToken = store.value(String.self, for: Key.mcpToken) ?? ""
+        isLocalMCPEnabled = store.value(Bool.self, for: Key.localMCPEnabled) ?? true
+        isCloudflareEnabled = store.value(Bool.self, for: Key.cloudflareEnabled) ?? false
+        cloudflareMode = store.value(CloudflareMode.self, for: Key.cloudflareMode) ?? .quickTunnel
+        cloudflarePath = store.value(String.self, for: Key.cloudflarePath) ?? "/mcp"
+        let storedCloudflareToken = store.value(String.self, for: Key.cloudflareToken)
+        cloudflareToken = storedCloudflareToken ?? Self.randomHex(32)
+        cloudflareAccount = store.value(String.self, for: Key.cloudflareAccount) ?? ""
+        cloudflareZone = store.value(String.self, for: Key.cloudflareZone) ?? ""
+        cloudflareHostname = store.value(String.self, for: Key.cloudflareHostname) ?? ""
+        cloudflareQuickTunnel = store.value(String.self, for: Key.cloudflareQuickTunnel) ?? ""
+        cloudflareQuickHostname = store.value(String.self, for: Key.cloudflareQuickHostname) ?? ""
+        cloudflareNamedTunnel = store.value(String.self, for: Key.cloudflareNamedTunnel) ?? ""
+        if storedCloudflareToken == nil {
+            store.set(cloudflareToken, for: Key.cloudflareToken)
+        }
+    }
+
+    static func randomHex(_ length: Int) -> String {
+        String((0..<length).map { _ in "0123456789abcdef".randomElement()! })
     }
 
     var isMCPComplete: Bool {
-        !mcpAuthenticates || !mcpToken.isEmpty
+        (!isLocalMCPEnabled || !mcpAuthenticates || !mcpToken.isEmpty)
+            && (!isCloudflareEnabled
+                || (!cloudflareToken.isEmpty && (cloudflareMode == .quickTunnel || (!cloudflareAccount.isEmpty && !cloudflareHostname.isEmpty))))
     }
 
     var autoUnlockProblem: String? {
@@ -101,6 +177,18 @@ enum ServerPasscodeType: Int32, Codable {
             }
         }
         return nil
+    }
+}
+
+enum CloudflareMode: Int32, Codable {
+    case quickTunnel = 0
+    case tunnel = 1
+
+    var name: String {
+        switch self {
+        case .quickTunnel: "Quick Tunnel"
+        case .tunnel: "Tunnel"
+        }
     }
 }
 

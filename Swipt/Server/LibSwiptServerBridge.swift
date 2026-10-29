@@ -43,6 +43,18 @@ nonisolated final class DeviceServerEvents: NSObject, LibSwiptDeviceServerHandle
     }
 }
 
+nonisolated final class CloudflareTunnelEvents: NSObject, LibSwiptCloudflareTunnelHandlerProtocol, @unchecked Sendable {
+    private let deliver: @Sendable (_ tunnel: String, _ hostname: String) -> Void
+
+    init(_ deliver: @escaping @Sendable (_ tunnel: String, _ hostname: String) -> Void) {
+        self.deliver = deliver
+    }
+
+    func onState(_ tunnel: String?, hostname: String?) {
+        deliver(tunnel ?? "", hostname ?? "")
+    }
+}
+
 nonisolated final class DiskImageImportEvents: NSObject, LibSwiptDiskImageImportHandlerProtocol, @unchecked Sendable {
     private let deliver: @Sendable (DiskImageImportProgress) -> Void
 

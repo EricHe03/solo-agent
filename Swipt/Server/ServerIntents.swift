@@ -45,7 +45,7 @@ struct SetMCPServerIntent: AppIntent {
                 throw MessageError(problem)
             }
             if !ServerSettings.shared.isMCPComplete {
-                throw MessageError(String(localized: "Enter a token for MCP Server."))
+                throw MessageError(String(localized: "Complete the MCP Server settings."))
             }
             controller.setMCP(true)
         }

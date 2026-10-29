@@ -1,15 +1,11 @@
+import AuthenticationServices
+import LibSwipt
 import Perception
 import SwiftUI
 import UIKit
 
 struct MCPView: View {
-    @FocusState private var isTokenFocused: Bool
-    @State private var addresses: [String] = []
-    @State private var localHostName = LocalHostName()
-    @State private var host = ""
-
     private let controller = ServerController.shared
-    @Perception.Bindable private var settings = ServerSettings.shared
 
     var body: some View {
         WithPerceptionTracking {
@@ -23,20 +19,57 @@ struct MCPView: View {
                     }
                 }
                 Section("Listen") {
-                    PortField(port: $settings.mcpPort, defaultPort: ServerSettings.defaultMCPPort, range: ServerSettings.mcpPortRange)
+                    NavigationLink("Local") {
+                        LocalMCPView()
+                    }
+                    NavigationLink {
+                        CloudflareMCPView()
+                    } label: {
+                        Text(verbatim: "Cloudflare")
+                    }
                 }
-                .disabled(controller.isMCPActive)
-                Section("Authentication") {
-                    Toggle("Enabled", isOn: $settings.mcpAuthenticates)
-                    if settings.mcpAuthenticates {
-                        LabeledContentCompat("Token") {
-                            TextField("Token", text: $settings.mcpToken.masked { isTokenFocused }, prompt: Text("Required"))
-                                .textContentType(.oneTimeCode)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .multilineTextAlignment(.trailing)
-                                .focused($isTokenFocused)
-                                .submitLabel(.done)
+            }
+            .navigationTitle("MCP Server")
+            .modifier(ServerScreen())
+        }
+    }
+
+    private var mcpBinding: Binding<Bool> {
+        Binding(get: { controller.isMCPActive }, set: { controller.setMCP($0) })
+    }
+}
+
+private struct LocalMCPView: View {
+    @State private var addresses: [String] = []
+    @State private var localHostName = LocalHostName()
+    @State private var host = ""
+
+    private let controller = ServerController.shared
+    @Perception.Bindable private var settings = ServerSettings.shared
+
+    var body: some View {
+        WithPerceptionTracking {
+            Form {
+                Group {
+                    Section {
+                        Toggle("Enabled", isOn: $settings.isLocalMCPEnabled)
+                    }
+                    Section("Configuration") {
+                        ValueRow(title: "Port", value: String(settings.mcpPort), keyboard: .numberPad) { text in
+                            if let port = Int(text), ServerSettings.mcpPortRange.contains(port) {
+                                settings.mcpPort = port
+                            }
+                        }
+                    }
+                    Section("Authentication") {
+                        Toggle("Enabled", isOn: authenticatesBinding)
+                        if settings.mcpAuthenticates {
+                            ValueRow(
+                                title: "Token", value: settings.mcpToken, isSecret: true,
+                                random: ("Random Token", { ServerSettings.randomHex(32) })
+                            ) {
+                                settings.mcpToken = $0
+                            }
                         }
                     }
                 }
@@ -49,21 +82,13 @@ struct MCPView: View {
                             }
                         }
                         .pickerStyle(.menu)
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(verbatim: "Claude Code")
-                            CommandBlock(command: "claude mcp add --transport http \(serverName) \(url)")
-                        }
-                        .padding(.vertical, 4)
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(verbatim: "Codex")
-                            CommandBlock(command: "codex mcp add \(serverName) --url \(url)")
-                        }
-                        .padding(.vertical, 4)
+                        MCPCommands(
+                            scheme: "http", token: settings.mcpAuthenticates ? settings.mcpToken : nil,
+                            host: "\(selectedHost):\(settings.mcpPort)", path: "/mcp")
                     }
                 }
             }
-            .navigationTitle("MCP Server")
-            .modifier(ServerScreen())
+            .navigationTitle("Local")
             .onAppear {
                 addresses = Self.localAddresses()
                 localHostName.start()
@@ -74,12 +99,14 @@ struct MCPView: View {
         }
     }
 
-    private var mcpBinding: Binding<Bool> {
+    private var authenticatesBinding: Binding<Bool> {
         Binding(
-            get: { controller.isMCPActive },
+            get: { settings.mcpAuthenticates },
             set: { on in
-                isTokenFocused = false
-                controller.setMCP(on)
+                settings.mcpAuthenticates = on
+                if on, settings.mcpToken.isEmpty {
+                    settings.mcpToken = ServerSettings.randomHex(32)
+                }
             })
     }
 
@@ -93,22 +120,6 @@ struct MCPView: View {
 
     private var hostBinding: Binding<String> {
         Binding(get: { selectedHost }, set: { host = $0 })
-    }
-
-    private var serverName: String {
-        let name = controller.name
-            .filter { $0 != "'" && $0 != "’" }
-            .map { $0.isASCII && ($0.isLetter || $0.isNumber) ? String($0) : "-" }
-            .joined()
-            .split(separator: "-")
-            .joined(separator: "-")
-        return name.isEmpty ? UIDevice.current.model : name
-    }
-
-    private var url: String {
-        let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
-        let credentials = settings.mcpAuthenticates ? settings.mcpToken.addingPercentEncoding(withAllowedCharacters: unreserved)! + "@" : ""
-        return "http://\(credentials)\(selectedHost):\(settings.mcpPort)/mcp"
     }
 
     private static func localAddresses() -> [String] {
@@ -130,60 +141,266 @@ struct MCPView: View {
     }
 }
 
-private struct PortField: View {
-    @Binding var port: Int
-    let defaultPort: Int
-    let range: ClosedRange<Int>
-    @State private var text: String?
-    @FocusState private var isFocused: Bool
+private struct CloudflareMCPView: View {
+    @State private var isLoggingIn = false
+    @State private var isLoggingOut = false
+    @State private var alert: AlertState?
+
+    private let controller = ServerController.shared
+    @Perception.Bindable private var settings = ServerSettings.shared
 
     var body: some View {
         WithPerceptionTracking {
-            LabeledContentCompat("Port") {
-                TextField("Port", text: digits, prompt: Text(verbatim: String(defaultPort)))
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .foregroundStyle(isValid ? Color.primary : Color.red)
-                    .focused($isFocused)
-            }
-            .onChangeCompat(of: isFocused) {
-                if !isFocused {
-                    text = nil
+            Form {
+                Group {
+                    Section {
+                        Toggle("Enabled", isOn: $settings.isCloudflareEnabled)
+                    }
+                    Section("Configuration") {
+                        NavigationLink {
+                            CloudflareModeView()
+                        } label: {
+                            LabeledContentCompat("Mode") {
+                                Text(verbatim: settings.cloudflareMode.name)
+                            }
+                        }
+                        if settings.cloudflareMode == .tunnel {
+                            if settings.cloudflareAccount.isEmpty {
+                                Button("Log In", action: logIn)
+                                    .disabled(isLoggingIn)
+                            } else {
+                                Button {
+                                    isLoggingOut = true
+                                } label: {
+                                    LabeledContentCompat("Account") {
+                                        Text(verbatim: settings.cloudflareZone)
+                                    }
+                                }
+                                .foregroundStyle(.primary)
+                                .confirmationDialog("Account", isPresented: $isLoggingOut) {
+                                    Button("Log Out", role: .destructive, action: logOut)
+                                }
+                            }
+                            ValueRow(title: "Domain", value: settings.cloudflareHostname, keyboard: .URL) {
+                                settings.cloudflareHostname = $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                            }
+                        }
+                        ValueRow(
+                            title: "Prefix", value: settings.cloudflarePath, keyboard: .URL,
+                            random: ("Random Path", { "/\(ServerSettings.randomHex(16))/mcp" })
+                        ) { text in
+                            let path = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                            settings.cloudflarePath = path.hasPrefix("/") ? path : "/" + path
+                        }
+                    }
+                    Section("Authentication") {
+                        ValueRow(
+                            title: "Token", value: settings.cloudflareToken, isSecret: true,
+                            random: ("Random Token", { ServerSettings.randomHex(32) })
+                        ) {
+                            settings.cloudflareToken = $0
+                        }
+                    }
                 }
+                .disabled(controller.isMCPActive)
+                if !hostname.isEmpty {
+                    Section("Usage") {
+                        MCPCommands(scheme: "https", token: settings.cloudflareToken, host: hostname, path: settings.cloudflarePath)
+                    }
+                }
+            }
+            .navigationTitle(Text(verbatim: "Cloudflare"))
+            .alert($alert)
+        }
+    }
+
+    private var hostname: String {
+        switch settings.cloudflareMode {
+        case .quickTunnel: settings.isCloudflareEnabled ? settings.cloudflareQuickHostname : ""
+        case .tunnel: settings.cloudflareHostname
+        }
+    }
+
+    private func logIn() {
+        isLoggingIn = true
+        Task {
+            defer { isLoggingIn = false }
+            do {
+                guard let account = try await CloudflareWebLogin().run() else { return }
+                settings.cloudflareAccount = account.credential
+                settings.cloudflareZone = account.zoneName
+                settings.cloudflareNamedTunnel = ""
+                if !account.zoneName.isEmpty {
+                    settings.cloudflareHostname = "\(controller.serverName).\(account.zoneName)".lowercased()
+                }
+            } catch {
+                alert = AlertState(String(localized: "Can’t Log In"), error: error)
             }
         }
     }
 
-    private var digits: Binding<String> {
-        Binding(
-            get: { text ?? String(port) },
-            set: { input in
-                let digits = String(input.filter { $0.isASCII && $0.isNumber }.prefix(5))
-                text = digits
-                if let port = parsed(digits) {
-                    self.port = port
+    private func logOut() {
+        settings.cloudflareAccount = ""
+        settings.cloudflareZone = ""
+        settings.cloudflareNamedTunnel = ""
+        settings.cloudflareHostname = ""
+    }
+}
+
+private struct CloudflareModeView: View {
+    @Perception.Bindable private var settings = ServerSettings.shared
+
+    var body: some View {
+        WithPerceptionTracking {
+            Form {
+                Section("Mode") {
+                    Picker("Mode", selection: $settings.cloudflareMode) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(verbatim: CloudflareMode.quickTunnel.name)
+                            Text("Uses a domain provided by Cloudflare, which is released when turned off.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .tag(CloudflareMode.quickTunnel)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(verbatim: CloudflareMode.tunnel.name)
+                            Text("Uses your own account and domain.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .tag(CloudflareMode.tunnel)
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
                 }
-            })
+            }
+            .navigationTitle(Text(verbatim: "Cloudflare"))
+        }
+    }
+}
+
+private final class CloudflareWebLogin: NSObject, ASWebAuthenticationPresentationContextProviding {
+    func run() async throws -> LibSwiptCloudflareAccount? {
+        guard let login = LibSwiptNewCloudflareLogin(), let url = URL(string: login.loginURL()) else { return nil }
+        let box = UncheckedSendable(value: login)
+        let dismissed = LockedState(initialState: false)
+        let session = ASWebAuthenticationSession(url: url, callbackURLScheme: nil) { @Sendable _, error in
+            guard error != nil else { return }
+            dismissed.withLock { $0 = true }
+            box.value.cancel()
+        }
+        session.presentationContextProvider = self
+        session.prefersEphemeralWebBrowserSession = false
+        guard session.start() else {
+            login.cancel()
+            return nil
+        }
+        defer { session.cancel() }
+        do {
+            return try await Task.detached { UncheckedSendable(value: try box.value.wait()) }.value.value
+        } catch {
+            if dismissed.withLock({ $0 }) { return nil }
+            throw error
+        }
     }
 
-    private var isValid: Bool {
-        text.map { parsed($0) != nil } ?? true
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows).first(where: \.isKeyWindow) ?? ASPresentationAnchor()
+    }
+}
+
+private extension ServerController {
+    var serverName: String {
+        let slug = name
+            .filter { $0 != "'" && $0 != "’" }
+            .map { $0.isASCII && ($0.isLetter || $0.isNumber) ? String($0) : "-" }
+            .joined()
+            .split(separator: "-")
+            .joined(separator: "-")
+        return slug.isEmpty ? UIDevice.current.model : slug
+    }
+}
+
+private struct ValueRow: View {
+    let title: LocalizedStringKey
+    let value: String
+    var isSecret = false
+    var keyboard = UIKeyboardType.default
+    var random: (title: LocalizedStringKey, make: () -> String)?
+    let save: (String) -> Void
+    @State private var text = ""
+    @State private var isEditing = false
+
+    var body: some View {
+        Button {
+            text = value
+            isEditing = true
+        } label: {
+            LabeledContentCompat(title) {
+                if value.isEmpty {
+                    Text("Required")
+                } else {
+                    Text(verbatim: isSecret ? String(repeating: "•", count: min(value.count, 3)) : value)
+                }
+            }
+        }
+        .foregroundStyle(.primary)
+        .alert(title, isPresented: $isEditing) {
+            TextField(title, text: $text)
+                .keyboardType(keyboard)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            if let random {
+                Button(random.title) { save(random.make()) }
+            }
+            Button("Cancel", role: .cancel) {}
+            Button("OK") { save(text) }
+        }
+    }
+}
+
+private struct MCPCommands: View {
+    let scheme: String
+    let token: String?
+    let host: String
+    let path: String
+
+    private let controller = ServerController.shared
+
+    var body: some View {
+        WithPerceptionTracking {
+            let claude = "claude mcp add --transport http \(controller.serverName) "
+            VStack(alignment: .leading, spacing: 8) {
+                Text(verbatim: "Claude Code")
+                CommandBlock(command: claude + url(revealed: true), display: claude + url(revealed: false))
+            }
+            .padding(.vertical, 4)
+            let codex = "codex mcp add \(controller.serverName) --url "
+            VStack(alignment: .leading, spacing: 8) {
+                Text(verbatim: "Codex")
+                CommandBlock(command: codex + url(revealed: true), display: codex + url(revealed: false))
+            }
+            .padding(.vertical, 4)
+        }
     }
 
-    private func parsed(_ digits: String) -> Int? {
-        guard !digits.isEmpty else { return defaultPort }
-        guard let port = Int(digits), range.contains(port) else { return nil }
-        return port
+    private func url(revealed: Bool) -> String {
+        let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        let credentials = token.map {
+            (revealed ? $0.addingPercentEncoding(withAllowedCharacters: unreserved)! : String(repeating: "•", count: min($0.count, 3))) + "@"
+        } ?? ""
+        return "\(scheme)://\(credentials)\(host)\(path)"
     }
 }
 
 private struct CommandBlock: View {
     let command: String
+    let display: String
     @State private var isCopied = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Text(verbatim: command)
+            Text(verbatim: display)
                 .font(.system(.footnote, design: .monospaced))
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)

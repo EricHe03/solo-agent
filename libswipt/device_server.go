@@ -192,14 +192,22 @@ func (s *DeviceServer) UpdateSettings(settings *DeviceServerSettings) error {
 	})
 }
 
-func (s *DeviceServer) SetMCP(options *MCPOptions) error {
-	if options == nil {
-		return s.server.SetMCP(nil)
+func (s *DeviceServer) SetMCP(local *MCPOptions, cloudflare *CloudflareOptions) error {
+	tunnel, err := s.cloudflareMCP(cloudflare)
+	if err != nil {
+		return err
 	}
-	return s.server.SetMCP(&deviceserver.MCPOptions{
-		Listen: net.JoinHostPort("::", strconv.Itoa(int(options.Port))),
-		Server: phonemcp.New(s.runner, phonemcp.Options{Token: options.Token, Logger: s.logFactory.NewLogger("mcp")}),
-	})
+	var localOptions *deviceserver.MCPOptions
+	if local != nil {
+		address := net.JoinHostPort("::", strconv.Itoa(int(local.Port)))
+		localOptions = &deviceserver.MCPOptions{
+			Listen: func() (net.Listener, error) {
+				return net.Listen("tcp", address)
+			},
+			Server: phonemcp.New(s.runner, phonemcp.Options{Token: local.Token, Logger: s.logFactory.NewLogger("mcp")}),
+		}
+	}
+	return s.server.SetMCP(localOptions, tunnel)
 }
 
 type Script struct {

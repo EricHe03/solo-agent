@@ -125,6 +125,7 @@ type Server struct {
 	retired   bool
 	sharing   *frontend
 	mcp       *frontend
+	tunnelMCP *frontend
 
 	relisted bool
 }

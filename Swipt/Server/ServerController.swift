@@ -85,6 +85,8 @@ final class ServerController {
     }()
 
     @PerceptionIgnored private var server: LibSwiptDeviceServer?
+    @PerceptionIgnored private var cloudflareTunnel: LibSwiptCloudflareTunnel?
+    @PerceptionIgnored private var cloudflareGeneration = 0
     @PerceptionIgnored private var generation = 0
     @PerceptionIgnored private var runs = 0
     @PerceptionIgnored private var dialogs: [Int64: Task<Void, Never>] = [:]
@@ -108,6 +110,7 @@ final class ServerController {
             self?.setAdvertisingMCP(false)
         }
         observeDeviceSettings()
+        observeCloudflare()
     }
 
     var isActive: Bool { phase.isActive }
@@ -201,10 +204,11 @@ final class ServerController {
             stop()
         }
         if let server {
-            let options = UncheckedSendable(value: enabled ? mcpOptions : nil)
-            configure(server) { try $0.setMCP(options.value) }
+            let local = UncheckedSendable(value: localMCPOptions)
+            let cloudflare = UncheckedSendable(value: cloudflareOptions)
+            configure(server) { try $0.setMCP(local.value, cloudflare: cloudflare.value) }
         }
-        setAdvertisingMCP(isMCPActive)
+        setAdvertisingMCP(isMCPActive && settings.isLocalMCPEnabled)
     }
 
     func dismissFailure() {
@@ -414,7 +418,7 @@ final class ServerController {
             }
             do {
                 try box.value.update(deviceSettings)
-                try box.value.setMCP(settings.isMCPEnabled ? mcpOptions : nil)
+                try box.value.setMCP(localMCPOptions, cloudflare: cloudflareOptions)
                 try box.value.start()
             } catch {
                 Self.queue.async {
@@ -449,11 +453,59 @@ final class ServerController {
         configure(server) { try $0.update(box.value) }
     }
 
-    private var mcpOptions: LibSwiptMCPOptions {
+    private var localMCPOptions: LibSwiptMCPOptions? {
+        guard settings.isMCPEnabled, settings.isLocalMCPEnabled else { return nil }
         let options = LibSwiptMCPOptions()
         options.port = Int32(settings.mcpPort)
         options.token = settings.mcpAuthenticates ? settings.mcpToken : ""
         return options
+    }
+
+    private var cloudflareOptions: LibSwiptCloudflareOptions? {
+        guard settings.isMCPEnabled, settings.isCloudflareEnabled, let cloudflareTunnel else { return nil }
+        let options = LibSwiptCloudflareOptions()
+        options.tunnel = cloudflareTunnel
+        options.path = settings.cloudflarePath
+        options.token = settings.cloudflareToken
+        return options
+    }
+
+    private func observeCloudflare() {
+        let options = withPerceptionTracking { () -> LibSwiptCloudflareTunnelOptions? in
+            guard settings.isCloudflareEnabled else { return nil }
+            let options = LibSwiptCloudflareTunnelOptions()
+            options.mode = settings.cloudflareMode.rawValue
+            if settings.cloudflareMode == .tunnel {
+                guard !settings.cloudflareAccount.isEmpty, !settings.cloudflareHostname.isEmpty else { return nil }
+                options.account = settings.cloudflareAccount
+                options.hostname = settings.cloudflareHostname
+            }
+            return options
+        } onChange: { [weak self] in
+            DispatchQueue.main.async { self?.observeCloudflare() }
+        }
+        cloudflareGeneration += 1
+        if let cloudflareTunnel {
+            self.cloudflareTunnel = nil
+            let box = UncheckedSendable(value: cloudflareTunnel)
+            Self.queue.async {
+                do { try box.value.close() }
+                catch { Self.logger.error("Close the Cloudflare tunnel: \(error.localizedDescription, privacy: .public)") }
+            }
+        }
+        guard let options else { return }
+        let mode = settings.cloudflareMode
+        options.tunnel = mode == .quickTunnel ? settings.cloudflareQuickTunnel : settings.cloudflareNamedTunnel
+        let generation = cloudflareGeneration
+        let events = CloudflareTunnelEvents { [weak self] tunnel, hostname in
+            DispatchQueue.main.async { self?.handleCloudflareTunnel(mode, tunnel: tunnel, hostname: hostname, generation: generation) }
+        }
+        LibSwiptLog.installed
+        var error: NSError?
+        cloudflareTunnel = LibSwiptNewCloudflareTunnel(options, events, &error)
+        if let error {
+            Self.logger.error("Start the Cloudflare tunnel: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private func configure(_ server: LibSwiptDeviceServer, _ change: @escaping @Sendable (LibSwiptDeviceServer) throws -> Void) {
@@ -503,6 +555,17 @@ final class ServerController {
             phase = problem.map(Phase.failed) ?? .stopped
         default:
             break
+        }
+    }
+
+    private func handleCloudflareTunnel(_ mode: CloudflareMode, tunnel: String, hostname: String, generation: Int) {
+        guard generation == cloudflareGeneration else { return }
+        switch mode {
+        case .quickTunnel:
+            settings.cloudflareQuickTunnel = tunnel
+            settings.cloudflareQuickHostname = hostname
+        case .tunnel:
+            settings.cloudflareNamedTunnel = tunnel
         }
     }
 
@@ -557,7 +620,7 @@ final class ServerController {
         }
         updateBackground()
         setBrowsing(phase.isActive)
-        setAdvertisingMCP(isMCPActive)
+        setAdvertisingMCP(isMCPActive && settings.isLocalMCPEnabled)
     }
 
     func updateBackground() {

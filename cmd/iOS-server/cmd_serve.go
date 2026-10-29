@@ -130,9 +130,11 @@ func serve(ctx context.Context) error {
 	}
 	if serveMCPPort != 0 {
 		err = server.SetMCP(&deviceserver.MCPOptions{
-			Listen: net.JoinHostPort("::", strconv.Itoa(int(serveMCPPort))),
+			Listen: func() (net.Listener, error) {
+				return net.Listen("tcp", net.JoinHostPort("::", strconv.Itoa(int(serveMCPPort))))
+			},
 			Server: phonemcp.New(phonemcp.NewRunner(server.Phone(), phonemcp.RunnerOptions{Workflows: serveWorkflows, LogFactory: logFactory}), phonemcp.Options{Token: serveMCPToken, Logger: logFactory.NewLogger("mcp")}),
-		})
+		}, nil)
 		if err != nil {
 			return err
 		}

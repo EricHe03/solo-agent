@@ -16,7 +16,7 @@ type ScreenSharingOptions struct {
 }
 
 type MCPOptions struct {
-	Listen string
+	Listen func() (net.Listener, error)
 	Server interface {
 		Serve(listener net.Listener) error
 		Close() error
@@ -24,9 +24,9 @@ type MCPOptions struct {
 }
 
 type frontend struct {
-	name    string
-	address string
-	server  interface {
+	name   string
+	listen func() (net.Listener, error)
+	server interface {
 		Serve(listener net.Listener) error
 		Close() error
 	}
@@ -42,7 +42,7 @@ func (f *frontend) start(logger logger.ContextLogger) error {
 			return err
 		}
 	}
-	listener, err := net.Listen("tcp", f.address)
+	listener, err := f.listen()
 	if err != nil {
 		return &Error{Problem: ProblemListen, Err: E.Cause(err, "listen for ", f.name)}
 	}
@@ -90,8 +90,10 @@ func (s *Server) SetScreenSharing(options *ScreenSharingOptions) error {
 		media := rfbOptions.Media
 		next = &frontend{
 			name: "screen sharing",
-			address: options.Listen,
-			server:  viewers,
+			listen: func() (net.Listener, error) {
+				return net.Listen("tcp", options.Listen)
+			},
+			server: viewers,
 			probe: func() error {
 				for _, port := range []uint16{media.VideoPort, media.AudioPort} {
 					conn, err := media.ListenUDP(port)
@@ -116,18 +118,22 @@ func (s *Server) SetScreenSharing(options *ScreenSharingOptions) error {
 	return err
 }
 
-func (s *Server) SetMCP(options *MCPOptions) error {
-	var next *frontend
-	if options != nil {
-		next = &frontend{
-			name:    "MCP",
-			address: options.Listen,
-			server:  options.Server,
-		}
-	}
+func (s *Server) SetMCP(local *MCPOptions, tunnel *MCPOptions) error {
 	s.frontends.Lock()
 	defer s.frontends.Unlock()
-	return s.replace(&s.mcp, next)
+	var errs []error
+	for _, item := range []struct {
+		slot    **frontend
+		name    string
+		options *MCPOptions
+	}{{&s.mcp, "MCP", local}, {&s.tunnelMCP, "MCP tunnel", tunnel}} {
+		var next *frontend
+		if item.options != nil {
+			next = &frontend{name: item.name, listen: item.options.Listen, server: item.options.Server}
+		}
+		errs = append(errs, s.replace(item.slot, next))
+	}
+	return E.Errors(errs...)
 }
 
 func (s *Server) replace(slot **frontend, next *frontend) error {
@@ -157,7 +163,7 @@ func (s *Server) listen() error {
 	s.frontends.Lock()
 	defer s.frontends.Unlock()
 	s.listening = true
-	for _, f := range []*frontend{s.sharing, s.mcp} {
+	for _, f := range []*frontend{s.sharing, s.mcp, s.tunnelMCP} {
 		if f == nil {
 			continue
 		}
@@ -172,12 +178,12 @@ func (s *Server) closeFrontends() {
 	s.frontends.Lock()
 	defer s.frontends.Unlock()
 	s.retired = true
-	for _, f := range []*frontend{s.sharing, s.mcp} {
+	for _, f := range []*frontend{s.sharing, s.mcp, s.tunnelMCP} {
 		if f != nil {
 			_ = f.server.Close()
 		}
 	}
-	s.sharing, s.mcp = nil, nil
+	s.sharing, s.mcp, s.tunnelMCP = nil, nil, nil
 	s.access.Lock()
 	s.rfb = nil
 	s.access.Unlock()
