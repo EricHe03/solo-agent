@@ -280,13 +280,17 @@ nonisolated struct WorkflowFileItem: Hashable, Identifiable, Sendable {
     }
 
     static func list(in folder: URL) -> [WorkflowFileItem] {
-        guard let enumerator = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: [.isRegularFileKey], options: .skipsHiddenFiles) else {
+        guard let enumerator = FileManager.default.enumerator(atPath: folder.path) else {
             return []
         }
-        let prefix = folder.pathComponents.count
-        return enumerator.compactMap { entry in
-            guard let url = entry as? URL, (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else { return nil }
-            return WorkflowFileItem(url: url, name: url.pathComponents.dropFirst(prefix).joined(separator: "/"))
+        var files: [WorkflowFileItem] = []
+        while let name = enumerator.nextObject() as? String {
+            if (name as NSString).lastPathComponent.hasPrefix(".") {
+                enumerator.skipDescendants()
+            } else if enumerator.fileAttributes?[.type] as? FileAttributeType == .typeRegular {
+                files.append(WorkflowFileItem(url: folder.appendingPathComponent(name, isDirectory: false), name: name))
+            }
         }
+        return files
     }
 }
