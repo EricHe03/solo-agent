@@ -5,9 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"io"
-	"log/slog"
 	"net"
 	"net/netip"
 	"strconv"
@@ -17,6 +15,7 @@ import (
 	tun "github.com/sagernet/sing-tun"
 	"github.com/sagernet/sing/common/buf"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 )
 
 // idevice sends CDTunnel JSON after this magic and a big-endian uint16
@@ -111,7 +110,7 @@ type Tunnel struct {
 	reader        *bufio.Reader
 	parameters    *Parameters
 	clientAddress [16]byte
-	logger        *slog.Logger
+	logger        logger.ContextLogger
 	device        *tun.MemoryTun
 	stack         *tun.Go
 	udpAccess     sync.RWMutex
@@ -125,7 +124,7 @@ type Tunnel struct {
 	err         error
 }
 
-func Open(ctx context.Context, conn net.Conn, logger *slog.Logger) (*Tunnel, error) {
+func Open(ctx context.Context, conn net.Conn, logger logger.ContextLogger) (*Tunnel, error) {
 	if err := ctx.Err(); err != nil {
 		conn.Close()
 		return nil, err
@@ -140,15 +139,12 @@ func Open(ctx context.Context, conn net.Conn, logger *slog.Logger) (*Tunnel, err
 		conn.Close()
 		return nil, err
 	}
-	logger.Debug("tunnel parameters",
-		slog.String("client", parameters.ClientAddress.String()),
-		slog.String("server", parameters.ServerAddress.String()),
-		slog.Int("rsd_port", int(parameters.ServerRSDPort)),
-		slog.Int("mtu", parameters.MTU))
+	logger.Debug("tunnel client ", parameters.ClientAddress, ", server ", parameters.ServerAddress,
+		", RSD port ", parameters.ServerRSDPort, ", MTU ", parameters.MTU)
 	return start(conn, reader, parameters, logger)
 }
 
-func start(conn net.Conn, reader *bufio.Reader, parameters *Parameters, logger *slog.Logger) (*Tunnel, error) {
+func start(conn net.Conn, reader *bufio.Reader, parameters *Parameters, logger logger.ContextLogger) (*Tunnel, error) {
 	t := &Tunnel{
 		conn:          conn,
 		reader:        reader,
@@ -168,7 +164,7 @@ func start(conn net.Conn, reader *bufio.Reader, parameters *Parameters, logger *
 		Context:    context.Background(),
 		Tun:        t.device,
 		TunOptions: tun.Options{MTU: uint32(parameters.MTU)},
-		Logger:     singLogger{logger},
+		Logger:     logger,
 	})
 	if err == nil {
 		err = t.stack.Start()
@@ -260,8 +256,7 @@ func (t *Tunnel) readLoop() {
 			}
 			if length > maxPacket {
 				tooLong++
-				t.logger.Debug("dropped a packet too long for the network stack",
-					slog.Int("length", length), slog.Uint64("total", tooLong))
+				t.logger.Debug("dropped a packet of ", length, " bytes, too long for the network stack, ", tooLong, " in total")
 				continue
 			}
 			packets = append(packets, packet)
@@ -324,7 +319,7 @@ func (t *Tunnel) deliver(packets [][]byte, retry *time.Timer) error {
 
 func (t *Tunnel) fail(err error) {
 	t.closeOnce.Do(func() {
-		t.logger.Debug("tunnel closed", slog.Any("error", err))
+		t.logger.Debug("tunnel closed: ", err)
 		t.err = err
 		close(t.done)
 		t.closeUDP(err)
@@ -359,15 +354,3 @@ func (t *Tunnel) Close() error {
 	t.fail(net.ErrClosed)
 	return nil
 }
-
-type singLogger struct {
-	logger *slog.Logger
-}
-
-func (l singLogger) Trace(args ...any) {}
-func (l singLogger) Debug(args ...any) { l.logger.Debug(fmt.Sprint(args...)) }
-func (l singLogger) Info(args ...any)  { l.logger.Debug(fmt.Sprint(args...)) }
-func (l singLogger) Warn(args ...any)  { l.logger.Warn(fmt.Sprint(args...)) }
-func (l singLogger) Error(args ...any) { l.logger.Error(fmt.Sprint(args...)) }
-func (l singLogger) Fatal(args ...any) { l.logger.Error(fmt.Sprint(args...)) }
-func (l singLogger) Panic(args ...any) { l.logger.Error(fmt.Sprint(args...)) }

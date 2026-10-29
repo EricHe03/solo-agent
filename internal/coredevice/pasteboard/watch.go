@@ -36,7 +36,7 @@ func (c *Client) Watch(ctx context.Context, changed func(Snapshot)) error {
 		if redialed && !delivered {
 			return err
 		}
-		c.logger.Debug("pasteboard notification proxy connection ended; reconnecting", "error", err)
+		c.logger.Debug("pasteboard notification proxy connection ended, reconnecting: ", err)
 	}
 }
 
@@ -52,7 +52,7 @@ func (c *Client) watch(ctx context.Context, conn *rsd.PlistConn, last *change, r
 	} else {
 		snapshot, err := c.pull(ctx, policyAllPromised)
 		if err != nil && !errors.Is(err, ErrRefused) && ctx.Err() == nil {
-			c.logger.Warn("read the pasteboard", "error", err)
+			c.logger.Warn(E.Cause(err, "read the pasteboard"))
 		}
 		*last = snapshot.change
 	}
@@ -82,7 +82,7 @@ func (c *Client) check(ctx context.Context, last *change, changed func(Snapshot)
 	}
 	if err != nil {
 		if ctx.Err() == nil {
-			c.logger.Warn("read the pasteboard after a change", "error", err)
+			c.logger.Warn(E.Cause(err, "read the pasteboard after a change"))
 		}
 		return
 	}

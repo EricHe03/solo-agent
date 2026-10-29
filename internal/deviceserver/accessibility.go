@@ -2,19 +2,19 @@ package deviceserver
 
 import (
 	"context"
-	"log/slog"
 	"strings"
 	"sync"
 
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice/accessibility"
 	"github.com/swipt-automation/swipt/internal/coredevice/apps"
 )
 
 type remoteAccessibility struct {
 	attachment *attachment
-	logger     *slog.Logger
+	logger     logger.ContextLogger
 	access     sync.Mutex
 	client     *accessibility.RemoteClient
 	dialing    chan struct{}
@@ -62,12 +62,12 @@ func (r *remoteAccessibility) dial(done chan struct{}, broken *accessibility.Rem
 	a := r.attachment
 	if broken != nil {
 		if err := broken.Close(); err != nil {
-			r.logger.Debug("close remote AX", "error", err)
+			r.logger.Debug(E.Cause(err, "close remote AX"))
 		}
 	}
 	r.restarted.Do(func() {
 		if err := r.restart(a.ctx); err != nil {
-			r.logger.Debug("restart axauditd", "error", err)
+			r.logger.Debug(E.Cause(err, "restart axauditd"))
 		}
 	})
 	client, err := accessibility.DialRemote(a.ctx, a.owner, a.device, r.pushed)
@@ -85,7 +85,7 @@ func (r *remoteAccessibility) reopen(ctx context.Context, stalled *accessibility
 	}
 	if stalled != nil {
 		if err := stalled.Close(); err != nil {
-			r.logger.Debug("close stalled remote AX", "error", err)
+			r.logger.Debug(E.Cause(err, "close stalled remote AX"))
 		}
 	}
 	_, err := r.get(ctx)

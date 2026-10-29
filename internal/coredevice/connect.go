@@ -2,12 +2,12 @@ package coredevice
 
 import (
 	"context"
-	"log/slog"
 	"net"
 	"net/netip"
 
 	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice/lockdown"
 	"github.com/swipt-automation/swipt/internal/coredevice/pairing"
 	"github.com/swipt-automation/swipt/internal/coredevice/tlspsk"
@@ -17,7 +17,7 @@ import (
 type RemotePairingOptions struct {
 	Address netip.AddrPort
 	Record  *pairing.Record
-	Logger  *slog.Logger
+	Logger  logger.ContextLogger
 }
 
 var ErrLoopbackAddress = E.New("remote pairing through a loopback address is refused: " +
@@ -28,16 +28,15 @@ func ConnectRemotePairing(ctx context.Context, options RemotePairingOptions) (*D
 	if address := options.Address.Addr().Unmap(); address.IsLoopback() || address.IsUnspecified() {
 		return nil, ErrLoopbackAddress
 	}
-	logger := options.Logger
-	if logger == nil {
-		logger = slog.New(slog.DiscardHandler)
+	if options.Logger == nil {
+		options.Logger = logger.NOP()
 	}
 	var dialer net.Dialer
 	conn, err := dialer.DialContext(ctx, "tcp", options.Address.String())
 	if err != nil {
 		return nil, E.Cause(err, "connect to remote pairing")
 	}
-	session, err := pairing.Verify(ctx, conn, options.Record, logger)
+	session, err := pairing.Verify(ctx, conn, options.Record, options.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +45,7 @@ func ConnectRemotePairing(ctx context.Context, options RemotePairingOptions) (*D
 		session.Close()
 		return nil, err
 	}
-	logger.Debug("remote pairing listener", slog.Int("port", int(port)))
+	options.Logger.Debug("remote pairing listener: ", port)
 	tunnelConn, err := dialer.DialContext(ctx, "tcp", netip.AddrPortFrom(options.Address.Addr(), port).String())
 	if err != nil {
 		session.Close()
@@ -57,34 +56,33 @@ func ConnectRemotePairing(ctx context.Context, options RemotePairingOptions) (*D
 		session.Close()
 		return nil, E.Cause(err, "tunnel TLS")
 	}
-	tun, err := tunnel.Open(ctx, secureConn, logger)
+	tun, err := tunnel.Open(ctx, secureConn, options.Logger)
 	if err != nil {
 		session.Close()
 		return nil, err
 	}
-	return newDevice(ctx, tun, session, handshakeIdentity(options.Record.Identifier), logger)
+	return newDevice(ctx, tun, session, handshakeIdentity(options.Record.Identifier), options.Logger)
 }
 
 type LockdownOptions struct {
 	Address netip.Addr
 	Record  *lockdown.PairRecord
-	Logger  *slog.Logger
+	Logger  logger.ContextLogger
 }
 
 func ConnectLockdown(ctx context.Context, options LockdownOptions) (*Device, error) {
-	logger := options.Logger
-	if logger == nil {
-		logger = slog.New(slog.DiscardHandler)
+	if options.Logger == nil {
+		options.Logger = logger.NOP()
 	}
 	dial := func(ctx context.Context, port uint16) (net.Conn, error) {
 		var dialer net.Dialer
 		return dialer.DialContext(ctx, "tcp", netip.AddrPortFrom(options.Address, port).String())
 	}
 	identity := handshakeIdentity(options.Record.HostID)
-	return connectLockdown(ctx, options.Record, dial, identity, logger)
+	return connectLockdown(ctx, options.Record, dial, identity, options.Logger)
 }
 
-func connectLockdown(ctx context.Context, record *lockdown.PairRecord, dial lockdown.Dialer, identity uuid.UUID, logger *slog.Logger) (*Device, error) {
+func connectLockdown(ctx context.Context, record *lockdown.PairRecord, dial lockdown.Dialer, identity uuid.UUID, logger logger.ContextLogger) (*Device, error) {
 	conn, err := lockdown.DialCoreDeviceProxy(ctx, record, dial, logger)
 	if err != nil {
 		return nil, err

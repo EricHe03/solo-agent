@@ -3,19 +3,17 @@
 package main
 
 import (
-	"log/slog"
 	"os"
 
-	"github.com/swipt-automation/swipt/internal/logbuffer"
+	"github.com/swipt-automation/swipt/internal/log"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	debugLog bool
-	logLevel slog.LevelVar
-	logs     = logbuffer.New()
-	logger   = slog.New(logs.Handler(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: &logLevel})))
+	debugLog   bool
+	logFactory = log.NewFactory(log.Options{Level: log.LevelInfo, Writer: os.Stderr})
+	logger     = logFactory.Logger()
 )
 
 var mainCommand = &cobra.Command{
@@ -31,11 +29,11 @@ func init() {
 
 func preRun(cmd *cobra.Command, args []string) {
 	if debugLog {
-		logLevel.Set(slog.LevelDebug)
+		logFactory.SetLevel(log.LevelDebug)
 	}
 }
 
 func fatal(err error) {
-	logger.Error(err.Error())
+	logger.Error(err)
 	os.Exit(1)
 }

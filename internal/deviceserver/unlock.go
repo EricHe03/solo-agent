@@ -3,7 +3,6 @@ package deviceserver
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 	"slices"
 	"strconv"
 	"strings"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice"
 	"github.com/swipt-automation/swipt/internal/coredevice/accessibility"
 	"github.com/swipt-automation/swipt/internal/coredevice/hid"
@@ -79,7 +79,7 @@ type deviceUnlockTarget struct {
 	input         *hid.Client
 	keys          *keyboard
 	lockState     *lockStateReader
-	logger        *slog.Logger
+	logger        logger.ContextLogger
 	accessibility *accessibility.RemoteClient
 }
 
@@ -308,7 +308,7 @@ func (t *deviceUnlockTarget) prepare(ctx context.Context) (accessibility.Passcod
 				return accessibility.PasscodeState{}, err
 			}
 			wakeSent = true
-			t.logger.Info("unlock wake", "elapsed", time.Since(started))
+			t.logger.Info("unlock wake after ", time.Since(started))
 			continue
 		}
 		wakeSent = false
@@ -323,7 +323,7 @@ func (t *deviceUnlockTarget) prepare(ctx context.Context) (accessibility.Passcod
 				return accessibility.PasscodeState{}, err
 			}
 			openSent = true
-			t.logger.Info("unlock first backspace", "elapsed", time.Since(started))
+			t.logger.Info("unlock first backspace after ", time.Since(started))
 			continue
 		}
 		if err = join(accessibilityDialed, &accessibilityErr); err != nil {
@@ -334,14 +334,14 @@ func (t *deviceUnlockTarget) prepare(ctx context.Context) (accessibility.Passcod
 			return accessibility.PasscodeState{}, err
 		}
 		if state.Ready {
-			t.logger.Info("lock-screen keyboard ready", "elapsed", time.Since(started))
+			t.logger.Info("lock-screen keyboard ready after ", time.Since(started))
 			return state, nil
 		}
 		if layout == nil {
 			continue
 		}
 		data, _ := json.Marshal(layout)
-		t.logger.Info("unlock layout probe", "elapsed", time.Since(started), "layout", string(data))
+		t.logger.Info("unlock layout probe after ", time.Since(started), ": ", string(data))
 		point, ok := accessibility.NumericPasscodeShortcutPoint(*layout, deviceClass)
 		if !ok {
 			continue
@@ -354,7 +354,7 @@ func (t *deviceUnlockTarget) prepare(ctx context.Context) (accessibility.Passcod
 		}
 		err = t.input.Tap(ctx, hid.Touch{X: point.X, Y: point.Y})
 		shortcutTried = true
-		t.logger.Info("unlock shortcut tap", "elapsed", time.Since(started), "error", err)
+		t.logger.Info("unlock shortcut tap after ", time.Since(started), ", error: ", err)
 		if err != nil {
 			return accessibility.PasscodeState{}, err
 		}
@@ -393,7 +393,7 @@ func (t *deviceUnlockTarget) preparation(ctx context.Context, readLayout bool) (
 		state, err = t.accessibility.ReadPasscodeState(ctx)
 	}
 	data, _ := json.Marshal(state)
-	t.logger.Info("unlock readiness probe", "state", string(data), "error", err)
+	t.logger.Info("unlock readiness probe: ", string(data), ", error: ", err)
 	return state, layout, err
 }
 
@@ -450,7 +450,7 @@ func (w *inputWorker) checkUnlock(a *attachment) bool {
 		released := a.ctx.Err() == nil
 		if released {
 			if releaseErr := w.client.ReleaseAll(a.ctx); releaseErr != nil {
-				w.logger.Warn("release input after automatic unlocking", "error", releaseErr)
+				w.logger.Warn(E.Cause(releaseErr, "release input after automatic unlocking"))
 				released = false
 			}
 		}
@@ -468,20 +468,20 @@ func (w *inputWorker) checkUnlock(a *attachment) bool {
 		if closeErr := target.accessibility.Close(); closeErr != nil {
 			closeErr = E.Cause(closeErr, "stop automatic unlock accessibility")
 			w.closeErr = E.Errors(w.closeErr, closeErr)
-			w.logger.Warn("automatic unlock accessibility cleanup failed", "error", closeErr)
+			w.logger.Warn(closeErr)
 		} else {
-			w.logger.Info("automatic unlock accessibility stopped", "elapsed", time.Since(cleanupStarted))
+			w.logger.Info("automatic unlock accessibility stopped in ", time.Since(cleanupStarted))
 		}
 	}
 	if consumed {
-		w.logger.Info("automatic unlock finished", "elapsed", time.Since(started), "error", err)
+		w.logger.Info("automatic unlock finished in ", time.Since(started), ", error: ", err)
 	}
 	if err != nil && a.ctx.Err() != nil {
 		return true
 	}
 	w.unlockPending = false
 	if err != nil {
-		w.logger.Warn("automatic unlocking failed", "error", err)
+		w.logger.Warn(E.Cause(err, "automatic unlocking"))
 		return true
 	}
 	return consumed

@@ -133,36 +133,30 @@ func (l *serverLeg) takeTimingLocked(now time.Time) ([]any, bool) {
 	}
 	round := func(d time.Duration) time.Duration { return d.Round(100 * time.Microsecond) }
 	frameDelay := interval.frameDelay
-	attributes := []any{"frames", interval.frames}
+	message := []any{"media timing: ", interval.frames, " frames"}
 	switch {
 	case frameDelay.count == 0:
 	case t.deviceClock:
-		attributes = append(attributes,
-			"frame_delay_min", round(frameDelay.min),
-			"frame_delay_avg", round(frameDelay.average()),
-			"frame_delay_max", round(frameDelay.max),
-			"largest_frame", interval.largestFrame,
-			"largest_frame_delay", round(interval.largestFrameDelay))
+		message = append(message,
+			", frame delay min ", round(frameDelay.min), " avg ", round(frameDelay.average()), " max ", round(frameDelay.max),
+			", largest frame ", interval.largestFrame, " delay ", round(interval.largestFrameDelay))
 	default:
-		attributes = append(attributes,
-			"frame_delay_above_min_avg", round(frameDelay.average()-frameDelay.min),
-			"frame_delay_above_min_max", round(frameDelay.max-frameDelay.min),
-			"largest_frame", interval.largestFrame,
-			"largest_frame_delay_above_min", round(interval.largestFrameDelay-frameDelay.min))
+		message = append(message,
+			", frame delay above min avg ", round(frameDelay.average()-frameDelay.min), " max ", round(frameDelay.max-frameDelay.min),
+			", largest frame ", interval.largestFrame, " delay above min ", round(interval.largestFrameDelay-frameDelay.min))
 	}
 	if interval.reportDelay.count > 0 {
 		if t.deviceClock {
-			attributes = append(attributes, "report_delay_max", round(interval.reportDelay.max))
+			message = append(message, ", report delay max ", round(interval.reportDelay.max))
 		} else {
-			attributes = append(attributes, "device_clock_offset", round(interval.reportDelay.max))
+			message = append(message, ", device clock offset ", round(interval.reportDelay.max))
 		}
 	}
-	attributes = append(attributes,
-		"queue_wait_avg", round(interval.queueWait.average()),
-		"queue_wait_max", round(interval.queueWait.max),
-		"send_errors", interval.sendErrors)
+	message = append(message,
+		", queue wait avg ", round(interval.queueWait.average()), " max ", round(interval.queueWait.max),
+		", ", interval.sendErrors, " send errors")
 	if interval.lastSendError != nil {
-		attributes = append(attributes, "send_error", interval.lastSendError.Error())
+		message = append(message, ", last ", interval.lastSendError)
 	}
-	return append(attributes, "client_rtt", round(l.clientRTT), "client_delay_max", round(interval.clientDelay)), true
+	return append(message, ", client RTT ", round(l.clientRTT), ", client delay max ", round(interval.clientDelay)), true
 }

@@ -43,7 +43,7 @@ func (s *Server) prepareDiskImage(ctx context.Context, device *coredevice.Device
 	var failure error
 	variants := diskImageVariants
 	if status.CryptexError != nil {
-		s.logger.Warn("cryptexd failed; trying the personalized disk image first", "error", status.CryptexError)
+		s.logger.Warn("cryptexd failed, trying the personalized disk image first: ", status.CryptexError)
 		failure = E.Cause(status.CryptexError, "list installed cryptexes")
 		variants = []imagemounter.Variant{imagemounter.Personalized, imagemounter.Cryptex}
 	}
@@ -54,13 +54,13 @@ func (s *Server) prepareDiskImage(ctx context.Context, device *coredevice.Device
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			s.logger.Info("disk image files", "variant", variant, "error", err)
+			s.logger.Info(E.Cause(err, "find ", variant, " disk image files"))
 			failure = E.Errors(failure, err)
 			hasCopy = hasCopy || !errors.Is(err, fs.ErrNotExist)
 			continue
 		}
 		found = true
-		s.logger.Info("mounting the Developer Disk Image", "variant", variant, "directory", files)
+		s.logger.Info("mounting the ", variant, " Developer Disk Image from ", files)
 		if variant == imagemounter.Cryptex {
 			err = images.MountCryptex(ctx, files)
 		} else {
@@ -68,7 +68,7 @@ func (s *Server) prepareDiskImage(ctx context.Context, device *coredevice.Device
 		}
 		switch {
 		case err == nil, errors.Is(err, imagemounter.ErrAlreadyMounted):
-			s.logger.Info("mounted the Developer Disk Image", "variant", variant)
+			s.logger.Info("mounted the ", variant, " Developer Disk Image")
 			s.relisted = true
 			return errRemounted
 		case errors.Is(err, imagemounter.ErrDeveloperModeOff):
@@ -76,7 +76,7 @@ func (s *Server) prepareDiskImage(ctx context.Context, device *coredevice.Device
 		case ctx.Err() != nil:
 			return ctx.Err()
 		}
-		s.logger.Warn("mount the Developer Disk Image", "variant", variant, "error", err)
+		s.logger.Warn(E.Cause(err, "mount the ", variant, " Developer Disk Image"))
 		failure = E.Errors(failure, E.Cause(err, "mount ", variant))
 	}
 	if !found {

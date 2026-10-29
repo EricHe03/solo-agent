@@ -102,7 +102,7 @@ func (c *Client) PrepareKeyboard(ctx context.Context) error {
 		return E.New("hid: create keyboard: reply without a service ID: ", strings.Join(slices.Sorted(maps.Keys(reply)), ", "))
 	}
 	c.keyboard = serviceID
-	c.logger.Debug("created keyboard", "service", serviceID)
+	c.logger.Debug("created keyboard, service ", serviceID)
 	return nil
 }
 

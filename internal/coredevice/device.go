@@ -2,13 +2,14 @@ package coredevice
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 	"net"
 	"net/netip"
 	"sync"
 
 	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
 	"github.com/swipt-automation/swipt/internal/coredevice/pairing"
@@ -35,13 +36,13 @@ type Device struct {
 	rsdConn   *xpc.Conn
 	services  map[string]uint16
 	info      DeviceInfo
-	logger    *slog.Logger
+	logger    logger.ContextLogger
 	done      chan struct{}
 	closeOnce sync.Once
 	err       error
 }
 
-func newDevice(ctx context.Context, tun *tunnel.Tunnel, session *pairing.Session, identity uuid.UUID, logger *slog.Logger) (*Device, error) {
+func newDevice(ctx context.Context, tun *tunnel.Tunnel, session *pairing.Session, identity uuid.UUID, logger logger.ContextLogger) (*Device, error) {
 	d := &Device{
 		tunnel:  tun,
 		session: session,
@@ -88,12 +89,8 @@ func (d *Device) handshake(ctx context.Context, identity uuid.UUID) error {
 	case int64:
 		d.info.ECID = uint64(ecid)
 	}
-	d.logger.Debug("connected to device",
-		slog.String("udid", d.info.UDID),
-		slog.String("product_type", d.info.ProductType),
-		slog.String("os_version", d.info.OSVersion),
-		slog.Uint64("protocol_version", peer.MessagingProtocolVersion),
-		slog.Int("services", len(d.services)))
+	d.logger.Debug("connected to device ", d.info.UDID, ": ", d.info.ProductType, " ", d.info.OSVersion,
+		", protocol version ", peer.MessagingProtocolVersion, ", ", len(d.services), " services")
 	return nil
 }
 
@@ -115,7 +112,7 @@ func (d *Device) watch() {
 			// captured RSD exchange (observed on iPad17,1, iPadOS 27.2 24B5099f).
 			if message.Body["MessageType"] == "StartTls" {
 				if message.Body["YesNo"] == true {
-					d.logger.Warn("the device asks for TLS on the RSD connection, which is not supported", slog.Any("body", message.Body))
+					d.logger.Warn("the device asks for TLS on the RSD connection, which is not supported: ", fmt.Sprint(message.Body))
 					continue
 				}
 				err = rsd.DeclineTLS(d.rsdConn)
@@ -125,7 +122,7 @@ func (d *Device) watch() {
 				}
 				continue
 			}
-			d.logger.Debug("RSD message", slog.Any("flags", message.Flags), slog.Any("body", message.Body))
+			d.logger.Debug("RSD message, flags ", message.Flags, ": ", fmt.Sprint(message.Body))
 		}
 	}()
 	select {
@@ -137,7 +134,7 @@ func (d *Device) watch() {
 
 func (d *Device) fail(err error) {
 	d.closeOnce.Do(func() {
-		d.logger.Debug("device connection closed", slog.Any("error", err))
+		d.logger.Debug("device connection closed: ", err)
 		d.err = err
 		close(d.done)
 		if d.rsdConn != nil {

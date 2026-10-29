@@ -6,13 +6,13 @@ package display
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"maps"
 	"math/rand/v2"
 	"time"
 
 	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	N "github.com/sagernet/sing/common/network"
 	"github.com/swipt-automation/swipt/internal/coredevice"
 )
@@ -41,11 +41,11 @@ const (
 type Client struct {
 	owner            context.Context
 	device           *coredevice.Device
-	logger           *slog.Logger
+	logger           logger.ContextLogger
 	deviceIdentifier string
 }
 
-func New(owner context.Context, device *coredevice.Device, logger *slog.Logger) *Client {
+func New(owner context.Context, device *coredevice.Device, logger logger.ContextLogger) *Client {
 	return &Client{
 		owner:            owner,
 		device:           device,
@@ -210,11 +210,10 @@ func (c *Client) start(ctx context.Context, streamType StreamType, options Strea
 		return nil, E.Cause(err, "start ", string(streamType))
 	}
 	stream := newStream(c, info, conn, control)
-	c.logger.Debug("display stream started",
-		"type", info.Type, "ssrc", info.SSRC, "device_ssrc", info.DeviceSSRC,
-		"device", info.DeviceAddress, "width", info.Width, "height", info.Height,
-		"tiles", info.TilesPerFrame, "ltrp", info.LTRP, "sync_token", info.SyncToken, "rtcp_timeout", info.RTCPTimeout,
-		"connect_time", connected.Sub(began), "reply_time", answered.Sub(connected))
+	c.logger.Debug("display stream started: ", string(info.Type), ", SSRC ", info.SSRC, ", device SSRC ", info.DeviceSSRC,
+		", device ", info.DeviceAddress, ", ", info.Width, "x", info.Height, ", ", info.TilesPerFrame, " tiles, LTRP ", info.LTRP,
+		", sync token ", info.SyncToken, ", RTCP timeout ", info.RTCPTimeout,
+		", connected in ", connected.Sub(began), ", replied in ", answered.Sub(connected))
 	err = stream.startKeepalive()
 	if err != nil {
 		return nil, E.Cause(E.Errors(err, stream.Close()), "start ", string(streamType))
@@ -229,7 +228,7 @@ func (c *Client) stopOffered(ssrc uint32) error {
 	}
 	go func() {
 		if _, err := reply(); err != nil {
-			c.logger.Debug("stop after a failed start", "ssrc", ssrc, "error", err)
+			c.logger.Debug(E.Cause(err, "stop stream ", ssrc, " after a failed start"))
 		}
 	}()
 	return nil

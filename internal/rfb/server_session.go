@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"math"
 	"net"
 	"slices"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/outbox"
 	"github.com/swipt-automation/swipt/internal/rfb/media"
 )
@@ -30,7 +30,7 @@ type ServerSession struct {
 	server *Server
 	id     uint64
 	conn   net.Conn
-	logger *slog.Logger
+	logger logger.ContextLogger
 	stream *stream
 	outbox *outbox.Outbox
 	writer *outbox.Writer
@@ -72,7 +72,7 @@ func newServerSession(server *Server, conn net.Conn, id uint64) *ServerSession {
 		server:     server,
 		id:         id,
 		conn:       conn,
-		logger:     server.logger.With("viewer", conn.RemoteAddr().String(), "session", id),
+		logger:     server.logger,
 		stream:     newStream(conn),
 		outbox:     outbox.New(),
 		writer:     outbox.NewWriter(conn),
@@ -114,11 +114,11 @@ func (s *ServerSession) run() {
 		s.stopWriter()
 		switch {
 		case errors.Is(err, ErrAuthenticationFailed):
-			s.logger.Info("viewer failed to sign in", "user", s.userName, "error", err)
+			s.logger.Info("viewer ", s.conn.RemoteAddr(), " failed to sign in as ", strconv.Quote(s.userName), ": ", err)
 		case hungUp(err):
-			s.logger.Debug("viewer left during the handshake", "error", err)
+			s.logger.Debug("viewer ", s.conn.RemoteAddr(), " left during the handshake: ", err)
 		default:
-			s.logger.Warn("handshake", "error", err)
+			s.logger.Warn(E.Cause(err, "handshake with viewer ", s.conn.RemoteAddr()))
 		}
 		return
 	}
@@ -127,7 +127,7 @@ func (s *ServerSession) run() {
 		s.stopWriter()
 		return
 	}
-	s.logger.Info("viewer connected", "user", s.userName)
+	s.logger.Info("viewer ", s.conn.RemoteAddr(), " connected as ", strconv.Quote(s.userName))
 	s.server.handler.SessionStarted(s)
 	for _, message := range held {
 		if err == nil {
@@ -160,7 +160,11 @@ func (s *ServerSession) finish(err error) {
 	if hungUp(err) {
 		err = nil
 	}
-	s.logger.Info("viewer disconnected", "error", err)
+	if err != nil {
+		s.logger.Info("viewer ", s.conn.RemoteAddr(), " disconnected: ", err)
+	} else {
+		s.logger.Info("viewer ", s.conn.RemoteAddr(), " disconnected")
+	}
 	s.server.handler.SessionEnded(s, err)
 }
 
@@ -220,7 +224,7 @@ func (s *ServerSession) handshake() error {
 	screen := s.server.handler.Screen()
 	s.screen = screen
 	s.framebuffer = [2]int{screen.Width, screen.Height}
-	s.logger.Debug("client init", "flags", fmt.Sprintf("%#x", clientInit), "version", version.String())
+	s.logger.Debug("client init: flags ", fmt.Sprintf("%#x", clientInit), ", version ", version.String())
 	_, err = s.conn.Write(serverInitMessage(screen.Width, screen.Height, options.Name))
 	return err
 }
@@ -298,7 +302,7 @@ func (s *ServerSession) prelude() ([][]byte, error) {
 			continue
 		}
 		command := binary.BigEndian.Uint16(message[2:])
-		s.logger.Debug("set encryption", "command", command)
+		s.logger.Debug("set encryption: ", command)
 		switch command {
 		case 1:
 			if !s.writerStarted {
@@ -352,7 +356,7 @@ func (s *ServerSession) startWriter() error {
 func (s *ServerSession) send(message []byte) {
 	err := s.outbox.Push(message, false)
 	if err != nil {
-		s.logger.Debug("send", "error", err)
+		s.logger.Debug(E.Cause(err, "send"))
 	}
 }
 
@@ -369,14 +373,14 @@ func (s *ServerSession) dispatch(message []byte) error {
 		s.access.Lock()
 		s.format = format
 		s.access.Unlock()
-		s.logger.Debug("set pixel format", "format", format.String())
+		s.logger.Debug("set pixel format: ", format.String())
 	case clientSetEncodings:
 		s.setEncodings(parseEncodings(message))
 	case clientUpdateRequest:
 		if message[1] == 0 {
 			err := s.outbox.PushWait(framebufferUpdate())
 			if err != nil {
-				s.logger.Debug("send", "error", err)
+				s.logger.Debug(E.Cause(err, "send"))
 			}
 		}
 	case clientKeyEvent:
@@ -410,28 +414,28 @@ func (s *ServerSession) dispatch(message []byte) error {
 	case clientEvent:
 		event, err := parseEventMessage(message)
 		if err != nil {
-			s.logger.Debug("event message", "error", err)
+			s.logger.Debug(E.Cause(err, "parse event message"))
 			return nil
 		}
 		if event == nil {
-			s.logger.Debug("event message", "version", binary.BigEndian.Uint16(message[4:]), "subtype", binary.BigEndian.Uint16(message[6:]))
+			s.logger.Debug("event message version ", binary.BigEndian.Uint16(message[4:]), ", subtype ", binary.BigEndian.Uint16(message[6:]))
 			return nil
 		}
 		s.emitInput(event)
 	case clientMediaStream:
 		s.handleOffer(message)
 	case clientDisplayConfig:
-		s.logger.Debug("viewer asked for virtual displays, which the server cannot make", "bytes", len(message))
+		s.logger.Debug("viewer asked for virtual displays, which the server cannot make: ", len(message), " bytes")
 		s.answerDisplayRequest()
 	case clientPasteboard:
 		clipboard, err := parseClientPasteboard(message)
 		if err != nil {
-			s.logger.Warn("unreadable pasteboard", "error", err)
+			s.logger.Warn(E.Cause(err, "read the viewer's pasteboard"))
 			return nil
 		}
 		s.receiveClipboard(clipboard)
 	default:
-		s.logger.Debug("client message", "type", fmt.Sprintf("%#02x", message[0]), "bytes", len(message))
+		s.logger.Debug("client message ", fmt.Sprintf("%#02x", message[0]), ": ", len(message), " bytes")
 	}
 	return nil
 }
@@ -454,7 +458,7 @@ func (s *ServerSession) setScale(scale float64) {
 	if !(scale > 0 && scale <= 1) {
 		scale = 0
 	}
-	s.logger.Debug("viewer scale", "scale", scale)
+	s.logger.Debug("viewer scale: ", scale)
 	s.access.Lock()
 	var rectangles []serverRectangle
 	if scale != s.viewerScale {
@@ -500,7 +504,7 @@ func (s *ServerSession) deviceLocked(screen ServerScreen) []serverRectangle {
 	case encoding != s.cursorEncoding || screen.Scale != s.cursorScale:
 		rectangle, ok := cursorRectangle(pointerCursor(screen), encoding, s.format)
 		if !ok {
-			s.logger.Debug("no pointer in the viewer's pixel format", "format", s.format.String())
+			s.logger.Debug("no pointer in the viewer's pixel format ", s.format.String())
 			break
 		}
 		s.cursorEncoding, s.cursorScale = encoding, screen.Scale
@@ -524,7 +528,7 @@ func (s *ServerSession) setEncodings(encodings []Encoding) {
 	stop := !wanted && s.mediaWanted
 	s.mediaWanted = wanted
 	s.access.Unlock()
-	s.logger.Debug("set encodings", "encodings", fmt.Sprint(encodings))
+	s.logger.Debug("set encodings: ", fmt.Sprint(encodings))
 	if len(rectangles) > 0 {
 		s.send(framebufferUpdate(rectangles...))
 	}
@@ -557,7 +561,7 @@ func (s *ServerSession) startMedia() {
 	if err != nil {
 		s.server.releaseMedia(s)
 		s.mediaWanted = false
-		s.logger.Warn("media stream", "error", err)
+		s.logger.Warn(E.Cause(err, "start the media stream"))
 		s.send(mediaStreamUpdate(media.ErrorMessage(media.ServerErrorBadConfiguration, 0)))
 		return
 	}
@@ -565,7 +569,7 @@ func (s *ServerSession) startMedia() {
 	s.media = stream
 	s.access.Unlock()
 	audio, video := stream.Ports()
-	s.logger.Info("media stream ports", "video", video, "audio", audio)
+	s.logger.Info("media stream ports: video ", video, ", audio ", audio)
 	s.send(mediaStreamUpdate(stream.PortsMessage()))
 }
 
@@ -597,7 +601,7 @@ func (s *ServerSession) handleOffer(message []byte) {
 	}
 	err := stream.HandleOffer(message)
 	if err != nil {
-		s.logger.Debug("media offer", "error", err)
+		s.logger.Debug(E.Cause(err, "media offer"))
 	}
 }
 
@@ -632,7 +636,7 @@ func (s *ServerSession) screenChanged(screen ServerScreen) {
 	if resized && stream != nil {
 		err := stream.Renegotiate(screen.Width, screen.Height)
 		if err != nil {
-			s.logger.Debug("restart the media stream", "error", err)
+			s.logger.Debug(E.Cause(err, "restart the media stream"))
 		}
 	}
 }
@@ -691,7 +695,7 @@ func (s *ServerSession) answerPasteboard(echo uint32) {
 		if s.ctx.Err() != nil {
 			return
 		}
-		s.logger.Warn("read the device clipboard", "error", err)
+		s.logger.Warn(E.Cause(err, "read the device clipboard"))
 		return
 	}
 	s.access.Lock()
@@ -699,6 +703,6 @@ func (s *ServerSession) answerPasteboard(echo uint32) {
 	s.access.Unlock()
 	err = s.outbox.PushWait(message)
 	if err != nil {
-		s.logger.Debug("send the pasteboard", "error", err)
+		s.logger.Debug(E.Cause(err, "send the pasteboard"))
 	}
 }

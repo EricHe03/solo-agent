@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"math"
 	"slices"
 	"strings"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice/accessibility"
 	"github.com/swipt-automation/swipt/internal/coredevice/apps"
 	"github.com/swipt-automation/swipt/internal/coredevice/hid"
@@ -79,7 +79,7 @@ type PhoneScreen struct {
 
 type Phone struct {
 	server *Server
-	logger *slog.Logger
+	logger logger.ContextLogger
 
 	access          sync.Mutex
 	input           *hid.Client
@@ -156,7 +156,7 @@ func (p *Phone) reopenStalled(ctx context.Context, a *attachment, stalled *acces
 		return err
 	}
 	p.forgetFront()
-	p.logger.Warn("reopen remote AX", "error", err)
+	p.logger.Warn("reopen remote AX: ", err)
 	err = a.accessibility.reopen(ctx, stalled)
 	if err == nil {
 		if read {
@@ -172,7 +172,7 @@ func (p *Phone) restartStalled(ctx context.Context, a *attachment, read bool, er
 		return err
 	}
 	p.forgetFront()
-	p.logger.Warn("restart axauditd", "error", err)
+	p.logger.Warn("restart axauditd: ", err)
 	if restartErr := a.accessibility.restart(ctx); restartErr != nil {
 		return E.Cause(restartErr, "restart the stalled accessibility service")
 	}
@@ -510,7 +510,7 @@ func (p *Phone) read(ctx context.Context, a *attachment) (*PhoneModel, error) {
 		return nil, err
 	}
 	model := modelOf(geometry, screen)
-	p.logger.Debug("read", "app", model.BundleID, "nodes", len(model.nodes), "took", time.Since(started), "rounds", screen.Rounds)
+	p.logger.Debug("read ", len(model.nodes), " nodes of ", model.BundleID, " in ", time.Since(started), ", rounds ", fmt.Sprint(screen.Rounds))
 	return model, nil
 }
 

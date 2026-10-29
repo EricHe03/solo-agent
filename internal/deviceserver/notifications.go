@@ -13,14 +13,14 @@ func (s *Server) dismissScreenViewingNotifications(a *attachment) {
 				var count int
 				count, err = client.DismissScreenViewingNotifications(a.ctx)
 				if count != 0 {
-					s.logger.Debug("cleared screen-viewing notifications", "count", count)
+					s.logger.Debug("cleared ", count, " screen-viewing notifications")
 				}
 			}
 		}
 		if a.ctx.Err() != nil {
 			return
 		}
-		s.logger.Warn("clear screen-viewing notifications", "error", err)
+		s.logger.Warn("clear screen-viewing notifications: ", err)
 		select {
 		case <-a.ctx.Done():
 			return

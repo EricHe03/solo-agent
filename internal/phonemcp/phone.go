@@ -4,7 +4,6 @@ package phonemcp
 
 import (
 	"encoding/json"
-	"log/slog"
 	"maps"
 	"reflect"
 	"slices"
@@ -17,7 +16,7 @@ import (
 	"github.com/swipt-automation/swipt/internal/coredevice/accessibility"
 	"github.com/swipt-automation/swipt/internal/coredevice/apps"
 	"github.com/swipt-automation/swipt/internal/deviceserver"
-	"github.com/swipt-automation/swipt/internal/logbuffer"
+	"github.com/swipt-automation/swipt/internal/log"
 )
 
 type point deviceserver.Point
@@ -113,11 +112,11 @@ var operations = append([]string{
 	"setLocation", "clearLocation", "logs",
 }, slices.Collect(maps.Keys(buttons))...)
 
-type logRecord struct {
-	Time    float64           `json:"time"`
-	Level   string            `json:"level"`
-	Message string            `json:"message"`
-	Attrs   map[string]string `json:"attrs,omitempty"`
+type logEntry struct {
+	Time    float64 `json:"time"`
+	Level   string  `json:"level"`
+	Tag     string  `json:"tag,omitempty"`
+	Message string  `json:"message"`
 }
 
 type actionResult struct {
@@ -434,25 +433,21 @@ func (s *Runner) dispatch(current *run, table *elementTable, name string, args [
 		if err := decode(args, 0, &strict{&options}); err != nil {
 			return nil, err
 		}
-		level := slog.LevelDebug
+		level := log.LevelDebug
 		if options.Level != "" {
-			if err := level.UnmarshalText([]byte(options.Level)); err != nil {
+			var err error
+			level, err = log.ParseLevel(options.Level)
+			if err != nil {
 				return nil, E.New("unknown level ", strconv.Quote(options.Level), "; the levels are debug, info, warn, error")
 			}
 		}
-		return common.Map(s.logs.Records(time.UnixMilli(int64(options.Since)), level), func(record logbuffer.Record) logRecord {
-			out := logRecord{
-				Time:    float64(record.Time.UnixMicro()) / 1000,
-				Level:   strings.ToLower(record.Level.String()),
-				Message: record.Message,
+		return common.Map(s.logFactory.Entries(time.UnixMilli(int64(options.Since)), level), func(entry log.Entry) logEntry {
+			return logEntry{
+				Time:    float64(entry.Time.UnixMicro()) / 1000,
+				Level:   log.FormatLevel(entry.Level),
+				Tag:     entry.Tag,
+				Message: entry.Message,
 			}
-			if len(record.Attrs) > 0 {
-				out.Attrs = make(map[string]string, len(record.Attrs))
-				for _, attr := range record.Attrs {
-					out.Attrs[attr.Key] = attr.Value
-				}
-			}
-			return out
 		}), nil
 	}
 	return nil, E.New("unknown operation ", name)

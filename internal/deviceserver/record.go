@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/coredevice/accessibility"
 	"github.com/swipt-automation/swipt/internal/coredevice/apps"
 	"github.com/swipt-automation/swipt/internal/coredevice/instruments"
@@ -86,7 +87,7 @@ func (r *Recording) Stop() []Recorded {
 	delete(p.recordings, r)
 	p.recordAccess.Unlock()
 	if err := r.states.Close(); err != nil {
-		p.logger.Debug("stop recording app states", "error", err)
+		p.logger.Debug(E.Cause(err, "stop recording app states"))
 	}
 	<-r.done
 	p.recordAccess.Lock()

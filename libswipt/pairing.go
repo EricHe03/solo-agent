@@ -44,7 +44,7 @@ func NewPairingResponderWithRecord(hostName string, record []byte, handler Pairi
 				handler.OnPIN(pin)
 			}
 		},
-		Logger: newLogger(),
+		Logger: newLogFactory().NewLogger("pairing"),
 	})
 	if err != nil {
 		cancel()

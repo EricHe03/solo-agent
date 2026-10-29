@@ -9,10 +9,10 @@ package imagemounter
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice"
 )
 
@@ -43,10 +43,10 @@ var (
 
 type Client struct {
 	device *coredevice.Device
-	logger *slog.Logger
+	logger logger.ContextLogger
 }
 
-func New(device *coredevice.Device, logger *slog.Logger) *Client {
+func New(device *coredevice.Device, logger logger.ContextLogger) *Client {
 	return &Client{device: device, logger: logger}
 }
 
@@ -81,7 +81,7 @@ func (c *Client) Status(ctx context.Context) (Status, error) {
 			if ctx.Err() != nil {
 				return Status{}, ctx.Err()
 			}
-			c.logger.Warn("list installed cryptexes", "error", err)
+			c.logger.Warn(E.Cause(err, "list installed cryptexes"))
 			status.CryptexError = err
 		}
 	}

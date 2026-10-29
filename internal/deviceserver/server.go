@@ -3,8 +3,6 @@ package deviceserver
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log/slog"
 	"net"
 	"strconv"
 	"strings"
@@ -13,6 +11,7 @@ import (
 	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	M "github.com/sagernet/sing/common/metadata"
 	"github.com/swipt-automation/swipt/internal/coredevice"
 	"github.com/swipt-automation/swipt/internal/coredevice/display"
@@ -75,7 +74,7 @@ type Observer interface {
 type Options struct {
 	Name     string
 	Connect  func(ctx context.Context) (*coredevice.Device, error)
-	Logger   *slog.Logger
+	Logger   logger.ContextLogger
 	Observer Observer
 
 	// BLSBacklightState: 0 off, 1 inactiveOn, 2 activeOn, 3 dimmed (BacklightServices
@@ -93,7 +92,7 @@ type Settings struct {
 type Server struct {
 	options  Options
 	settings atomic.Pointer[Settings]
-	logger   *slog.Logger
+	logger   logger.ContextLogger
 	notifier *notifier
 	streams  *streamManager
 	input    *inputWorker
@@ -142,13 +141,12 @@ type attachment struct {
 }
 
 func New(options Options) (*Server, error) {
-	logger := options.Logger
-	if logger == nil {
-		logger = slog.New(slog.DiscardHandler)
+	if options.Logger == nil {
+		options.Logger = logger.NOP()
 	}
 	s := &Server{
 		options:     options,
-		logger:      logger,
+		logger:      options.Logger,
 		done:        make(chan struct{}),
 		retry:       make(chan struct{}, 1),
 		displayWake: make(chan struct{}, 1),
@@ -157,10 +155,10 @@ func New(options Options) (*Server, error) {
 	s.settings.Store(&Settings{})
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	s.notifier = newNotifier()
-	s.streams = newStreamManager(logger.With("component", "stream"), s.streamingChanged)
-	s.input = newInputWorker(s, logger.With("component", "input"))
-	s.clip = newClipboardBridge(s, logger.With("component", "clipboard"))
-	s.phone = &Phone{server: s, logger: logger.With("component", "phone"), recordings: make(map[*Recording]struct{})}
+	s.streams = newStreamManager(s.logger, s.streamingChanged)
+	s.input = newInputWorker(s, s.logger)
+	s.clip = newClipboardBridge(s, s.logger)
+	s.phone = &Phone{server: s, logger: s.logger, recordings: make(map[*Recording]struct{})}
 	return s, nil
 }
 
@@ -228,7 +226,11 @@ func (s *Server) stopped(err error) {
 	s.access.Unlock()
 	var last func()
 	if changed {
-		s.logger.Info("state", "state", StateStopped, "error", err)
+		if err != nil {
+			s.logger.Info("state: ", StateStopped, ": ", err)
+		} else {
+			s.logger.Info("state: ", StateStopped)
+		}
 		last = func() { s.options.Observer.StateChanged(StateStopped, err) }
 	}
 	s.notifier.close(last)
@@ -243,9 +245,9 @@ func (s *Server) setState(state State, err error) {
 	s.state, s.stateErr = state, err
 	s.access.Unlock()
 	if err != nil {
-		s.logger.Info("state", "state", state, "problem", ProblemOf(err), "error", err)
+		s.logger.Info("state: ", state, ", ", ProblemOf(err), ": ", err)
 	} else {
-		s.logger.Info("state", "state", state)
+		s.logger.Info("state: ", state)
 	}
 	s.notify(func(observer Observer) { observer.StateChanged(state, err) })
 }
@@ -255,7 +257,7 @@ func (s *Server) notify(call func(Observer)) {
 }
 
 func (s *Server) streamingChanged(active bool) {
-	s.logger.Info("device video", "running", active)
+	s.logger.Info("device video running: ", active)
 	s.notify(func(observer Observer) { observer.StreamingChanged(active) })
 }
 
@@ -312,9 +314,9 @@ func (s *Server) run() {
 			return
 		}
 		if connected.IsZero() {
-			s.logger.Info("connect to the device", "error", err)
+			s.logger.Info("connect to the device: ", err)
 		} else {
-			s.logger.Info("device connection ended", "error", err)
+			s.logger.Info("device connection ended: ", err)
 		}
 		lastErr = err
 		if !connected.IsZero() && time.Since(connected) >= stableConnection {
@@ -337,7 +339,7 @@ func stopping(err error) bool {
 }
 
 func (s *Server) fail(err error) {
-	s.logger.Error("device server stopped", "problem", ProblemOf(err), "error", err)
+	s.logger.Error("device server stopped, ", ProblemOf(err), ": ", err)
 	s.closeFrontends()
 	s.setState(StateFailed, err)
 }
@@ -367,22 +369,21 @@ func (s *Server) serveDevice(device *coredevice.Device) error {
 		}
 	}()
 	info := device.Info()
-	s.logger.Info("device connected", "udid", info.UDID, "product", info.ProductType, "os", info.OSVersion, "build", info.BuildVersion)
+	s.logger.Info("device connected: ", info.UDID, ", ", info.ProductType, ", ", info.OSVersion, " (", info.BuildVersion, ")")
 	s.notify(func(observer Observer) { observer.DeviceConnected(info) })
 	s.setModel(info.ProductType)
 	if major, ok := majorVersion(info.OSVersion); ok && major < 27 {
 		return newError(ProblemUnsupported, "iOS ", info.OSVersion, " cannot share its screen; it needs iOS 27 or later")
 	}
-	logger := s.logger.With("component", "device")
 	s.setState(StatePreparing, nil)
-	err := s.prepareDiskImage(s.ctx, device, imagemounter.New(device, logger.With("service", "imagemounter")))
+	err := s.prepareDiskImage(s.ctx, device, imagemounter.New(device, s.logger))
 	if err != nil {
 		return lostOr(device, err)
 	}
 	if !device.HasService(displayService) {
 		return newError(ProblemUnsupported, "the device does not offer ", displayService, " although its disk image is mounted")
 	}
-	displayClient := display.New(owner, device, logger.With("service", "display"))
+	displayClient := display.New(owner, device, s.logger)
 	state, err := displayClient.Displays(s.ctx)
 	if err != nil {
 		return lostOr(device, E.Cause(err, "read the device's displays"))
@@ -443,7 +444,7 @@ func (s *Server) watchRoute(device *coredevice.Device) error {
 		current := M.AddrPortFromNet(conn.LocalAddr()).Addr().Unmap()
 		_ = conn.Close()
 		if current != local.Addr().Unmap() {
-			s.logger.Info("device route changed", "from", local.Addr(), "to", current)
+			s.logger.Info("device route changed from ", local.Addr(), " to ", current)
 			return errRerouted
 		}
 	}
@@ -478,8 +479,8 @@ func (s *Server) setVideoProblem(err error) {
 
 func (s *Server) attach(a *attachment) *attachment {
 	a.ctx, a.cancel = context.WithCancel(s.ctx)
-	a.pasteboard = pasteboard.New(a.ctx, a.device, s.logger.With("component", "device", "service", "pasteboard"))
-	a.accessibility = &remoteAccessibility{attachment: a, logger: s.logger.With("component", "accessibility"), pushed: s.phone.recordPush}
+	a.pasteboard = pasteboard.New(a.ctx, a.device, s.logger)
+	a.accessibility = &remoteAccessibility{attachment: a, logger: s.logger, pushed: s.phone.recordPush}
 	s.access.Lock()
 	s.attached = a
 	close(s.attachWake)
@@ -556,7 +557,7 @@ func (s *Server) pollDisplay(a *attachment) {
 		state, err := a.display.Displays(a.ctx)
 		if err != nil {
 			if a.ctx.Err() == nil {
-				s.logger.Debug("read the device's displays", "error", err)
+				s.logger.Debug(E.Cause(err, "read the device's displays"))
 			}
 		} else if primary, found := primaryDisplay(state); found {
 			s.updateDisplay(primary)
@@ -586,10 +587,10 @@ func (s *Server) updateDisplay(info display.DisplayInfo) {
 	}
 	s.access.Unlock()
 	if previous.Orientation != info.CurrentOrientation && previous.Orientation != "" {
-		s.logger.Info("screen orientation", "orientation", info.CurrentOrientation, "size", fmt.Sprintf("%dx%d", info.Width, info.Height))
+		s.logger.Info("screen orientation: ", info.CurrentOrientation, ", ", info.Width, "x", info.Height)
 	}
 	if changed {
-		s.logger.Info("screen size changed", "width", info.Width, "height", info.Height)
+		s.logger.Info("screen size changed: ", info.Width, "x", info.Height)
 		s.screenChanged()
 	}
 }
@@ -613,7 +614,7 @@ func (s *Server) videoSize(width, height int) {
 	s.screen.Width, s.screen.Height = width, height
 	s.access.Unlock()
 	if changed {
-		s.logger.Info("the video's size differs from the screen's", "width", width, "height", height)
+		s.logger.Info("the video's size differs from the screen's: ", width, "x", height)
 		go s.screenChanged()
 	}
 }

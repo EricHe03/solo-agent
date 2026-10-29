@@ -4,14 +4,14 @@ package coredevice
 
 import (
 	"context"
-	"log/slog"
 	"os"
 
 	"github.com/google/uuid"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice/lockdown"
 )
 
-func ConnectUSBMux(ctx context.Context, udid string, logger *slog.Logger) (*Device, error) {
+func ConnectUSBMux(ctx context.Context, udid string, logger logger.ContextLogger) (*Device, error) {
 	// pymobiledevice3 uses its stable host ID for RSD on a tunnel of its own
 	// (pymobiledevice3 9c33842, pymobiledevice3/remote/remotexpc.py:100-110).
 	hostName, _ := os.Hostname()

@@ -9,7 +9,6 @@ package pasteboard
 
 import (
 	"context"
-	"log/slog"
 	"reflect"
 	"slices"
 	"strconv"
@@ -20,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice"
 	"github.com/swipt-automation/swipt/internal/coredevice/xpc"
 	"howett.net/plist"
@@ -85,14 +85,14 @@ var (
 type Client struct {
 	ctx    context.Context
 	device *coredevice.Device
-	logger *slog.Logger
+	logger logger.ContextLogger
 	nonce  string
 
 	access sync.Mutex
 	writes int64
 }
 
-func New(ctx context.Context, device *coredevice.Device, logger *slog.Logger) *Client {
+func New(ctx context.Context, device *coredevice.Device, logger logger.ContextLogger) *Client {
 	return &Client{
 		ctx:    ctx,
 		device: device,

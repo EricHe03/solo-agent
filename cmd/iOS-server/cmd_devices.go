@@ -83,7 +83,7 @@ func describeDevice(ctx context.Context, device *connectedDevice) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		logger.Warn("read the device's name", "udid", device.UDID, "error", err)
+		logger.Warn(E.Cause(err, "read the name of ", device.UDID))
 		return nil
 	}
 	device.Name, _ = values["DeviceName"].(string)

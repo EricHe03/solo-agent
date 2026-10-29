@@ -2,7 +2,6 @@ package libSwipt
 
 import (
 	"context"
-	"log/slog"
 	"net"
 	"net/netip"
 	"strconv"
@@ -13,7 +12,7 @@ import (
 	"github.com/swipt-automation/swipt/internal/coredevice/lockdown"
 	"github.com/swipt-automation/swipt/internal/coredevice/vpnpeer"
 	"github.com/swipt-automation/swipt/internal/deviceserver"
-	"github.com/swipt-automation/swipt/internal/logbuffer"
+	"github.com/swipt-automation/swipt/internal/log"
 	"github.com/swipt-automation/swipt/internal/phonemcp"
 	"github.com/swipt-automation/swipt/internal/rfb"
 )
@@ -115,7 +114,7 @@ func (p *LoopbackProbe) Cancel() {
 
 type DeviceServer struct {
 	pairingPort atomic.Uint32
-	logger      *slog.Logger
+	logFactory  *log.Factory
 	loopback    atomic.Pointer[LoopbackAddress]
 	server      *deviceserver.Server
 	runner      *phonemcp.Runner
@@ -136,14 +135,9 @@ func NewDeviceServer(options *DeviceServerOptions, handler DeviceServerHandler) 
 	if file.remote != nil && file.remote.DeviceName != "" {
 		name = file.remote.DeviceName
 	}
-	logs := logbuffer.New()
-	var output slog.Handler = slog.DiscardHandler
-	if logger := newLogger(); logger != nil {
-		output = logger.Handler()
-	}
-	logger := slog.New(logs.Handler(output))
-	connectLogger := logger.With("component", "device")
-	s := &DeviceServer{logger: logger, handler: handler, app: options.AppBundleID, dialogs: make(map[int64]chan string)}
+	logFactory := newLogFactory()
+	connectLogger := logFactory.NewLogger("device")
+	s := &DeviceServer{logFactory: logFactory, handler: handler, app: options.AppBundleID, dialogs: make(map[int64]chan string)}
 	s.setPairingPort(options.RemotePairingPort)
 	server, err := deviceserver.New(deviceserver.Options{
 		Name: name,
@@ -157,7 +151,7 @@ func NewDeviceServer(options *DeviceServerOptions, handler DeviceServerHandler) 
 				return nil, err
 			}
 			s.loopback.Store(newLoopbackAddress(peer))
-			connectLogger.Info("device address", "address", peer.Address, "local_network", peer.LocalNetwork)
+			connectLogger.Info("device address: ", peer.Address, ", local network: ", peer.LocalNetwork)
 			if file.lockdown != nil {
 				return coredevice.ConnectLockdown(ctx, coredevice.LockdownOptions{
 					Address: peer.Address,
@@ -171,7 +165,7 @@ func NewDeviceServer(options *DeviceServerOptions, handler DeviceServerHandler) 
 				Logger:  connectLogger,
 			})
 		},
-		Logger:             logger,
+		Logger:             logFactory.Logger(),
 		Observer:           &deviceObserver{handler: handler},
 		DiskImageDirectory: options.DiskImageDirectory,
 		BacklightState:     handler.BacklightState,
@@ -181,7 +175,7 @@ func NewDeviceServer(options *DeviceServerOptions, handler DeviceServerHandler) 
 	}
 	s.server = server
 	s.runner = phonemcp.NewRunner(server.Phone(), phonemcp.RunnerOptions{
-		Workflows: options.WorkflowDirectory, Logs: logs, Logger: logger,
+		Workflows: options.WorkflowDirectory, LogFactory: logFactory,
 		Dialog: phonemcp.Dialog{App: s.app, InApp: true, Ask: s.ask, Backdrop: handler.OnBackdrop},
 	})
 	return s, nil
@@ -204,7 +198,7 @@ func (s *DeviceServer) SetMCP(options *MCPOptions) error {
 	}
 	return s.server.SetMCP(&deviceserver.MCPOptions{
 		Listen: net.JoinHostPort("::", strconv.Itoa(int(options.Port))),
-		Server: phonemcp.New(s.runner, phonemcp.Options{Token: options.Token, Logger: s.logger.With("component", "mcp")}),
+		Server: phonemcp.New(s.runner, phonemcp.Options{Token: options.Token, Logger: s.logFactory.NewLogger("mcp")}),
 	})
 }
 

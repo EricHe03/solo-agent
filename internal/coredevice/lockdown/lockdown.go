@@ -7,10 +7,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log/slog"
 	"net"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice/rsd"
 	"howett.net/plist"
 )
@@ -85,7 +85,7 @@ func QueryValues(ctx context.Context, dial Dialer) (map[string]any, error) {
 	return values, nil
 }
 
-func DialCoreDeviceProxy(ctx context.Context, record *PairRecord, dial Dialer, logger *slog.Logger) (net.Conn, error) {
+func DialCoreDeviceProxy(ctx context.Context, record *PairRecord, dial Dialer, logger logger.ContextLogger) (net.Conn, error) {
 	tlsConfig := &tls.Config{
 		Certificates:       []tls.Certificate{record.Certificate},
 		InsecureSkipVerify: true,
@@ -133,7 +133,7 @@ func DialCoreDeviceProxy(ctx context.Context, record *PairRecord, dial Dialer, l
 	if port == 0 || port > 65535 {
 		return nil, E.New("lockdown StartService ", coreDeviceProxy, ": no port in ", fmt.Sprint(reply))
 	}
-	logger.Debug("started lockdown service", slog.String("service", coreDeviceProxy), slog.Uint64("port", port))
+	logger.Debug("started lockdown service ", coreDeviceProxy, " on port ", port)
 	serviceConn, err := dial(ctx, uint16(port))
 	if err != nil {
 		return nil, E.Cause(err, "connect to ", coreDeviceProxy)

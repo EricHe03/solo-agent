@@ -3,10 +3,10 @@ package deviceserver
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"sync"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice/pasteboard"
 	"github.com/swipt-automation/swipt/internal/rfb"
 )
@@ -18,7 +18,7 @@ var clipboardImageTypes = []string{
 
 type clipboardBridge struct {
 	server *Server
-	logger *slog.Logger
+	logger logger.ContextLogger
 
 	access       sync.Mutex
 	sharers      map[*rfb.ServerSession]bool
@@ -29,7 +29,7 @@ type clipboardBridge struct {
 	writing      *rfb.Clipboard
 }
 
-func newClipboardBridge(server *Server, logger *slog.Logger) *clipboardBridge {
+func newClipboardBridge(server *Server, logger logger.ContextLogger) *clipboardBridge {
 	return &clipboardBridge{server: server, logger: logger, sharers: make(map[*rfb.ServerSession]bool)}
 }
 
@@ -90,7 +90,7 @@ func (c *clipboardBridge) update() {
 		}
 		c.access.Unlock()
 		if err != nil && !errors.Is(err, context.Canceled) {
-			c.logger.Warn("watch the device's clipboard", "error", err)
+			c.logger.Warn(E.Cause(err, "watch the device's clipboard"))
 		}
 	}()
 }
@@ -138,7 +138,7 @@ func (c *clipboardBridge) written(a *attachment, clipboard *rfb.Clipboard, err e
 	}
 	c.access.Unlock()
 	if err != nil {
-		c.logger.Warn("write the clipboard to the device", "error", err)
+		c.logger.Warn(E.Cause(err, "write the clipboard to the device"))
 		return
 	}
 	if viewers := c.server.viewers(); announce && viewers != nil {

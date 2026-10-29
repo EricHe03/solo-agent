@@ -8,6 +8,6 @@ interface Phone {
   // recordings it leaves when it ends.
   record(): { stop(): Push[] };
 
-  // The server's log, not the device's; what a workflow prints and how it fails carry attrs.workflow.
-  logs(options?: { since?: number; level?: "debug" | "info" | "warn" | "error" }): { time: number; level: string; message: string; attrs?: Record<string, string> }[];
+  // The server's log, not the device's; what a workflow prints and how it fails carry the tag workflow/<name>.
+  logs(options?: { since?: number; level?: "debug" | "info" | "warn" | "error" }): { time: number; level: string; tag?: string; message: string }[];
 }

@@ -7,10 +7,10 @@ package hid
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice"
 	"github.com/swipt-automation/swipt/internal/coredevice/xpc"
 )
@@ -55,7 +55,7 @@ const (
 type Client struct {
 	ctx    context.Context
 	device *coredevice.Device
-	logger *slog.Logger
+	logger logger.ContextLogger
 
 	universal    *xpc.Conn
 	indigo       *xpc.Conn
@@ -67,7 +67,7 @@ type Client struct {
 	buttons      map[Button]struct{}
 }
 
-func New(ctx context.Context, device *coredevice.Device, logger *slog.Logger, keyboardMode KeyboardMode) *Client {
+func New(ctx context.Context, device *coredevice.Device, logger logger.ContextLogger, keyboardMode KeyboardMode) *Client {
 	return &Client{ctx: ctx, device: device, logger: logger, keyboardMode: keyboardMode}
 }
 

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"log/slog"
 	"net"
 	"net/netip"
 	"sync"
@@ -115,8 +114,7 @@ func (c *UDPConn) Close() error {
 	c.queue.close(net.ErrClosed)
 	err := c.conn.Close()
 	if dropped := c.queue.droppedCount(); dropped > 0 {
-		t.logger.Debug("dropped datagrams that found the queue full",
-			slog.Int("port", int(c.port)), slog.Uint64("count", dropped))
+		t.logger.Debug("dropped ", dropped, " datagrams to port ", c.port, " that found the queue full")
 	}
 	return err
 }

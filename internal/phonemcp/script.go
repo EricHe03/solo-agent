@@ -7,7 +7,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"math"
 	"slices"
 	"strconv"
@@ -20,7 +19,7 @@ import (
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/deviceserver"
 	"github.com/swipt-automation/swipt/internal/jsc"
-	"github.com/swipt-automation/swipt/internal/logbuffer"
+	"github.com/swipt-automation/swipt/internal/log"
 )
 
 //go:embed meriyah.js
@@ -40,20 +39,19 @@ var (
 )
 
 type RunnerOptions struct {
-	Workflows string
-	Logs      *logbuffer.Buffer
-	Logger    *slog.Logger
-	Dialog    Dialog
+	Workflows  string
+	LogFactory *log.Factory
+	Dialog     Dialog
 }
 
 type Runner struct {
-	phone     *deviceserver.Phone
-	workflows string
-	dialog    Dialog
-	logs      *logbuffer.Buffer
-	logger    *slog.Logger
-	ctx       context.Context
-	cancel    context.CancelCauseFunc
+	phone      *deviceserver.Phone
+	workflows  string
+	dialog     Dialog
+	logFactory *log.Factory
+	logger     log.ContextLogger
+	ctx        context.Context
+	cancel     context.CancelCauseFunc
 
 	access      sync.Mutex
 	epoch       context.Context
@@ -66,16 +64,12 @@ type Runner struct {
 }
 
 func NewRunner(phone *deviceserver.Phone, options RunnerOptions) *Runner {
-	logs := options.Logs
-	if logs == nil {
-		logs = logbuffer.New()
-	}
-	logger := options.Logger
-	if logger == nil {
-		logger = slog.New(logs.Handler(slog.DiscardHandler))
+	logFactory := options.LogFactory
+	if logFactory == nil {
+		logFactory = log.NewFactory(log.Options{})
 	}
 	s := &Runner{
-		phone: phone, workflows: options.Workflows, dialog: options.Dialog, logs: logs, logger: logger,
+		phone: phone, workflows: options.Workflows, dialog: options.Dialog, logFactory: logFactory, logger: logFactory.Logger(),
 		busy: make(chan struct{}, 1), elements: newElementTable(),
 	}
 	s.ctx, s.cancel = context.WithCancelCause(context.Background())
@@ -188,7 +182,7 @@ type run struct {
 	call     string
 	nested   bool
 	resident bool
-	logger   *slog.Logger
+	logger   log.ContextLogger
 	waiting  func()
 	dialog   Dialog
 	failed   bool
@@ -435,7 +429,7 @@ func (e *engine) execute(current *run, script func() (jsc.Value, error)) {
 		ctx, cancel := context.WithTimeout(e.runner.ctx, returnTimeout)
 		defer cancel()
 		if err := e.giveWay(ctx); err != nil {
-			e.runner.logger.Warn(err.Error())
+			e.runner.logger.Warn(err)
 		}
 	}()
 	defer e.context.TerminateOn(current.ctx)()

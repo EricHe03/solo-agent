@@ -59,7 +59,7 @@ func (s *Server) pressButton(button hid.Button, count int) error {
 		}
 	}
 	if b.client == nil {
-		b.client = hid.New(a.owner, a.device, s.logger.With("component", "buttons"), hid.HardwareKeyboard)
+		b.client = hid.New(a.owner, a.device, s.logger, hid.HardwareKeyboard)
 		b.device = a.device
 	}
 	var err error

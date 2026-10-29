@@ -61,7 +61,7 @@ func (p *Phone) WatchForeground(ctx context.Context, emit func(ForegroundApp)) {
 		if ctx.Err() != nil {
 			return
 		}
-		p.logger.Warn("watch the foreground app", "error", err)
+		p.logger.Warn("watch the foreground app: ", err)
 		if sleep(ctx, time.Second) != nil {
 			return
 		}
@@ -78,7 +78,7 @@ func (p *Phone) watchForeground(ctx context.Context, front *ForegroundApp, emit 
 	bundles := make(map[string]string)
 	installed, err := apps.List(ctx, a.device)
 	if err != nil {
-		p.logger.Debug("list apps", "error", err)
+		p.logger.Debug(E.Cause(err, "list apps"))
 	}
 	for _, app := range installed {
 		if app.Path != "" {
@@ -109,7 +109,7 @@ func (p *Phone) watchForeground(ctx context.Context, front *ForegroundApp, emit 
 	var pushesDone <-chan struct{}
 	states, err := instruments.DialAppStates(ctx, ctx, a.device)
 	if err != nil {
-		p.logger.Debug("watch app states", "error", err)
+		p.logger.Debug(E.Cause(err, "watch app states"))
 	} else {
 		defer states.Close()
 		pushes, pushesDone = states.States(), states.Done()
@@ -150,7 +150,7 @@ func (p *Phone) watchForeground(ctx context.Context, front *ForegroundApp, emit 
 			}
 			burst = time.Now().Add(foregroundBurst)
 		case <-pushesDone:
-			p.logger.Debug("watch app states", "error", states.Err())
+			p.logger.Debug("watch app states: ", states.Err())
 			pushes, pushesDone = nil, nil
 			continue
 		case <-ctx.Done():

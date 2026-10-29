@@ -13,7 +13,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"log/slog"
 	"math/big"
 	"net"
 	"slices"
@@ -23,6 +22,7 @@ import (
 	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice/opack"
 	"github.com/swipt-automation/swipt/internal/coredevice/tlv8"
 
@@ -51,14 +51,14 @@ type ResponderOptions struct {
 	HostName string
 	OnPIN    func(pin string)
 	Identity *Record
-	Logger   *slog.Logger
+	Logger   logger.ContextLogger
 }
 
 type Responder struct {
 	ctx      context.Context
 	cancel   context.CancelFunc
 	options  ResponderOptions
-	logger   *slog.Logger
+	logger   logger.ContextLogger
 	listener *net.TCPListener
 	identity *Record
 
@@ -68,9 +68,8 @@ type Responder struct {
 }
 
 func NewResponder(options ResponderOptions) (*Responder, error) {
-	logger := options.Logger
-	if logger == nil {
-		logger = slog.New(slog.DiscardHandler)
+	if options.Logger == nil {
+		options.Logger = logger.NOP()
 	}
 	identity, err := responderIdentity(options.Identity)
 	if err != nil {
@@ -81,7 +80,7 @@ func NewResponder(options ResponderOptions) (*Responder, error) {
 		return nil, E.Cause(err, "responder: listen")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Responder{ctx: ctx, cancel: cancel, options: options, logger: logger, listener: listener, identity: identity}, nil
+	return &Responder{ctx: ctx, cancel: cancel, options: options, logger: options.Logger, listener: listener, identity: identity}, nil
 }
 
 func responderIdentity(previous *Record) (*Record, error) {
@@ -204,8 +203,7 @@ func (r *Responder) Accept(ctx context.Context) (*Record, error) {
 }
 
 func (r *Responder) serve(state *acceptState, netConn net.Conn) {
-	logger := r.logger.With(slog.String("from", netConn.RemoteAddr().String()))
-	logger.Info("pairing connection")
+	r.logger.Info("pairing connection from ", netConn.RemoteAddr())
 	stopClose := context.AfterFunc(state.ctx, func() { netConn.Close() })
 	c := newConn(netConn, originDevice)
 	record, attempt, err := r.pair(state, c)
@@ -216,14 +214,14 @@ func (r *Responder) serve(state *acceptState, netConn net.Conn) {
 		stopClose()
 		netConn.Close()
 		if attempt == 0 || state.ctx.Err() != nil || !state.isLast(attempt) {
-			logger.Info("pairing connection closed", slog.Any("error", err))
+			r.logger.Info("pairing connection from ", netConn.RemoteAddr(), " closed: ", err)
 			return
 		}
 		state.report(acceptResult{err: err})
 		return
 	}
 	state.report(acceptResult{record: record})
-	r.drain(c, logger)
+	r.drain(c)
 }
 
 func (r *Responder) pair(state *acceptState, c *conn) (record *Record, attempt uint64, err error) {
@@ -255,7 +253,7 @@ func (s *acceptState) report(result acceptResult) {
 	}
 }
 
-func (r *Responder) drain(c *conn, logger *slog.Logger) {
+func (r *Responder) drain(c *conn) {
 	r.drainAccess.Lock()
 	if r.closed {
 		r.drainAccess.Unlock()
@@ -282,7 +280,7 @@ func (r *Responder) drain(c *conn, logger *slog.Logger) {
 			if err != nil {
 				return
 			}
-			logger.Debug("message after pair-setup", slog.Any("message", message.Plain))
+			r.logger.Debug("message after pair-setup from ", c.conn.RemoteAddr(), ": ", fmt.Sprint(message.Plain))
 		}
 	}()
 }
@@ -298,7 +296,7 @@ func (r *Responder) handshake(c *conn) error {
 	if handshake == nil {
 		return E.New("unexpected handshake request ", fmt.Sprint(request))
 	}
-	r.logger.Debug("pairing handshake", slog.Any("request", handshake))
+	r.logger.Debug("pairing handshake: ", fmt.Sprint(handshake))
 	if attempt, _ := lookup(handshake, "hostOptions", "attemptPairVerify").(bool); attempt {
 		return E.New("the device asked for pair-verify, which this responder does not support; only new pairings are accepted")
 	}
@@ -434,7 +432,7 @@ func (r *Responder) pairSetupSteps(c *conn, server *srpServer) (*Record, error) 
 		if err != nil {
 			return nil, E.Cause(err, "decode M5 info")
 		}
-		r.logger.Debug("paired device info", slog.Any("info", info))
+		r.logger.Debug("paired device info: ", fmt.Sprint(info))
 		infoMap, _ := info.(map[string]any)
 		record.AltIRK, _ = infoMap["altIRK"].([]byte)
 		record.DeviceName, _ = infoMap["name"].(string)
@@ -458,7 +456,7 @@ func (r *Responder) pairSetupSteps(c *conn, server *srpServer) (*Record, error) 
 	if err != nil {
 		return nil, E.Cause(err, "send M6")
 	}
-	r.logger.Info("paired", slog.String("device", record.DeviceName), slog.String("udid", record.DeviceUDID))
+	r.logger.Info("paired with ", record.DeviceName, " (", record.DeviceUDID, ")")
 	return &record, nil
 }
 

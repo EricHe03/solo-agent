@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"maps"
 	"slices"
 	"sync"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	N "github.com/sagernet/sing/common/network"
 
 	"github.com/swipt-automation/swipt/internal/coredevice"
@@ -31,7 +31,7 @@ const (
 var errVideoSilent = E.New("the device stopped sending video")
 
 type streamManager struct {
-	logger      *slog.Logger
+	logger      logger.ContextLogger
 	onStreaming func(bool)
 
 	slot chan struct{}
@@ -56,7 +56,7 @@ type deviceStream struct {
 	closed  bool
 }
 
-func newStreamManager(logger *slog.Logger, onStreaming func(bool)) *streamManager {
+func newStreamManager(logger logger.ContextLogger, onStreaming func(bool)) *streamManager {
 	return &streamManager{
 		logger:      logger,
 		onStreaming: onStreaming,
@@ -89,11 +89,11 @@ func (m *streamManager) stop(stream *deviceStream) {
 	info := stream.stream.Info()
 	switch {
 	case err == nil:
-		m.logger.Debug("stopped the device's stream", "type", info.Type, "ssrc", info.SSRC)
+		m.logger.Debug("stopped the device's ", string(info.Type), " stream ", info.SSRC)
 	case stream.ctx.Err() != nil || stream.device.Err() != nil:
-		m.logger.Debug("stop the device's stream", "type", info.Type, "ssrc", info.SSRC, "error", err)
+		m.logger.Debug(E.Cause(err, "stop the device's ", string(info.Type), " stream ", info.SSRC))
 	default:
-		m.logger.Error("stop the device's stream", "type", info.Type, "ssrc", info.SSRC, "error", err)
+		m.logger.Error(E.Cause(err, "stop the device's ", string(info.Type), " stream ", info.SSRC))
 	}
 }
 
@@ -291,7 +291,7 @@ func (s *Server) startVideo(ctx context.Context, a *attachment, request media.Se
 		// The device returned a nonzero video SyncStreamToken with audio, zero without it (observed on iPad17,1, build 24B5089g).
 		audio, err = a.display.StartAudio(ctx, display.StreamOptions{SessionID: sessionID, ReadOptions: readOptions})
 		if err != nil {
-			s.logger.Warn("start the device's sound", "error", err)
+			s.logger.Warn(E.Cause(err, "start the device's sound"))
 		}
 	}
 	m.access.Lock()
@@ -340,7 +340,7 @@ func (s *Server) startVideo(ctx context.Context, a *attachment, request media.Se
 		TilesPerFrame: info.TilesPerFrame,
 	}
 	if source.info.PixelFormat == 0 {
-		s.logger.Warn("the device's video pixel format is unknown; the viewer is told 4:2:0", "pixel_format", fmt.Sprintf("%#x", info.PixelFormat))
+		s.logger.Warn("the device's video pixel format ", fmt.Sprintf("%#x", info.PixelFormat), " is unknown; the viewer is told 4:2:0")
 	}
 	m.access.Lock()
 	m.failures = 0
@@ -354,10 +354,10 @@ func (s *Server) startVideo(ctx context.Context, a *attachment, request media.Se
 	}
 	m.videoStartedLocked(now)
 	m.access.Unlock()
-	s.logger.Info("device video started", "ssrc", info.SSRC, "device_ssrc", info.DeviceSSRC,
-		"width", info.Width, "height", info.Height, "frame_rate", info.FrameRate, "ltrp", info.LTRP,
-		"mode", request.Mode, "tiles", info.TilesPerFrame, "pixel_format", source.info.PixelFormat, "maximum_bitrate", request.MaximumBitrate,
-		"sound", audio != nil, "sync_token", info.SyncToken)
+	s.logger.Info("device video started: SSRC ", info.SSRC, ", device SSRC ", info.DeviceSSRC,
+		", ", info.Width, "x", info.Height, " at ", info.FrameRate, " fps, LTRP ", info.LTRP,
+		", mode ", request.Mode, ", ", info.TilesPerFrame, " tiles, pixel format ", uint32(source.info.PixelFormat), ", maximum bitrate ", request.MaximumBitrate,
+		", sound ", audio != nil, ", sync token ", info.SyncToken)
 	s.setVideoProblem(nil)
 	s.videoSize(info.Width, info.Height)
 	s.checkDisplay()
@@ -457,15 +457,14 @@ func (v *videoSource) checkPictureSize(sps []byte) {
 	}
 	if v.pictureWidth == 0 {
 		v.pictureWidth, v.pictureHeight = width, height
-		v.server.logger.Debug("video size in its parameter sets", "width", width, "height", height,
-			"start_width", v.info.Width, "start_height", v.info.Height)
+		v.server.logger.Debug("video size in its parameter sets: ", width, "x", height, ", started at ", v.info.Width, "x", v.info.Height)
 		return
 	}
 	if width == v.pictureWidth && height == v.pictureHeight {
 		return
 	}
 	v.pictureWidth, v.pictureHeight = width, height
-	v.server.logger.Info("the device's video changed size", "width", width, "height", height)
+	v.server.logger.Info("the device's video changed size: ", width, "x", height)
 	v.server.checkDisplay()
 	v.server.videoSize(width, height)
 }

@@ -2,10 +2,11 @@ package deviceserver
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 	"sync"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice"
 	"github.com/swipt-automation/swipt/internal/coredevice/hid"
 	"github.com/swipt-automation/swipt/internal/rfb"
@@ -31,7 +32,7 @@ type inputSession struct {
 
 type inputWorker struct {
 	server *Server
-	logger *slog.Logger
+	logger logger.ContextLogger
 	done   chan struct{}
 
 	access   sync.Mutex
@@ -51,7 +52,7 @@ type inputWorker struct {
 	closeErr      error
 }
 
-func newInputWorker(server *Server, logger *slog.Logger) *inputWorker {
+func newInputWorker(server *Server, logger logger.ContextLogger) *inputWorker {
 	return &inputWorker{
 		server:   server,
 		logger:   logger,
@@ -209,7 +210,7 @@ func (w *inputWorker) closeClient() {
 	w.resetState()
 	w.keys.capsLock = false
 	if err != nil {
-		w.logger.Warn("close device input", "error", err)
+		w.logger.Warn(E.Cause(err, "close device input"))
 		w.closeErr = E.Append(w.closeErr, err, func(err error) error {
 			return E.Cause(err, "close device input")
 		})
@@ -249,7 +250,7 @@ func (w *inputWorker) handle(item inputItem) {
 				return
 			}
 			if err := w.client.ReleaseAll(a.ctx); err != nil {
-				w.logger.Warn("release input", "error", err)
+				w.logger.Warn(E.Cause(err, "release input"))
 				w.closeClient()
 			} else {
 				w.resetState()
@@ -279,7 +280,7 @@ func (w *inputWorker) handle(item inputItem) {
 	if generation != w.generation {
 		w.generation = generation
 		if err := w.client.ReleaseAll(eventContext); err != nil {
-			w.logger.Warn("release input after the video restarted", "error", err)
+			w.logger.Warn(E.Cause(err, "release input after the video restarted"))
 			w.closeClient()
 			return
 		}
@@ -302,7 +303,7 @@ func (w *inputWorker) handle(item inputItem) {
 		return
 	}
 	if err := w.dispatch(eventContext, item); err != nil {
-		w.logger.Debug("send input", "event", item.event, "error", err)
+		w.logger.Debug(E.Cause(err, "send input ", fmt.Sprint(item.event)))
 		w.closeClient()
 	}
 }

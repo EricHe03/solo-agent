@@ -12,7 +12,7 @@ func (p *Phone) closeLocation() {
 		return
 	}
 	if err := p.location.Close(); err != nil {
-		p.logger.Debug("close the location simulation", "error", err)
+		p.logger.Debug(E.Cause(err, "close the location simulation"))
 	}
 	p.location = nil
 }

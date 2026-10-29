@@ -3,7 +3,6 @@ package media
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"net"
 	"net/netip"
 	"os"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/sagernet/sing/common/buf"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 )
 
 type ServerStreamConfig struct {
-	Logger              *slog.Logger
+	Logger              logger.ContextLogger
 	InitialTarget       netip.Addr
 	AllowLoopbackTarget bool
 	VideoPort           uint16
@@ -36,7 +36,7 @@ type ServerStreamConfig struct {
 
 type ServerStream struct {
 	config ServerStreamConfig
-	logger *slog.Logger
+	logger logger.ContextLogger
 	video  *serverLeg
 	audio  *serverLeg
 	ctx    context.Context
@@ -124,7 +124,7 @@ func (s *ServerStream) HandleOffer(message []byte) error {
 	s.access.Lock()
 	defer s.access.Unlock()
 	if err != nil {
-		s.logger.Warn("media offer", "error", err)
+		s.logger.Warn(E.Cause(err, "media offer"))
 		return s.config.Send(ErrorMessage(ServerErrorBadConfiguration, 0))
 	}
 	s.generation++
@@ -136,15 +136,15 @@ func (s *ServerStream) HandleOffer(message []byte) error {
 		err = s.audio.setKeys(&offer.Audio, now)
 	}
 	if err != nil {
-		s.logger.Warn("media offer", "error", err)
+		s.logger.Warn(E.Cause(err, "media offer"))
 		return s.config.Send(ErrorMessage(ServerErrorBadConfiguration, 0))
 	}
 	ctx, cancel := context.WithCancel(s.ctx)
 	s.cancelOpen = cancel
 	s.offered = true
-	s.logger.Debug("media offer", "video_mode", offer.Video.Mode, "audio_mode", offer.Audio.Mode,
-		"width", offer.Video.Width, "height", offer.Video.Height, "frame_rate_60", offer.FrameRate60,
-		"pixel_formats", offer.Video.PixelFormats, "maximum_bitrate", offer.Video.MaximumBitrate)
+	s.logger.Debug("media offer: video mode ", offer.Video.Mode, ", audio mode ", offer.Audio.Mode,
+		", ", offer.Video.Width, "x", offer.Video.Height, ", 60 fps ", offer.FrameRate60,
+		", pixel formats ", uint32(offer.Video.PixelFormats), ", maximum bitrate ", offer.Video.MaximumBitrate)
 	s.wg.Go(func() { s.open(ctx, cancel, generation, offer) })
 	return nil
 }
@@ -175,7 +175,7 @@ func (s *ServerStream) open(ctx context.Context, cancel context.CancelFunc, gene
 		audio, err = s.config.OpenAudio()
 		if err != nil {
 			if !errors.Is(err, ErrAudioUnsupported) {
-				s.logger.Warn("open the device sound", "error", err)
+				s.logger.Warn(E.Cause(err, "open the device sound"))
 			}
 			audio = nil
 		}
@@ -221,7 +221,7 @@ func (s *ServerStream) open(ctx context.Context, cancel context.CancelFunc, gene
 	s.session = session
 	err = s.config.Send(payload)
 	if err != nil {
-		s.logger.Debug("send the media answer", "error", err)
+		s.logger.Debug(E.Cause(err, "send the media answer"))
 	}
 	s.video.activate(&serverActive{ssrc: info.SSRC, receiverSSRC: info.ReceiverSSRC, generation: generation})
 	if audio != nil {
@@ -231,15 +231,15 @@ func (s *ServerStream) open(ctx context.Context, cancel context.CancelFunc, gene
 	if audio != nil {
 		session.wg.Go(func() { s.forward(session, s.audio, audio.ReadPackets) })
 	}
-	s.logger.Info("media stream started", "ssrc", info.SSRC, "width", info.Width, "height", info.Height,
-		"sound", audio != nil, "target", s.video.currentTarget())
+	s.logger.Info("media stream started: SSRC ", info.SSRC, ", ", info.Width, "x", info.Height,
+		", sound ", audio != nil, ", target ", s.video.currentTarget())
 	if size := s.renegotiateSize; size != nil {
 		s.renegotiateSize = nil
 		if *size != [2]int{info.Width, info.Height} {
 			previous, err := s.renegotiateLocked()
 			s.closeLaterLocked(previous)
 			if err != nil {
-				s.logger.Debug("send the media ports", "error", err)
+				s.logger.Debug(E.Cause(err, "send the media ports"))
 			}
 		}
 	}
@@ -253,7 +253,7 @@ func (s *ServerStream) openFailed(generation uint64, err error) {
 	}
 	s.cancelOpen = nil
 	s.renegotiateSize = nil
-	s.logger.Warn("media stream", "error", err)
+	s.logger.Warn("media stream: ", err)
 	_ = s.config.Send(ErrorMessage(ServerErrorBadConfiguration, 0))
 }
 
@@ -410,7 +410,7 @@ func (s *ServerStream) sourceEnded(session *serverSession, leg *serverLeg, err e
 		return
 	}
 	if leg != s.video {
-		s.logger.Warn("device sound stopped", "error", err)
+		s.logger.Warn("device sound stopped: ", err)
 		s.audio.deactivate()
 		s.access.Unlock()
 		return
@@ -419,7 +419,7 @@ func (s *ServerStream) sourceEnded(session *serverSession, leg *serverLeg, err e
 		s.failures = 0
 	}
 	s.failures++
-	s.logger.Warn("device video stopped", "error", err, "failures", s.failures)
+	s.logger.Warn("device video stopped, ", s.failures, " failures: ", err)
 	if s.failures > maxSourceFailures {
 		s.failures = 0
 		s.generation++
@@ -433,7 +433,7 @@ func (s *ServerStream) sourceEnded(session *serverSession, leg *serverLeg, err e
 	s.closeLaterLocked(previous)
 	s.access.Unlock()
 	if sendErr != nil {
-		s.logger.Debug("send the media ports", "error", sendErr)
+		s.logger.Debug(E.Cause(sendErr, "send the media ports"))
 	}
 }
 
@@ -458,7 +458,7 @@ func (s *ServerStream) handleClientDatagram(leg *serverLeg, datagram []byte, fro
 		s.access.Lock()
 		s.generation++
 		s.closeLaterLocked(s.detachLocked())
-		s.logger.Warn("media stream", "error", err)
+		s.logger.Warn(E.Cause(err, "media stream"))
 		_ = s.config.Send(ErrorMessage(ServerErrorBadConfiguration, 0))
 		s.access.Unlock()
 		return
@@ -483,7 +483,7 @@ func (s *ServerStream) handleClientDatagram(leg *serverLeg, datagram []byte, fro
 		if keyframe {
 			err = session.video.RequestKeyFrame()
 			if err != nil {
-				s.logger.Debug("request a keyframe from the device", "error", err)
+				s.logger.Debug(E.Cause(err, "request a keyframe from the device"))
 			}
 		}
 	} else if session.audio != nil && len(out) > 0 {
@@ -512,7 +512,7 @@ func (s *ServerStream) housekeep() {
 			timing, ok := s.video.takeTimingLocked(now)
 			s.video.access.Unlock()
 			if ok {
-				s.logger.Info("media timing", timing...)
+				s.logger.Info(timing...)
 			}
 		}
 	}

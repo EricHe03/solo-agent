@@ -1,12 +1,12 @@
 package deviceserver
 
 import (
-	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/rfb"
 )
 
@@ -34,7 +34,7 @@ type frontend struct {
 	listener net.Listener
 }
 
-func (f *frontend) start(logger *slog.Logger) error {
+func (f *frontend) start(logger logger.ContextLogger) error {
 	if f.listener != nil {
 		_ = f.listener.Close()
 	} else if f.probe != nil {
@@ -47,11 +47,11 @@ func (f *frontend) start(logger *slog.Logger) error {
 		return &Error{Problem: ProblemListen, Err: E.Cause(err, "listen for ", f.name)}
 	}
 	f.listener = listener
-	logger.Info("listening", "service", f.name, "address", listener.Addr().String())
+	logger.Info(f.name, " listening on ", listener.Addr())
 	go func() {
 		err := f.server.Serve(listener)
 		if err != nil && !E.IsMulti(err, rfb.ErrServerClosed, http.ErrServerClosed, net.ErrClosed) {
-			logger.Error("serve", "service", f.name, "error", err)
+			logger.Error(E.Cause(err, "serve ", f.name))
 		}
 	}()
 	return nil
@@ -78,7 +78,7 @@ func (s *Server) SetScreenSharing(options *ScreenSharingOptions) error {
 			return net.ListenUDP("udp", &net.UDPAddr{IP: ip, Port: int(port)})
 		}
 		rfbOptions.Handler = (*viewerHandler)(s)
-		rfbOptions.Logger = s.logger.With("component", "rfb")
+		rfbOptions.Logger = s.logger
 		rfbOptions.SystemCommands = []rfb.SystemCommand{
 			rfb.SystemCommandLaunchpad, rfb.SystemCommandShowDesktop,
 			rfb.SystemCommandMissionControl, rfb.SystemCommandAppWindows,
@@ -89,7 +89,7 @@ func (s *Server) SetScreenSharing(options *ScreenSharingOptions) error {
 		}
 		media := rfbOptions.Media
 		next = &frontend{
-			name:    "screen sharing",
+			name: "screen sharing",
 			address: options.Listen,
 			server:  viewers,
 			probe: func() error {

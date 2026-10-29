@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/subtle"
 	_ "embed"
-	"log/slog"
 	"maps"
 	"net"
 	"net/http"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/nekohasekai/go-sdk/mcp"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 )
 
 //go:embed phone.d.ts
@@ -54,12 +54,12 @@ type apiInput struct {
 
 type Options struct {
 	Token  string
-	Logger *slog.Logger
+	Logger logger.ContextLogger
 }
 
 type Server struct {
 	runner *Runner
-	logger *slog.Logger
+	logger logger.ContextLogger
 	server *http.Server
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -71,14 +71,12 @@ type jsInput struct {
 }
 
 func New(runner *Runner, options Options) *Server {
-	logger := options.Logger
-	if logger == nil {
-		logger = slog.New(slog.DiscardHandler)
+	if options.Logger == nil {
+		options.Logger = logger.NOP()
 	}
-	s := &Server{runner: runner, logger: logger}
+	s := &Server{runner: runner, logger: options.Logger}
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	server := mcp.NewServer(&mcp.Implementation{Name: "phone", Title: "Phone", Version: "1.0.0"}, &mcp.ServerOptions{
-		Logger:       logger,
 		Capabilities: &mcp.ServerCapabilities{},
 		Tasks: &mcp.TaskOptions{CreateAfter: taskAfter, PollInterval: func(req *mcp.CallToolRequest) time.Duration {
 			if addr, _ := netip.ParseAddrPort(req.Extra.RemoteAddr); addr.Addr().IsLoopback() {
@@ -128,7 +126,6 @@ func New(runner *Runner, options Options) *Server {
 	}, s.jsReset)
 	mux := http.NewServeMux()
 	mux.Handle("/", mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return server }, &mcp.StreamableHTTPOptions{
-		Logger:         logger,
 		SessionTimeout: sessionIdle,
 	}))
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -184,7 +181,7 @@ func (s *Server) js(ctx context.Context, req *mcp.CallToolRequest, input jsInput
 				}
 				err := req.Session.NotifyProgress(ctx, &mcp.ProgressNotificationParams{ProgressToken: token, Progress: float64(progress), Message: "running"})
 				if err != nil {
-					s.logger.Debug("notify progress", "error", err)
+					s.logger.Debug(E.Cause(err, "notify progress"))
 				}
 			}
 		}()
@@ -198,7 +195,7 @@ func (s *Server) js(ctx context.Context, req *mcp.CallToolRequest, input jsInput
 			current.dialog = s.runner.dialog
 			s.runner.session(current, input.Code)
 		})
-		s.logger.Debug("js", "code_bytes", len(input.Code), "duration", time.Since(started), "failed", outcome.failed)
+		s.logger.Debug("js: ", len(input.Code), " bytes of code in ", time.Since(started), ", failed: ", outcome.failed)
 		return outcome.result(), nil, nil
 	})
 }

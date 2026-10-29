@@ -119,7 +119,7 @@ func (s *Runner) lockWorkflow(name string) (*os.File, error) {
 
 func (s *Runner) runWorkflow(current *run, name string) {
 	current.resident = true
-	current.logger = s.logger.With("workflow", name)
+	current.logger = s.logFactory.NewLogger("workflow/" + name)
 	engine, err := s.newEngine(name, newElementTable())
 	if err != nil {
 		current.fail("start JavaScript: " + err.Error())

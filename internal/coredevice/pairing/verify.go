@@ -12,11 +12,11 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net"
 	"slices"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice/tlv8"
 
 	"golang.org/x/crypto/chacha20poly1305"
@@ -33,14 +33,14 @@ const clientWireProtocolVersion = 19
 // pymobiledevice3/remote/tunnel_service.py:1498-1512).
 type Session struct {
 	conn         *conn
-	logger       *slog.Logger
+	logger       logger.ContextLogger
 	key          []byte
 	clientCipher cipher.AEAD
 	serverCipher cipher.AEAD
 	counter      uint64
 }
 
-func Verify(ctx context.Context, netConn net.Conn, record *Record, logger *slog.Logger) (*Session, error) {
+func Verify(ctx context.Context, netConn net.Conn, record *Record, logger logger.ContextLogger) (*Session, error) {
 	if err := ctx.Err(); err != nil {
 		netConn.Close()
 		return nil, err
@@ -74,7 +74,7 @@ func (s *Session) verify(record *Record) error {
 	if handshake == nil {
 		return E.New("pairing: unexpected handshake reply: ", fmt.Sprint(reply))
 	}
-	s.logger.Debug("remote pairing handshake", slog.Any("reply", handshake))
+	s.logger.Debug("remote pairing handshake: ", fmt.Sprint(handshake))
 
 	ephemeral, err := ecdh.X25519().GenerateKey(rand.Reader)
 	if err != nil {
@@ -217,7 +217,7 @@ func (s *Session) exchange(plaintext []byte) (map[string]any, error) {
 			return nil, err
 		}
 		if message.Plain != nil {
-			s.logger.Debug("remote pairing event while waiting for a reply", slog.Any("message", message.Plain))
+			s.logger.Debug("remote pairing event while waiting for a reply: ", fmt.Sprint(message.Plain))
 			continue
 		}
 		decrypted, err := s.serverCipher.Open(nil, nonce, message.Encrypted, nil)
@@ -260,7 +260,7 @@ func (s *Session) Wait() error {
 			return err
 		}
 		if message.Plain != nil {
-			s.logger.Debug("remote pairing event", slog.Any("message", message.Plain))
+			s.logger.Debug("remote pairing event: ", fmt.Sprint(message.Plain))
 		}
 	}
 }

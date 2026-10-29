@@ -3,7 +3,6 @@ package media
 import (
 	"encoding/binary"
 	"errors"
-	"log/slog"
 	"net"
 	"net/netip"
 	"sync"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/sagernet/sing/common/buf"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	N "github.com/sagernet/sing/common/network"
 )
 
@@ -67,7 +67,7 @@ type serverLeg struct {
 	conn      *net.UDPConn
 	port      uint16
 	clockRate float64
-	logger    *slog.Logger
+	logger    logger.ContextLogger
 
 	access        sync.Mutex
 	initialTarget netip.AddrPort
@@ -91,7 +91,7 @@ type serverLeg struct {
 	timing        serverTiming
 }
 
-func newServerLeg(name string, conn *net.UDPConn, clockRate float64, initial netip.Addr, logger *slog.Logger) *serverLeg {
+func newServerLeg(name string, conn *net.UDPConn, clockRate float64, initial netip.Addr, logger logger.ContextLogger) *serverLeg {
 	port := uint16(conn.LocalAddr().(*net.UDPAddr).Port)
 	leg := &serverLeg{
 		name:          name,
@@ -167,7 +167,7 @@ func (l *serverLeg) latchLocked(from netip.AddrPort) (bool, error) {
 	}
 	previous := l.target
 	l.target, l.latched = from, true
-	l.logger.Debug("media client address", "leg", l.name, "address", from, "previous", previous)
+	l.logger.Debug("media ", l.name, " client address ", from, ", previously ", previous)
 	held := l.held
 	l.held = 0
 	return held > 0, nil
@@ -281,7 +281,7 @@ func (l *serverLeg) receive(handle func(leg *serverLeg, datagram []byte, from ne
 			if errors.Is(err, syscall.ECONNREFUSED) {
 				continue
 			}
-			l.logger.Debug("media leg read", "leg", l.name, "error", err)
+			l.logger.Debug(E.Cause(err, "read media ", l.name))
 			time.Sleep(legReadRetryDelay)
 			continue
 		}

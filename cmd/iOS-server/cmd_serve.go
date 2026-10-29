@@ -89,7 +89,7 @@ func serve(ctx context.Context) error {
 	if name == "" {
 		name = "iPhone"
 	}
-	deviceLogger := logger.With("component", "device")
+	deviceLogger := logFactory.NewLogger("device")
 	observer := &serveObserver{failed: make(chan error, 1)}
 	server, err := deviceserver.New(deviceserver.Options{
 		Name: name,
@@ -131,13 +131,13 @@ func serve(ctx context.Context) error {
 	if serveMCPPort != 0 {
 		err = server.SetMCP(&deviceserver.MCPOptions{
 			Listen: net.JoinHostPort("::", strconv.Itoa(int(serveMCPPort))),
-			Server: phonemcp.New(phonemcp.NewRunner(server.Phone(), phonemcp.RunnerOptions{Workflows: serveWorkflows, Logs: logs, Logger: logger}), phonemcp.Options{Token: serveMCPToken, Logger: logger.With("component", "mcp")}),
+			Server: phonemcp.New(phonemcp.NewRunner(server.Phone(), phonemcp.RunnerOptions{Workflows: serveWorkflows, LogFactory: logFactory}), phonemcp.Options{Token: serveMCPToken, Logger: logFactory.NewLogger("mcp")}),
 		})
 		if err != nil {
 			return err
 		}
 	}
-	logger.Info("serving the device", "name", name, "udid", device.UDID)
+	logger.Info("serving the device: ", name, " (", device.UDID, ")")
 	err = server.Start()
 	if err != nil {
 		return err

@@ -3,6 +3,7 @@ package display
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"net"
 	"net/netip"
 	"sync"
@@ -82,13 +83,13 @@ func (s *Stream) watchControl() {
 			select {
 			case <-s.done:
 			default:
-				s.client.logger.Debug("display stream control connection ended", "ssrc", s.info.SSRC, "error", err)
+				s.client.logger.Debug("display stream ", s.info.SSRC, " control connection ended: ", err)
 			}
 			s.end(E.Cause(err, "receive stream control"))
 			s.closeLocal()
 			return
 		}
-		s.client.logger.Debug("display stream control message", "ssrc", s.info.SSRC, "message", message)
+		s.client.logger.Debug("display stream ", s.info.SSRC, " control message: ", fmt.Sprint(message))
 	}
 }
 
@@ -198,7 +199,7 @@ func (s *Stream) sendDelayedKeyFrame() {
 	}
 	err := s.sendKeyFrameLocked()
 	if err != nil {
-		s.client.logger.Debug("display stream keyframe request", "ssrc", s.info.SSRC, "error", err)
+		s.client.logger.Debug(E.Cause(err, "request a keyframe for display stream ", s.info.SSRC))
 	}
 }
 
@@ -244,7 +245,7 @@ func (s *Stream) startKeepalive() error {
 				}
 				err := s.WriteRTCP(report)
 				if err != nil {
-					s.client.logger.Debug("display stream keepalive", "ssrc", s.info.SSRC, "error", err)
+					s.client.logger.Debug(E.Cause(err, "keepalive display stream ", s.info.SSRC))
 				}
 			}
 		}
@@ -277,7 +278,7 @@ func (s *Stream) Close() error {
 				s.closeErr = E.Cause(err, "stop ", string(s.info.Type), " stream")
 				return
 			}
-			s.client.logger.Debug("display stream stopped", "ssrc", s.info.SSRC, "stopped", stopped)
+			s.client.logger.Debug("display stream ", s.info.SSRC, " stopped: ", fmt.Sprint(stopped))
 		}()
 	})
 	return s.sendErr

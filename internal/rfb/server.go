@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
-	"log/slog"
 	"maps"
 	"net"
 	"slices"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/rfb/media"
 )
 
@@ -52,7 +52,7 @@ type ServerOptions struct {
 	Password         string
 	Username         string
 	NoAuthentication bool
-	Logger           *slog.Logger
+	Logger           logger.ContextLogger
 	Handler          ServerHandler
 
 	SystemCommands []SystemCommand
@@ -62,7 +62,7 @@ type ServerOptions struct {
 
 type Server struct {
 	options  ServerOptions
-	logger   *slog.Logger
+	logger   logger.ContextLogger
 	handler  ServerHandler
 	verifier *srpVerifier
 
@@ -128,7 +128,7 @@ func (s *Server) Serve(listener net.Listener) error {
 				return err
 			}
 			delay = min(max(2*delay, 5*time.Millisecond), acceptRetryLimit)
-			s.logger.Warn("accept", "error", err, "retry", delay)
+			s.logger.Warn(E.Cause(err, "accept, retrying in ", delay))
 			timer := time.NewTimer(delay)
 			select {
 			case <-timer.C:
@@ -147,7 +147,7 @@ func (s *Server) Serve(listener net.Listener) error {
 		}
 		if s.handshakes >= maxPendingHandshakes {
 			s.access.Unlock()
-			s.logger.Debug("too many viewers signing in", "viewer", conn.RemoteAddr().String())
+			s.logger.Debug("too many viewers signing in, refused ", conn.RemoteAddr())
 			_ = conn.Close()
 			continue
 		}

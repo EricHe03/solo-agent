@@ -6,13 +6,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"log/slog"
 	"net"
 	"strconv"
 	"sync"
 	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 )
 
 const (
@@ -68,7 +68,7 @@ const sendStallTimeout = 5 * time.Second
 type Conn struct {
 	conn          net.Conn
 	reader        *bufio.Reader
-	logger        *slog.Logger
+	logger        logger.ContextLogger
 	nextMessageID uint64
 
 	writeAccess sync.Mutex
@@ -94,7 +94,7 @@ type stream struct {
 	reset      bool
 }
 
-func NewConn(ctx context.Context, conn net.Conn, logger *slog.Logger) (*Conn, error) {
+func NewConn(ctx context.Context, conn net.Conn, logger logger.ContextLogger) (*Conn, error) {
 	if err := ctx.Err(); err != nil {
 		conn.Close()
 		return nil, err
@@ -373,7 +373,7 @@ func (c *Conn) fail(err error) {
 	if c.err != nil {
 		return
 	}
-	c.logger.Debug("RemoteXPC connection closed", slog.Any("error", err))
+	c.logger.Debug("RemoteXPC connection closed: ", err)
 	c.err = err
 	c.conn.Close()
 	c.changed.Broadcast()
