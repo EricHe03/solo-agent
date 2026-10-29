@@ -436,23 +436,52 @@ func (p *Phone) Supports(ctx context.Context, target *PhoneNode, name string) (b
 	return supported, err
 }
 
+// A backspace from the keyboard changed Claude's chat input 177 to 518 ms after
+// it was sent (iPhone18,2, iOS 27.2 24B115).
+const keyLimit = 2 * time.Second
+
 func (p *Phone) SetText(ctx context.Context, target *PhoneNode, text string) (*PhoneResult, error) {
+	var nudge bool
 	return p.act(ctx, action{
 		input: func(ctx context.Context, a *attachment, geometry phoneGeometry, result *PhoneResult) error {
 			if err := p.focus(ctx, a, geometry, target, result); err != nil {
 				return err
 			}
-			return p.withAccessibility(ctx, a, false, func(client *accessibility.RemoteClient) error {
+			// UIKit sets a text view's value with setText: and
+			// keyboardInputChanged: alone, which Claude's chat input did not
+			// take as an edit, while a text field's setter sends
+			// fieldEditorDidChange: and a focused web entry inserts the text
+			// through its editor (24B5110a UIKit.axbundle 0x18a052c34,
+			// 0x18a047f50; 24B5110a UIKitCore 0x185cffcc4; WebKit f98a24d3,
+			// Source/WebCore/accessibility/AccessibilityRenderObject.cpp:1886;
+			// iPhone18,2, iOS 27.2 24B115). Deleting a trailing space with
+			// the keyboard made it one.
+			nudge = result.Target.AX.TextView() && !result.Target.Web
+			value := text
+			if nudge {
+				value += " "
+			}
+			err := p.withAccessibility(ctx, a, false, func(client *accessibility.RemoteClient) error {
 				batch := &accessibility.Batch{}
-				set := batch.SetValue(result.Target.AX, text)
+				set := batch.SetValue(result.Target.AX, value)
 				if err := client.Run(ctx, batch); err != nil {
 					return err
 				}
 				return set.Err("set the text")
 			})
+			if err != nil || !nudge {
+				return err
+			}
+			return p.pressKeys(ctx, a, []uint8{usageBackspace})
 		},
 		check: func(ctx context.Context, a *attachment, result *PhoneResult) error {
-			return p.checkText(ctx, a, result.Target, text)
+			deadline := time.Now().Add(keyLimit)
+			for {
+				err := p.checkText(ctx, a, result.Target, text)
+				if err == nil || !nudge || ctx.Err() != nil || time.Now().After(deadline) {
+					return err
+				}
+			}
 		},
 	})
 }

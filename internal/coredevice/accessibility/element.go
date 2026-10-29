@@ -297,6 +297,10 @@ func (e Element) TextInput() bool {
 	return e.TextEntry() || e.Secure()
 }
 
+func (e Element) TextView() bool {
+	return e.Type == automationTextView
+}
+
 func (e Element) TextErr() error {
 	if code, failed := e.unanswered[attributeValue]; failed {
 		return E.New("accessibility: read the text: error ", code)
