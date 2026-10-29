@@ -96,11 +96,16 @@ func serve(ctx context.Context) error {
 		Connect: func(ctx context.Context) (*coredevice.Device, error) {
 			return coredevice.ConnectUSBMux(ctx, device.UDID, deviceLogger)
 		},
-		Logger:                 logger,
-		Observer:               observer,
+		Logger:             logger,
+		Observer:           observer,
+		DiskImageDirectory: imagemounter.XcodeDirectory,
+	})
+	if err != nil {
+		return err
+	}
+	err = server.UpdateSettings(deviceserver.Settings{
 		AutoUnlockPasscode:     serveUnlockPasscode,
 		AutoUnlockPasscodeType: passcodeType,
-		DiskImageDirectory:     imagemounter.XcodeDirectory,
 	})
 	if err != nil {
 		return err

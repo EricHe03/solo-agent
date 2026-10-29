@@ -43,15 +43,15 @@ const unlockPoll = 10 * time.Millisecond
 // 4.2 s (iOS 27.2 24B115).
 const unlockLimit = 4500 * time.Millisecond
 
-func validateAutoUnlock(options Options) error {
-	passcode := options.AutoUnlockPasscode
+func validateAutoUnlock(settings Settings) error {
+	passcode := settings.AutoUnlockPasscode
 	if passcode == "" {
 		return nil
 	}
 	if len(passcode) > maxPasscodeLength {
 		return E.New("the device passcode must contain at most 64 characters")
 	}
-	switch options.AutoUnlockPasscodeType {
+	switch settings.AutoUnlockPasscodeType {
 	case PasscodePIN:
 		if len(passcode) != 4 && len(passcode) != 6 {
 			return E.New("a fixed-length device PIN must contain 4 or 6 digits")
@@ -62,7 +62,7 @@ func validateAutoUnlock(options Options) error {
 	}
 	for index := range len(passcode) {
 		character := passcode[index]
-		if options.AutoUnlockPasscodeType != PasscodeAlphanumeric && (character < '0' || character > '9') {
+		if settings.AutoUnlockPasscodeType != PasscodeAlphanumeric && (character < '0' || character > '9') {
 			return E.New("a numeric device passcode can contain only digits")
 		}
 		if _, ok := asciiKeystrokes[character]; !ok {
@@ -74,6 +74,7 @@ func validateAutoUnlock(options Options) error {
 
 type deviceUnlockTarget struct {
 	server        *Server
+	settings      *Settings
 	device        *attachment
 	input         *hid.Client
 	keys          *keyboard
@@ -90,7 +91,6 @@ func (t *deviceUnlockTarget) unlock(parent context.Context) (consumed bool, err 
 			err = E.Cause(err, "the device stayed locked for ", unlockLimit)
 		}
 	}()
-	options := t.server.options
 	locked, err := t.lockState.locked(ctx, t.device.device)
 	if err != nil || !locked {
 		return false, err
@@ -101,15 +101,15 @@ func (t *deviceUnlockTarget) unlock(parent context.Context) (consumed bool, err 
 	}
 	for {
 		count, known := 0, false
-		if options.AutoUnlockPasscodeType == PasscodePIN {
-			count, known = enteredDigits(state.Value, len(options.AutoUnlockPasscode))
+		if t.settings.AutoUnlockPasscodeType == PasscodePIN {
+			count, known = enteredDigits(state.Value, len(t.settings.AutoUnlockPasscode))
 		}
 		if known && count == 0 {
 			break
 		}
 		if !known {
 			count = maxPasscodeLength
-			if options.AutoUnlockPasscodeType == PasscodePIN {
+			if t.settings.AutoUnlockPasscodeType == PasscodePIN {
 				count = 6
 			}
 		}
@@ -126,10 +126,10 @@ func (t *deviceUnlockTarget) unlock(parent context.Context) (consumed bool, err 
 			break
 		}
 	}
-	strokes := common.Map([]byte(options.AutoUnlockPasscode), func(character byte) asciiKeystroke {
+	strokes := common.Map([]byte(t.settings.AutoUnlockPasscode), func(character byte) asciiKeystroke {
 		return asciiKeystrokes[character]
 	})
-	if options.AutoUnlockPasscodeType != PasscodePIN {
+	if t.settings.AutoUnlockPasscodeType != PasscodePIN {
 		strokes = append(strokes, asciiKeystroke{usage: usageReturn})
 	}
 	for _, stroke := range strokes {
@@ -432,7 +432,8 @@ func (t *deviceUnlockTarget) key(ctx context.Context, stroke asciiKeystroke) err
 }
 
 func (w *inputWorker) checkUnlock(a *attachment) bool {
-	if len(w.server.sessions()) == 0 {
+	settings := w.server.settings.Load()
+	if len(w.server.sessions()) == 0 || settings.AutoUnlockPasscode == "" {
 		w.unlockPending = false
 		return false
 	}
@@ -441,7 +442,7 @@ func (w *inputWorker) checkUnlock(a *attachment) bool {
 	defer buttons.Unlock()
 	started := time.Now()
 	target := &deviceUnlockTarget{
-		server: w.server, device: a, input: w.client, keys: w.keys,
+		server: w.server, settings: settings, device: a, input: w.client, keys: w.keys,
 		lockState: &w.lockState, logger: w.logger,
 	}
 	consumed, err := target.unlock(a.ctx)

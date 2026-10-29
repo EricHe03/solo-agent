@@ -758,7 +758,8 @@ func (p *Phone) Launch(ctx context.Context, bundleID, url string, restart, anima
 }
 
 func (p *Phone) Unlock(ctx context.Context) (*PhoneResult, error) {
-	if p.server.options.AutoUnlockPasscode == "" {
+	settings := p.server.settings.Load()
+	if settings.AutoUnlockPasscode == "" {
 		return nil, E.New("no unlock passcode is configured on this server")
 	}
 	return p.act(ctx, action{input: func(ctx context.Context, a *attachment, _ phoneGeometry, _ *PhoneResult) error {
@@ -770,7 +771,7 @@ func (p *Phone) Unlock(ctx context.Context) (*PhoneResult, error) {
 		}
 		input := hid.New(a.owner, a.device, p.logger, hid.HardwareKeyboard)
 		target := &deviceUnlockTarget{
-			server: p.server, device: a, input: input, keys: newKeyboard(),
+			server: p.server, settings: settings, device: a, input: input, keys: newKeyboard(),
 			lockState: &p.lockState, logger: p.logger,
 		}
 		_, err := target.unlock(ctx)

@@ -41,13 +41,16 @@ const (
 )
 
 type DeviceServerOptions struct {
-	PairingRecord          []byte
-	RemotePairingPort      int32
+	PairingRecord      []byte
+	RemotePairingPort  int32
+	DiskImageDirectory string
+	WorkflowDirectory  string
+	AppBundleID        string
+}
+
+type DeviceServerSettings struct {
 	AutoUnlockPasscode     string
 	AutoUnlockPasscodeType int32
-	DiskImageDirectory     string
-	WorkflowDirectory      string
-	AppBundleID            string
 }
 
 type MCPOptions struct {
@@ -168,12 +171,10 @@ func NewDeviceServer(options *DeviceServerOptions, handler DeviceServerHandler) 
 				Logger:  connectLogger,
 			})
 		},
-		Logger:                 logger,
-		Observer:               &deviceObserver{handler: handler},
-		DiskImageDirectory:     options.DiskImageDirectory,
-		AutoUnlockPasscode:     options.AutoUnlockPasscode,
-		AutoUnlockPasscodeType: deviceserver.PasscodeType(options.AutoUnlockPasscodeType),
-		BacklightState:         handler.BacklightState,
+		Logger:             logger,
+		Observer:           &deviceObserver{handler: handler},
+		DiskImageDirectory: options.DiskImageDirectory,
+		BacklightState:     handler.BacklightState,
 	})
 	if err != nil {
 		return nil, err
@@ -188,6 +189,13 @@ func NewDeviceServer(options *DeviceServerOptions, handler DeviceServerHandler) 
 
 func (s *DeviceServer) Start() error {
 	return s.server.Start()
+}
+
+func (s *DeviceServer) UpdateSettings(settings *DeviceServerSettings) error {
+	return s.server.UpdateSettings(deviceserver.Settings{
+		AutoUnlockPasscode:     settings.AutoUnlockPasscode,
+		AutoUnlockPasscodeType: deviceserver.PasscodeType(settings.AutoUnlockPasscodeType),
+	})
 }
 
 func (s *DeviceServer) SetMCP(options *MCPOptions) error {

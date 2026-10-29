@@ -4,7 +4,6 @@ import SwiftUI
 struct ServicesView: View {
     @State private var isShowingPairing = false
     @State private var isShowingDiskImage = false
-    @FocusState private var isPasscodeFocused: Bool
 
     private let controller = ServerController.shared
     @Perception.Bindable private var settings = ServerSettings.shared
@@ -15,7 +14,6 @@ struct ServicesView: View {
         WithPerceptionTracking {
             Form {
                 if pairing.isPaired {
-                    autoUnlockSection
                     backgroundSection
                 }
                 setupSection
@@ -32,41 +30,6 @@ struct ServicesView: View {
                 controller.dismissFailure()
             }
         }
-    }
-
-    private var autoUnlockSection: some View {
-        Section {
-            Toggle("Enabled", isOn: $settings.autoUnlocks)
-            if settings.autoUnlocks {
-                Picker("Passcode Type", selection: $settings.autoUnlockPasscodeType) {
-                    Text("4-Digit or 6-Digit Code").tag(ServerPasscodeType.pin)
-                    Text("Custom Numeric Code").tag(ServerPasscodeType.numeric)
-                    Text("Custom Alphanumeric Code").tag(ServerPasscodeType.alphanumeric)
-                }
-                .pickerStyle(.menu)
-                LabeledContentCompat("Device Passcode") {
-                    TextField("Device Passcode", text: $settings.autoUnlockPasscode.masked { isPasscodeFocused }, prompt: Text("Required"))
-                        .textContentType(.oneTimeCode)
-                        .keyboardType(settings.autoUnlockPasscodeType == .alphanumeric ? .asciiCapable : .asciiCapableNumberPad)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .multilineTextAlignment(.trailing)
-                        .focused($isPasscodeFocused)
-                        .submitLabel(.done)
-                }
-            }
-        } header: {
-            Text("Automatic Unlock")
-        } footer: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Swipt needs your passcode to automatically unlock the device when connected.")
-                if let problem = settings.autoUnlockProblem {
-                    Text(problem)
-                        .foregroundStyle(.red)
-                }
-            }
-        }
-        .disabled(controller.isActive)
     }
 
     private var backgroundSection: some View {

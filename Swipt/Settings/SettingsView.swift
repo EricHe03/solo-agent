@@ -17,6 +17,11 @@ struct SettingsView: View {
                 #if os(iOS)
                 if ServerFeature.isAvailable {
                     NavigationLink {
+                        AutoUnlockView()
+                    } label: {
+                        Label("Automatic Unlock", systemImage: "lock.open")
+                    }
+                    NavigationLink {
                         ServicesView()
                     } label: {
                         Label("Services", systemImage: "hammer")

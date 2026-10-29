@@ -100,6 +100,7 @@ final class ServerController {
         remotePairing.onPortChange = { [weak self] port in
             self?.server?.setRemotePairingPort(Int32(port))
         }
+        observeDeviceSettings()
     }
 
     var isActive: Bool { phase.isActive }
@@ -113,7 +114,7 @@ final class ServerController {
             return String(localized: "Pair and import the Developer Disk Image in Settings › Services first.")
         }
         if settings.autoUnlockProblem != nil {
-            return String(localized: "Check Automatic Unlock in Settings › Services.")
+            return String(localized: "Check Settings › Automatic Unlock.")
         }
         if DiskImageStore.shared.isImporting {
             return String(localized: "The Developer Disk Image is still importing.")
@@ -363,8 +364,6 @@ final class ServerController {
         let options = LibSwiptDeviceServerOptions()
         options.pairingRecord = record
         options.remotePairingPort = Int32(remotePairing.port ?? 0)
-        options.autoUnlockPasscode = settings.autoUnlocks ? settings.autoUnlockPasscode : ""
-        options.autoUnlockPasscodeType = settings.autoUnlockPasscodeType.rawValue
         options.workflowDirectory = WorkflowStore.directory.path
         options.appBundleID = Bundle.main.bundleIdentifier ?? ""
         do {
@@ -406,6 +405,7 @@ final class ServerController {
                 box.value.setRemotePairingPort(Int32(port))
             }
             do {
+                try box.value.update(deviceSettings)
                 try box.value.setMCP(settings.isMCPEnabled ? mcpOptions : nil)
                 try box.value.start()
             } catch {
@@ -421,6 +421,24 @@ final class ServerController {
             guard generation == self.generation else { return }
             fail(ServerProblem(kind: .other, message: error.message))
         }
+    }
+
+    private var deviceSettings: LibSwiptDeviceServerSettings {
+        let options = LibSwiptDeviceServerSettings()
+        options.autoUnlockPasscode = settings.autoUnlocks && settings.autoUnlockProblem == nil ? settings.autoUnlockPasscode : ""
+        options.autoUnlockPasscodeType = settings.autoUnlockPasscodeType.rawValue
+        return options
+    }
+
+    private func observeDeviceSettings() {
+        let options = withPerceptionTracking {
+            deviceSettings
+        } onChange: { [weak self] in
+            DispatchQueue.main.async { self?.observeDeviceSettings() }
+        }
+        guard let server else { return }
+        let box = UncheckedSendable(value: options)
+        configure(server) { try $0.update(box.value) }
     }
 
     private var mcpOptions: LibSwiptMCPOptions {

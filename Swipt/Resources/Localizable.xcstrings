@@ -4215,18 +4215,18 @@
         }
       }
     },
-    "Check Automatic Unlock in Settings › Services." : {
+    "Check Settings › Automatic Unlock." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请检查“设置”>“服务”中的自动解锁。"
+            "value" : "请检查“设置”>“自动解锁”。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請檢查「設定」>「服務」中的自動解鎖。"
+            "value" : "請檢查「設定」>「自動解鎖」。"
           }
         }
       }
@@ -9663,28 +9663,6 @@
         }
       }
     },
-    "Device Passcode" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Device Passcode"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设备锁屏密码"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "裝置鎖定畫面密碼"
-          }
-        }
-      }
-    },
     "Devices" : {
       "localizations" : {
         "en" : {
@@ -10941,6 +10919,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "編輯"
+          }
+        }
+      }
+    },
+    "Enable automatic unlock so scripts can unlock your device automatically when it’s locked." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用自动解锁，以便脚本可以在锁定时自动解锁您的设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟用自動解鎖，以便腳本可以在鎖定時自動解鎖您的裝置。"
           }
         }
       }
@@ -16695,6 +16689,28 @@
         }
       }
     },
+    "Lock Screen Passcode" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock Screen Passcode"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "锁屏密码"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鎖定畫面密碼"
+          }
+        }
+      }
+    },
     "Loopback through the local network performs poorly." : {
       "localizations" : {
         "ar" : {
@@ -21600,6 +21616,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "配對失敗"
+          }
+        }
+      }
+    },
+    "Passcode" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passcode"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密码"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密碼"
           }
         }
       }
@@ -27994,22 +28032,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Swipt 需要在背景保持執行，才能持續自動化此裝置。"
-          }
-        }
-      }
-    },
-    "Swipt needs your passcode to automatically unlock the device when connected." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt 需要您的密码，以在连接时自动解锁设备。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt 需要您的密碼，以在連線時自動解鎖裝置。"
           }
         }
       }

@@ -145,7 +145,7 @@ func (w *inputWorker) viewerConnected(session *rfb.ServerSession) {
 	owner, cancel := context.WithCancel(session.Context())
 	w.sessions[session] = inputSession{context: owner, cancel: cancel}
 	w.access.Unlock()
-	if w.server.options.AutoUnlockPasscode != "" {
+	if w.server.settings.Load().AutoUnlockPasscode != "" {
 		w.push(inputItem{unlock: true})
 	}
 }
@@ -160,7 +160,7 @@ func (w *inputWorker) sessionResumed(session *rfb.ServerSession) {
 }
 
 func (w *inputWorker) videoReady() {
-	if w.server.options.AutoUnlockPasscode != "" {
+	if w.server.settings.Load().AutoUnlockPasscode != "" {
 		w.push(inputItem{})
 	}
 }

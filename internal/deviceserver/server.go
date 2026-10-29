@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
@@ -77,8 +78,6 @@ type Options struct {
 	Logger   *slog.Logger
 	Observer Observer
 
-	AutoUnlockPasscode     string
-	AutoUnlockPasscodeType PasscodeType
 	// BLSBacklightState: 0 off, 1 inactiveOn, 2 activeOn, 3 dimmed (BacklightServices
 	// 24A446, NSStringFromBLSBacklightState 0x22582161c, table 0x268a47640); -1 unavailable.
 	BacklightState func() int32
@@ -86,8 +85,14 @@ type Options struct {
 	DiskImageDirectory string
 }
 
+type Settings struct {
+	AutoUnlockPasscode     string
+	AutoUnlockPasscodeType PasscodeType
+}
+
 type Server struct {
 	options  Options
+	settings atomic.Pointer[Settings]
 	logger   *slog.Logger
 	notifier *notifier
 	streams  *streamManager
@@ -137,9 +142,6 @@ type attachment struct {
 }
 
 func New(options Options) (*Server, error) {
-	if err := validateAutoUnlock(options); err != nil {
-		return nil, err
-	}
 	logger := options.Logger
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
@@ -152,6 +154,7 @@ func New(options Options) (*Server, error) {
 		displayWake: make(chan struct{}, 1),
 		attachWake:  make(chan struct{}),
 	}
+	s.settings.Store(&Settings{})
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	s.notifier = newNotifier()
 	s.streams = newStreamManager(logger.With("component", "stream"), s.streamingChanged)
@@ -172,6 +175,15 @@ func (s *Server) Start() error {
 	}
 	s.started = true
 	go s.run()
+	return nil
+}
+
+func (s *Server) UpdateSettings(settings Settings) error {
+	err := validateAutoUnlock(settings)
+	if err != nil {
+		return err
+	}
+	s.settings.Store(&settings)
 	return nil
 }
 
