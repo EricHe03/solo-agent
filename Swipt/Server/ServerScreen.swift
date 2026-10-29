@@ -42,9 +42,7 @@ struct ServerScreen: ViewModifier {
             return AlertState(problem.title, errorMessage: problem.message)
         } set: { state in
             guard state == nil, isVisible else { return }
-            if case .failed = controller.phase {
-                controller.stop()
-            }
+            controller.dismissFailure()
         }
     }
 }

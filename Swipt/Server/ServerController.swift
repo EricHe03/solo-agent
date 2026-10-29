@@ -177,24 +177,31 @@ final class ServerController {
     }
 
     func resume() {
-        start(mcp: settings.isMCPEnabled && canStartMCP)
+        guard settings.isMCPEnabled else { return }
+        if canStartMCP {
+            start()
+        } else {
+            settings.isMCPEnabled = false
+        }
     }
 
     func setMCP(_ enabled: Bool) {
-        guard phase.isActive else {
-            if enabled {
-                start(mcp: true)
-            }
-            return
-        }
-        guard enabled || runs > 0 else {
-            stop()
-            return
-        }
         settings.isMCPEnabled = enabled
-        guard let server else { return }
-        let options = UncheckedSendable(value: enabled ? mcpOptions : nil)
-        configure(server) { try $0.setMCP(options.value) }
+        if enabled {
+            start()
+        } else if runs == 0 {
+            stop()
+        }
+        if let server {
+            let options = UncheckedSendable(value: enabled ? mcpOptions : nil)
+            configure(server) { try $0.setMCP(options.value) }
+        }
+    }
+
+    func dismissFailure() {
+        if case .failed = phase {
+            phase = .stopped
+        }
     }
 
     func waitUntilRunning() async throws {
@@ -245,11 +252,11 @@ final class ServerController {
         runs += 1
         defer {
             runs -= 1
-            if runs == 0, phase.isActive, !settings.isMCPEnabled {
+            if runs == 0, !settings.isMCPEnabled {
                 stop()
             }
         }
-        start(mcp: false)
+        start()
         try await waitUntilRunning()
         guard let server else { throw MessageError(String(localized: "The server stopped.")) }
         let (requests, delivery) = AsyncStream<String>.makeStream()
@@ -321,13 +328,12 @@ final class ServerController {
         try await Task.detached(priority: .userInitiated) { try box.value.resetScript() }.value
     }
 
-    private func start(mcp: Bool) {
-        guard !phase.isActive, mcp || runs > 0, let record = pairing.record else { return }
+    private func start() {
+        guard !phase.isActive, let record = pairing.record else { return }
         if settings.runsInBackground, settings.backgroundMode == .location, location.isDenied {
             fail(ServerProblem(kind: .locationDenied, message: ""))
             return
         }
-        settings.isMCPEnabled = mcp
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, error in
             if let error {
                 Self.logger.error("Request notification authorization: \(error.localizedDescription, privacy: .public)")
@@ -342,9 +348,8 @@ final class ServerController {
         }
     }
 
-    func stop() {
-        settings.isMCPEnabled = false
-        guard phase != .stopped else { return }
+    private func stop() {
+        guard phase.isActive else { return }
         generation += 1
         startTask?.cancel()
         startTask = nil

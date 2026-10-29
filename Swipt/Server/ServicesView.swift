@@ -29,9 +29,7 @@ struct ServicesView: View {
             }
             .onChangeCompat(of: pairing.revision) {
                 controller.remotePairing.refresh()
-                if case .failed = controller.phase {
-                    controller.stop()
-                }
+                controller.dismissFailure()
             }
         }
     }
