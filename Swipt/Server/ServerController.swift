@@ -3,6 +3,7 @@ import LibSwipt
 import Perception
 import UIKit
 import UserNotifications
+import dnssd
 import os
 
 nonisolated struct ScriptOutput: Sendable {
@@ -61,6 +62,7 @@ final class ServerController {
 
     let remotePairing = RemotePairingBrowser()
     let pairingSession = PairingSession()
+    private let mcpAdvertiser = BonjourAdvertiser()
     @PerceptionIgnored private lazy var location: BackgroundLocation = {
         let location = BackgroundLocation()
         location.onUpdatingChange = { [weak self] in
@@ -91,6 +93,7 @@ final class ServerController {
     @PerceptionIgnored private var probeTask: Task<Void, Never>?
     @PerceptionIgnored private var probeClients = 0
     @PerceptionIgnored private var isBrowsing = false
+    @PerceptionIgnored private var isAdvertisingMCP = false
     nonisolated private static let queue = DispatchQueue(label: "io.nekohasekai.swipt.server", qos: .userInitiated)
 
     private var settings: ServerSettings { .shared }
@@ -99,6 +102,10 @@ final class ServerController {
     init() {
         remotePairing.onPortChange = { [weak self] port in
             self?.server?.setRemotePairingPort(Int32(port))
+        }
+        mcpAdvertiser.onFailure = { [weak self] errorCode in
+            Self.logger.error("Publish the MCP service: \(errorCode)")
+            self?.setAdvertisingMCP(false)
         }
         observeDeviceSettings()
     }
@@ -197,6 +204,7 @@ final class ServerController {
             let options = UncheckedSendable(value: enabled ? mcpOptions : nil)
             configure(server) { try $0.setMCP(options.value) }
         }
+        setAdvertisingMCP(isMCPActive)
     }
 
     func dismissFailure() {
@@ -549,6 +557,7 @@ final class ServerController {
         }
         updateBackground()
         setBrowsing(phase.isActive)
+        setAdvertisingMCP(isMCPActive)
     }
 
     func updateBackground() {
@@ -577,6 +586,19 @@ final class ServerController {
             remotePairing.start()
         } else {
             remotePairing.stop()
+        }
+    }
+
+    private func setAdvertisingMCP(_ advertising: Bool) {
+        guard advertising != isAdvertisingMCP else { return }
+        isAdvertisingMCP = advertising
+        guard advertising else {
+            mcpAdvertiser.stop()
+            return
+        }
+        let error = mcpAdvertiser.start(name: name, type: "_mcp._tcp", port: settings.mcpPort, txt: [:])
+        if error != kDNSServiceErr_NoError {
+            Self.logger.error("Publish the MCP service: \(error)")
         }
     }
 }

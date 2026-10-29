@@ -4,7 +4,8 @@ import UIKit
 
 struct MCPView: View {
     @FocusState private var isTokenFocused: Bool
-    @State private var hosts: [String] = []
+    @State private var addresses: [String] = []
+    @State private var localHostName = LocalHostName()
     @State private var host = ""
 
     private let controller = ServerController.shared
@@ -42,16 +43,19 @@ struct MCPView: View {
                 .disabled(controller.isMCPActive)
                 if !hosts.isEmpty {
                     Section("Usage") {
-                        Picker("Host", selection: $host) {
+                        Picker("Host", selection: hostBinding) {
                             ForEach(hosts, id: \.self) { host in
                                 Text(verbatim: host).tag(host)
                             }
                         }
                         .pickerStyle(.menu)
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(verbatim: "Claude Code:")
+                            Text(verbatim: "Claude Code")
                             CommandBlock(command: "claude mcp add --transport http \(serverName) \(url)")
-                            Text(verbatim: "Codex:")
+                        }
+                        .padding(.vertical, 4)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(verbatim: "Codex")
                             CommandBlock(command: "codex mcp add \(serverName) --url \(url)")
                         }
                         .padding(.vertical, 4)
@@ -61,10 +65,11 @@ struct MCPView: View {
             .navigationTitle("MCP Server")
             .modifier(ServerScreen())
             .onAppear {
-                hosts = Self.localHosts()
-                if !hosts.contains(host) {
-                    host = hosts.first ?? ""
-                }
+                addresses = Self.localAddresses()
+                localHostName.start()
+            }
+            .onDisappear {
+                localHostName.stop()
             }
         }
     }
@@ -76,6 +81,18 @@ struct MCPView: View {
                 isTokenFocused = false
                 controller.setMCP(on)
             })
+    }
+
+    private var hosts: [String] {
+        (localHostName.name.map { [$0] } ?? []) + addresses
+    }
+
+    private var selectedHost: String {
+        hosts.contains(host) ? host : hosts.first ?? ""
+    }
+
+    private var hostBinding: Binding<String> {
+        Binding(get: { selectedHost }, set: { host = $0 })
     }
 
     private var serverName: String {
@@ -91,10 +108,10 @@ struct MCPView: View {
     private var url: String {
         let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
         let credentials = settings.mcpAuthenticates ? settings.mcpToken.addingPercentEncoding(withAllowedCharacters: unreserved)! + "@" : ""
-        return "http://\(credentials)\(host):\(settings.mcpPort)/mcp"
+        return "http://\(credentials)\(selectedHost):\(settings.mcpPort)/mcp"
     }
 
-    private static func localHosts() -> [String] {
+    private static func localAddresses() -> [String] {
         var list: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&list) == 0, let first = list else { return [] }
         defer { freeifaddrs(list) }
