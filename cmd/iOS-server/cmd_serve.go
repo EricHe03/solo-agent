@@ -134,7 +134,7 @@ func serve(ctx context.Context) error {
 				return net.Listen("tcp", net.JoinHostPort("::", strconv.Itoa(int(serveMCPPort))))
 			},
 			Server: phonemcp.New(phonemcp.NewRunner(server.Phone(), phonemcp.RunnerOptions{Workflows: serveWorkflows, LogFactory: logFactory}), phonemcp.Options{Token: serveMCPToken, Logger: logFactory.NewLogger("mcp")}),
-		}, nil)
+		})
 		if err != nil {
 			return err
 		}

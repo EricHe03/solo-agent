@@ -17,6 +17,25 @@ enum ServerOperation: String, AppEnum {
 }
 
 @available(iOS 27, *)
+enum MCPServerKind: String, AppEnum {
+    case local
+    case cloudflare
+
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Server"
+    static let caseDisplayRepresentations: [MCPServerKind: DisplayRepresentation] = [
+        .local: "Local Server",
+        .cloudflare: "Cloudflare",
+    ]
+
+    @MainActor var isActive: Bool {
+        switch self {
+        case .local: ServerController.shared.isLocalMCPActive
+        case .cloudflare: ServerController.shared.isCloudflareMCPActive
+        }
+    }
+}
+
+@available(iOS 27, *)
 struct SetMCPServerIntent: AppIntent {
     static let title: LocalizedStringResource = "Set MCP Server"
     static let description = IntentDescription("Turns MCP Server on or off, and returns whether it’s on afterwards. Turning it on waits until it’s running.")
@@ -24,30 +43,35 @@ struct SetMCPServerIntent: AppIntent {
     @Parameter(title: "Operation", default: .toggle)
     var operation: ServerOperation
 
+    @Parameter(title: "Server", default: .local)
+    var server: MCPServerKind
+
     static var parameterSummary: some ParameterSummary {
-        Summary("\(\.$operation) MCP Server")
+        Summary("\(\.$operation) \(\.$server)")
     }
 
     @MainActor func perform() async throws -> some IntentResult & ReturnsValue<Bool> {
         let controller = ServerController.shared
+        let settings = ServerSettings.shared
         let on =
             switch operation {
             case .turnOn: true
             case .turnOff: false
-            case .toggle: !controller.isMCPActive
+            case .toggle: !server.isActive
             }
+        let set = server == .local ? controller.setLocalMCP : controller.setCloudflareMCP
         guard on else {
-            controller.setMCP(false)
+            set(false)
             return .result(value: false)
         }
-        if !controller.isMCPActive {
+        if !server.isActive {
             if let problem = controller.startProblem {
                 throw MessageError(problem)
             }
-            if !ServerSettings.shared.isMCPComplete {
+            if !(server == .local ? settings.isLocalMCPComplete : settings.isCloudflareComplete) {
                 throw MessageError(String(localized: "Complete the MCP Server settings."))
             }
-            controller.setMCP(true)
+            set(true)
         }
         try await controller.waitUntilRunning()
         return .result(value: true)
@@ -59,8 +83,11 @@ struct GetMCPServerIntent: AppIntent {
     static let title: LocalizedStringResource = "Get MCP Server Status"
     static let description = IntentDescription("Returns whether MCP Server is on.")
 
+    @Parameter(title: "Server", default: .local)
+    var server: MCPServerKind
+
     @MainActor func perform() async throws -> some IntentResult & ReturnsValue<Bool> {
-        .result(value: ServerController.shared.isMCPActive)
+        .result(value: server.isActive)
     }
 }
 

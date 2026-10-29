@@ -5,37 +5,50 @@ import SwiftUI
 import UIKit
 
 struct MCPView: View {
-    private let controller = ServerController.shared
-
     var body: some View {
-        WithPerceptionTracking {
-            Form {
-                Section {
-                    Toggle("Enabled", isOn: mcpBinding)
-                        .disabled(!controller.isMCPActive && !controller.canStartMCP)
-                } footer: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ServerStatus()
-                    }
+        Form {
+            Section {
+                NavigationLink {
+                    LocalMCPView()
+                } label: {
+                    ServerRow(icon: "wifi", title: Text("Local Server"), description: Text("Provides the MCP server to the local network."))
                 }
-                Section("Listen") {
-                    NavigationLink("Local") {
-                        LocalMCPView()
-                    }
-                    NavigationLink {
-                        CloudflareMCPView()
-                    } label: {
-                        Text(verbatim: "Cloudflare")
-                    }
+                NavigationLink {
+                    CloudflareMCPView()
+                } label: {
+                    ServerRow(
+                        icon: "cloud", title: Text(verbatim: "Cloudflare"),
+                        description: Text("Securely provides the MCP server to internet apps through Cloudflare."))
+                }
+            } footer: {
+                VStack(alignment: .leading, spacing: 4) {
+                    ServerStatus()
                 }
             }
-            .navigationTitle("MCP Server")
-            .modifier(ServerScreen())
         }
+        .navigationTitle("MCP Server")
+        .modifier(ServerScreen())
     }
+}
 
-    private var mcpBinding: Binding<Bool> {
-        Binding(get: { controller.isMCPActive }, set: { controller.setMCP($0) })
+private struct ServerRow: View {
+    let icon: String
+    let title: Text
+    let description: Text
+
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 2) {
+                title
+                description
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        } icon: {
+            Image(systemName: icon)
+                .font(.title2)
+        }
+        .padding(.vertical, 6)
     }
 }
 
@@ -50,10 +63,11 @@ private struct LocalMCPView: View {
     var body: some View {
         WithPerceptionTracking {
             Form {
+                Section {
+                    Toggle("Enabled", isOn: Binding(get: { controller.isLocalMCPActive }, set: { controller.setLocalMCP($0) }))
+                        .disabled(!controller.isLocalMCPActive && !(controller.canStart && settings.isLocalMCPComplete))
+                }
                 Group {
-                    Section {
-                        Toggle("Enabled", isOn: $settings.isLocalMCPEnabled)
-                    }
                     Section("Configuration") {
                         ValueRow(title: "Port", value: String(settings.mcpPort), keyboard: .numberPad) { text in
                             if let port = Int(text), ServerSettings.mcpPortRange.contains(port) {
@@ -73,22 +87,22 @@ private struct LocalMCPView: View {
                         }
                     }
                 }
-                .disabled(controller.isMCPActive)
+                .disabled(controller.isLocalMCPActive)
                 if !hosts.isEmpty {
-                    Section("Usage") {
+                    UsageSection(
+                        scheme: "http", token: settings.mcpAuthenticates ? settings.mcpToken : nil,
+                        host: "\(selectedHost):\(settings.mcpPort)", path: "/mcp"
+                    ) {
                         Picker("Host", selection: hostBinding) {
                             ForEach(hosts, id: \.self) { host in
                                 Text(verbatim: host).tag(host)
                             }
                         }
                         .pickerStyle(.menu)
-                        MCPCommands(
-                            scheme: "http", token: settings.mcpAuthenticates ? settings.mcpToken : nil,
-                            host: "\(selectedHost):\(settings.mcpPort)", path: "/mcp")
                     }
                 }
             }
-            .navigationTitle("Local")
+            .navigationTitle("Local Server")
             .onAppear {
                 addresses = Self.localAddresses()
                 localHostName.start()
@@ -152,10 +166,11 @@ private struct CloudflareMCPView: View {
     var body: some View {
         WithPerceptionTracking {
             Form {
+                Section {
+                    Toggle("Enabled", isOn: Binding(get: { controller.isCloudflareMCPActive }, set: { controller.setCloudflareMCP($0) }))
+                        .disabled(!controller.isCloudflareMCPActive && !(controller.canStart && settings.isCloudflareComplete))
+                }
                 Group {
-                    Section {
-                        Toggle("Enabled", isOn: $settings.isCloudflareEnabled)
-                    }
                     Section("Configuration") {
                         NavigationLink {
                             CloudflareModeView()
@@ -202,11 +217,9 @@ private struct CloudflareMCPView: View {
                         }
                     }
                 }
-                .disabled(controller.isMCPActive)
+                .disabled(controller.isCloudflareMCPActive)
                 if !hostname.isEmpty {
-                    Section("Usage") {
-                        MCPCommands(scheme: "https", token: settings.cloudflareToken, host: hostname, path: settings.cloudflarePath)
-                    }
+                    UsageSection(scheme: "https", token: settings.cloudflareToken, host: hostname, path: settings.cloudflarePath) {}
                 }
             }
             .navigationTitle(Text(verbatim: "Cloudflare"))
@@ -359,28 +372,49 @@ private struct ValueRow: View {
     }
 }
 
-private struct MCPCommands: View {
+private struct UsageSection<Leading: View>: View {
     let scheme: String
     let token: String?
     let host: String
     let path: String
+    @ViewBuilder let leading: Leading
+    @State private var isRevealed = false
 
     private let controller = ServerController.shared
 
     var body: some View {
         WithPerceptionTracking {
-            let claude = "claude mcp add --transport http \(controller.serverName) "
-            VStack(alignment: .leading, spacing: 8) {
-                Text(verbatim: "Claude Code")
-                CommandBlock(command: claude + url(revealed: true), display: claude + url(revealed: false))
+            Section {
+                leading
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(verbatim: "URL")
+                    CommandBlock(command: url(revealed: true), display: url(revealed: isRevealed))
+                }
+                .padding(.vertical, 4)
+                let claude = "claude mcp add --transport http \(controller.serverName) "
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(verbatim: "Claude Code")
+                    CommandBlock(command: claude + url(revealed: true), display: claude + url(revealed: isRevealed))
+                }
+                .padding(.vertical, 4)
+                let codex = "codex mcp add \(controller.serverName) --url "
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(verbatim: "Codex")
+                    CommandBlock(command: codex + url(revealed: true), display: codex + url(revealed: isRevealed))
+                }
+                .padding(.vertical, 4)
+            } header: {
+                HStack {
+                    Text("Usage")
+                    Spacer()
+                    Button {
+                        isRevealed.toggle()
+                    } label: {
+                        Image(systemName: isRevealed ? "eye.slash" : "eye")
+                    }
+                    .accessibilityLabel(isRevealed ? Text("Hide") : Text("Show"))
+                }
             }
-            .padding(.vertical, 4)
-            let codex = "codex mcp add \(controller.serverName) --url "
-            VStack(alignment: .leading, spacing: 8) {
-                Text(verbatim: "Codex")
-                CommandBlock(command: codex + url(revealed: true), display: codex + url(revealed: false))
-            }
-            .padding(.vertical, 4)
         }
     }
 
@@ -389,6 +423,7 @@ private struct MCPCommands: View {
         let credentials = token.map {
             (revealed ? $0.addingPercentEncoding(withAllowedCharacters: unreserved)! : String(repeating: "•", count: min($0.count, 3))) + "@"
         } ?? ""
+        let host = revealed || !host.hasSuffix(".trycloudflare.com") ? host : "***" + host.drop { $0 != "." }
         return "\(scheme)://\(credentials)\(host)\(path)"
     }
 }

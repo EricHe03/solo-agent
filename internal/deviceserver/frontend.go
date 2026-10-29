@@ -118,22 +118,22 @@ func (s *Server) SetScreenSharing(options *ScreenSharingOptions) error {
 	return err
 }
 
-func (s *Server) SetMCP(local *MCPOptions, tunnel *MCPOptions) error {
+func (s *Server) SetMCP(options *MCPOptions) error {
+	return s.setFrontend(&s.mcp, "MCP", options)
+}
+
+func (s *Server) SetTunnelMCP(options *MCPOptions) error {
+	return s.setFrontend(&s.tunnelMCP, "MCP tunnel", options)
+}
+
+func (s *Server) setFrontend(slot **frontend, name string, options *MCPOptions) error {
+	var next *frontend
+	if options != nil {
+		next = &frontend{name: name, listen: options.Listen, server: options.Server}
+	}
 	s.frontends.Lock()
 	defer s.frontends.Unlock()
-	var errs []error
-	for _, item := range []struct {
-		slot    **frontend
-		name    string
-		options *MCPOptions
-	}{{&s.mcp, "MCP", local}, {&s.tunnelMCP, "MCP tunnel", tunnel}} {
-		var next *frontend
-		if item.options != nil {
-			next = &frontend{name: item.name, listen: item.options.Listen, server: item.options.Server}
-		}
-		errs = append(errs, s.replace(item.slot, next))
-	}
-	return E.Errors(errs...)
+	return s.replace(slot, next)
 }
 
 func (s *Server) replace(slot **frontend, next *frontend) error {

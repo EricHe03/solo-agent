@@ -102,21 +102,21 @@ func (t *CloudflareTunnel) Close() error {
 	return t.tunnel.Close()
 }
 
-func (s *DeviceServer) cloudflareMCP(options *CloudflareOptions) (*deviceserver.MCPOptions, error) {
+func (s *DeviceServer) SetCloudflareMCP(options *CloudflareOptions) error {
 	if options == nil {
-		return nil, nil
+		return s.server.SetTunnelMCP(nil)
 	}
 	if options.Tunnel == nil {
-		return nil, E.New("cloudflare: missing tunnel")
+		return E.New("cloudflare: missing tunnel")
 	}
 	if options.Token == "" {
-		return nil, E.New("cloudflare: missing token")
+		return E.New("cloudflare: missing token")
 	}
 	if !strings.HasPrefix(options.Path, "/") {
-		return nil, E.New("cloudflare: invalid path ", options.Path)
+		return E.New("cloudflare: invalid path ", options.Path)
 	}
-	return &deviceserver.MCPOptions{
+	return s.server.SetTunnelMCP(&deviceserver.MCPOptions{
 		Listen: options.Tunnel.tunnel.Listen,
 		Server: phonemcp.New(s.runner, phonemcp.Options{Token: options.Token, Path: options.Path, Logger: s.logFactory.NewLogger("mcp")}),
-	}, nil
+	})
 }

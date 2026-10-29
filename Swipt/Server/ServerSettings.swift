@@ -14,7 +14,6 @@ final class ServerSettings {
         static let autoUnlocks = "serverAutoUnlocks"
         static let autoUnlockPasscodeType = "serverAutoUnlockPasscodeType"
         static let autoUnlockPasscode = "serverAutoUnlockPasscode"
-        static let mcpEnabled = "serverMCPEnabled"
         static let mcpPort = "serverMCPPort"
         static let mcpAuthenticates = "serverMCPAuthenticates"
         static let mcpToken = "serverMCPToken"
@@ -49,10 +48,6 @@ final class ServerSettings {
 
     var autoUnlockPasscode: String {
         didSet { store.set(autoUnlockPasscode, for: Key.autoUnlockPasscode) }
-    }
-
-    var isMCPEnabled: Bool {
-        didSet { store.set(isMCPEnabled, for: Key.mcpEnabled) }
     }
 
     var mcpPort: Int {
@@ -119,11 +114,10 @@ final class ServerSettings {
         autoUnlocks = store.value(Bool.self, for: Key.autoUnlocks) ?? false
         autoUnlockPasscodeType = store.value(ServerPasscodeType.self, for: Key.autoUnlockPasscodeType) ?? .pin
         autoUnlockPasscode = store.value(String.self, for: Key.autoUnlockPasscode) ?? ""
-        isMCPEnabled = store.value(Bool.self, for: Key.mcpEnabled) ?? false
         mcpPort = store.value(Int.self, for: Key.mcpPort) ?? Self.defaultMCPPort
         mcpAuthenticates = store.value(Bool.self, for: Key.mcpAuthenticates) ?? false
         mcpToken = store.value(String.self, for: Key.mcpToken) ?? ""
-        isLocalMCPEnabled = store.value(Bool.self, for: Key.localMCPEnabled) ?? true
+        isLocalMCPEnabled = store.value(Bool.self, for: Key.localMCPEnabled) ?? false
         isCloudflareEnabled = store.value(Bool.self, for: Key.cloudflareEnabled) ?? false
         cloudflareMode = store.value(CloudflareMode.self, for: Key.cloudflareMode) ?? .quickTunnel
         cloudflarePath = store.value(String.self, for: Key.cloudflarePath) ?? "/mcp"
@@ -144,10 +138,20 @@ final class ServerSettings {
         String((0..<length).map { _ in "0123456789abcdef".randomElement()! })
     }
 
+    var isMCPEnabled: Bool {
+        isLocalMCPEnabled || isCloudflareEnabled
+    }
+
+    var isLocalMCPComplete: Bool {
+        !mcpAuthenticates || !mcpToken.isEmpty
+    }
+
+    var isCloudflareComplete: Bool {
+        !cloudflareToken.isEmpty && (cloudflareMode == .quickTunnel || (!cloudflareAccount.isEmpty && !cloudflareHostname.isEmpty))
+    }
+
     var isMCPComplete: Bool {
-        (!isLocalMCPEnabled || !mcpAuthenticates || !mcpToken.isEmpty)
-            && (!isCloudflareEnabled
-                || (!cloudflareToken.isEmpty && (cloudflareMode == .quickTunnel || (!cloudflareAccount.isEmpty && !cloudflareHostname.isEmpty))))
+        (!isLocalMCPEnabled || isLocalMCPComplete) && (!isCloudflareEnabled || isCloudflareComplete)
     }
 
     var autoUnlockProblem: String? {
