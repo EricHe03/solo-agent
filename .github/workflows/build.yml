@@ -1,0 +1,177 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calculate_version:
+    name: Calculate version
+    runs-on: ubuntu-latest
+    outputs:
+      build_number: ${{ steps.outputs.outputs.build_number }}
+      library_hash: ${{ steps.outputs.outputs.library_hash }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 1
+      - name: Set outputs
+        id: outputs
+        run: |-
+          PREVIOUS=0
+          if git fetch --depth=1 origin tag nightly; then
+            PREVIOUS=$(git tag -l --format='%(contents:subject)' nightly)
+          fi
+          echo "build_number=$((PREVIOUS + 1))"
+          echo "build_number=$((PREVIOUS + 1))" >> "$GITHUB_OUTPUT"
+          echo "library_hash=${{ hashFiles('go.mod', 'go.sum', 'libswipt/**', 'internal/**', 'cmd/internal/build_libswipt/**') }}" >> "$GITHUB_OUTPUT"
+  build_apple_library:
+    name: Build Apple library
+    runs-on: xcode-27
+    needs:
+      - calculate_version
+    steps:
+      - name: Cache library
+        id: library
+        uses: actions/cache@v4
+        with:
+          path: Frameworks/LibSwipt.xcframework
+          key: libswipt-ios-arm64-${{ needs.calculate_version.outputs.library_hash }}
+          lookup-only: true
+      - name: Checkout
+        if: steps.library.outputs.cache-hit != 'true'
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 1
+      - name: Select Xcode
+        if: steps.library.outputs.cache-hit != 'true'
+        run: .github/select_xcode.sh
+      - name: Setup Go
+        if: steps.library.outputs.cache-hit != 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Cache Go modules
+        if: steps.library.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: go-mod-${{ hashFiles('go.sum') }}
+          restore-keys: go-mod-
+      - name: Cache Go build
+        if: steps.library.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/go-build
+          key: go-build-libswipt-ios-arm64-${{ needs.calculate_version.outputs.library_hash }}
+          restore-keys: go-build-libswipt-ios-arm64-
+      - name: Build library
+        if: steps.library.outputs.cache-hit != 'true'
+        run: go run ./cmd/internal/build_libswipt -target ios/arm64
+  build_ios_ipa:
+    name: Build iOS (IPA)
+    runs-on: xcode-27
+    needs:
+      - calculate_version
+      - build_apple_library
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 1
+      - name: Select Xcode
+        run: .github/select_xcode.sh
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Restore Go modules
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/go/pkg/mod
+          key: go-mod-${{ hashFiles('go.sum') }}
+          restore-keys: go-mod-
+      - name: Restore library
+        uses: actions/cache/restore@v4
+        with:
+          path: Frameworks/LibSwipt.xcframework
+          key: libswipt-ios-arm64-${{ needs.calculate_version.outputs.library_hash }}
+          fail-on-cache-miss: true
+      - name: Get Xcode version
+        id: xcode
+        run: echo "build=$(xcodebuild -version | tail -1 | cut -d ' ' -f 3)" >> "$GITHUB_OUTPUT"
+      - name: Cache Swift compilation
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/CompilationCache
+          key: swift-ios-${{ steps.xcode.outputs.build }}-${{ hashFiles('Swipt/**', 'Swipt.xcodeproj/**', 'Frameworks/LibSwipt.xcframework/ios-arm64/LibSwipt.framework/Versions/A/Headers/**', 'Frameworks/LibSwipt.xcframework/ios-arm64/LibSwipt.framework/Versions/A/Modules/**') }}
+      - name: Build
+        run: make archive_ios_ipa altstore_source
+        env:
+          XCODEBUILD_FLAGS: CURRENT_PROJECT_VERSION=${{ needs.calculate_version.outputs.build_number }} COMPILATION_CACHE_ENABLE_CACHING=YES COMPILATION_CACHE_CAS_PATH=${{ runner.temp }}/CompilationCache
+      - name: Package dSYMs
+        run: ditto -c -k --keepParent build/Swipt-iOS.xcarchive/dSYMs build/Swipt-iOS.dSYMs.zip
+      - name: Write metadata
+        run: |-
+          INFO_PLIST=build/Swipt-iOS.xcarchive/Products/Applications/Swipt.app/Info.plist
+          VERSION=$(plutil -extract CFBundleShortVersionString raw "$INFO_PLIST")
+          BUILD=$(plutil -extract CFBundleVersion raw "$INFO_PLIST")
+          printf '{"version":"%s","build":%s}\n' "$VERSION" "$BUILD" > build/metadata.json
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Swipt-iOS-IPA
+          path: |-
+            build/Swipt.ipa
+            build/Swipt-iOS.dSYMs.zip
+            build/metadata.json
+            build/altstore
+          if-no-files-found: error
+  publish_nightly:
+    name: Publish nightly
+    if: github.ref == 'refs/heads/main' && !cancelled() && !failure()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+      - calculate_version
+      - build_ios_ipa
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0
+      - name: Download builds
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Swipt-*
+          merge-multiple: true
+          path: dist
+      - name: Publish
+        run: |-
+          if RELEASE=$(gh release view --json tagName --jq .tagName); then
+            NOTES=$(git log --format='* %s' "$RELEASE..")
+          else
+            NOTES=$(git log --format='* %s')
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" tag -a -f nightly -m "$BUILD_NUMBER" "$GITHUB_SHA"
+          git push -f origin refs/tags/nightly
+          gh release create "nightly-$BUILD_NUMBER" --draft --prerelease --target "$GITHUB_SHA" --title "Nightly build" --notes "$NOTES" \
+            dist/Swipt.ipa dist/Swipt-iOS.dSYMs.zip dist/metadata.json dist/altstore/altstore.json dist/altstore/icon.png
+          DRAFT=$(gh release view "nightly-$BUILD_NUMBER" --json apiUrl --jq .apiUrl)
+          if PREVIOUS=$(gh release view nightly --json apiUrl --jq .apiUrl); then
+            gh api -X DELETE "$PREVIOUS"
+          fi
+          gh api -X PATCH "$DRAFT" -f tag_name=nightly -F draft=false > /dev/null
+        env:
+          BUILD_NUMBER: ${{ needs.calculate_version.outputs.build_number }}
+          GH_TOKEN: ${{ github.token }}

@@ -1,0 +1,74 @@
+package accessibility
+
+import "strconv"
+
+// __AXPNotificationToString's table (24B5110a AccessibilityPlatformTranslation
+// 0x2693d7de0).
+var notificationNames = map[uint64]string{
+	1: "Announcement", 2: "ElementDestroyed", 3: "FocusChanged", 4: "LayoutChanged", 5: "ScreenChanged",
+	6: "SelectionChanged", 7: "UserTestingNotification", 8: "ValueChanged", 9: "SelectionChanged",
+	10: "WebPageLoaded", 11: "Alert", 12: "ElementScrolledByPage", 13: "TextInputMarkingSessionBegan",
+	14: "TextInputMarkingSessionEnded", 15: "UpdateElementVisuals",
+}
+
+func NotificationName(notification uint64) string {
+	if name, found := notificationNames[notification]; found {
+		return name
+	}
+	return strconv.FormatUint(notification, 10)
+}
+
+type Push struct {
+	Notification uint64
+	PID          uint64
+	Tree         []PushedNode
+}
+
+type PushedNode struct {
+	PID        uint64
+	Label      string
+	Identifier string
+	Value      string
+}
+
+func pushedNotification(notification uint64, response map[string]any) Push {
+	push := Push{Notification: notification}
+	if obj, ok := parseTranslation(response["associatedNotificationObject"]); ok {
+		push.PID = obj.pid
+	} else if obj, ok := parseTranslation(response["resultData"]); ok {
+		push.PID = obj.pid
+	}
+	return push
+}
+
+func pushedTree(value any) Push {
+	data, _ := value.(map[string]any)
+	tree, _ := data["treeDump"].([]any)
+	var nodes []PushedNode
+	index := make(map[[2]uint64]int)
+	for _, item := range tree {
+		entry, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		obj, _ := parseTranslation(entry["associatedTranslationObject"])
+		values, _ := entry["resultData"].(map[any]any)
+		if attribute, _ := unsigned(entry["attribute"]); attribute != 0 {
+			values = map[any]any{attribute: entry["resultData"]}
+		}
+		key := [2]uint64{obj.pid, obj.objectID}
+		at, found := index[key]
+		if !found {
+			at = len(nodes)
+			index[key] = at
+			nodes = append(nodes, PushedNode{PID: obj.pid})
+		}
+		node := &nodes[at]
+		for attribute, field := range map[uint64]*string{attributeLabel: &node.Label, attributeIdentifier: &node.Identifier, attributeValue: &node.Value} {
+			if text, ok := values[attribute].(string); ok {
+				*field = text
+			}
+		}
+	}
+	return Push{Tree: nodes}
+}

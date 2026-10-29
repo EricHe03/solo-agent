@@ -1,0 +1,85 @@
+//go:build darwin && cgo
+
+#ifndef JSC_THREAD_H
+#define JSC_THREAD_H
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <JavaScriptCore/JavaScriptCore.h>
+
+typedef enum {
+	JSC_CREATE,
+	JSC_DESTROY,
+	JSC_BEGIN,
+	JSC_SET_DESCRIBER,
+	JSC_GLOBAL,
+	JSC_NEW_OBJECT,
+	JSC_NEW_STRING,
+	JSC_EVALUATE,
+	JSC_GET,
+	JSC_SET,
+	JSC_SET_FUNCTION,
+	JSC_NEW_FUNCTION,
+	JSC_SET_REJECTION,
+	JSC_CALL,
+	JSC_TO_STRING,
+	JSC_JSON,
+	JSC_DESCRIBE,
+	JSC_IS_FUNCTION,
+	JSC_NUMBER,
+	JSC_BYTES,
+	JSC_PROTECT,
+	JSC_UNPROTECT,
+} jsc_kind;
+
+typedef struct {
+	jsc_kind kind;
+	JSValueRef object;
+	JSValueRef value;
+	JSValueRef *arguments;
+	size_t count;
+	const JSChar *text;
+	size_t text_length;
+	const JSChar *name;
+	size_t name_length;
+	uintptr_t handle;
+
+	JSValueRef result;
+	JSChar *out;
+	size_t out_length;
+	uint8_t *data;
+	size_t data_length;
+	double number;
+	uint64_t run;
+	bool flag;
+	bool exception;
+	bool terminated;
+	bool done;
+} jsc_command;
+
+typedef struct {
+	uintptr_t handle;
+	const JSValueRef *arguments;
+	size_t count;
+	JSChar *json;
+	size_t json_length;
+	uint8_t *bytes;
+	size_t bytes_length;
+	JSValueRef value;
+	JSChar *error;
+	size_t error_length;
+	bool done;
+} jsc_host_request;
+
+typedef struct jsc_runtime jsc_runtime;
+
+jsc_runtime *jsc_runtime_new(void);
+void jsc_runtime_free(jsc_runtime *rt);
+void jsc_post(jsc_runtime *rt, jsc_command *cmd);
+jsc_host_request *jsc_wait(jsc_runtime *rt, jsc_command *cmd);
+void jsc_answer(jsc_runtime *rt, jsc_host_request *request);
+void jsc_cancel(jsc_runtime *rt, uint64_t run);
+uintptr_t *jsc_take_released(jsc_runtime *rt, size_t *count);
+
+#endif
