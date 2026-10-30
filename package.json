@@ -1,0 +1,23 @@
+{
+  "name": "swipt",
+  "private": true,
+  "workspaces": [
+    "internal/automation/runtime",
+    "internal/automation/runtime/modules/*"
+  ],
+  "dependencies": {
+    "swipt-runtime": "workspace:*"
+  },
+  "patchedDependencies": {
+    "@expo/ui@58.0.25": "internal/automation/runtime/patches/@expo%2Fui@58.0.25.patch",
+    "expo-modules-autolinking@58.0.16": "internal/automation/runtime/patches/expo-modules-autolinking@58.0.16.patch"
+  },
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "@expo/dom-webview",
+        "@expo/log-box"
+      ]
+    }
+  }
+}

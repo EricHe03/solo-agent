@@ -53,26 +53,30 @@ func (c *RemoteClient) receiveScreenViewingNotifications(value any) {
 	if len(candidates) == 0 {
 		return
 	}
-	select {
-	case pending := <-c.notifications:
-		for _, obj := range pending {
-			if !slices.ContainsFunc(candidates, obj.same) {
-				candidates = append(candidates, obj)
-			}
+	c.stateMu.Lock()
+	for _, obj := range candidates {
+		if !slices.ContainsFunc(c.screenViewing, obj.same) {
+			c.screenViewing = append(c.screenViewing, obj)
 		}
+	}
+	c.stateMu.Unlock()
+	select {
+	case c.screenViewingPending <- struct{}{}:
 	default:
 	}
-	c.notifications <- candidates
+}
+
+func (c *RemoteClient) ScreenViewingNotifications() <-chan struct{} {
+	return c.screenViewingPending
 }
 
 func (c *RemoteClient) DismissScreenViewingNotifications(ctx context.Context) (int, error) {
-	var candidates []translationObject
-	select {
-	case candidates = <-c.notifications:
-	case <-ctx.Done():
-		return 0, ctx.Err()
-	case <-c.ctx.Done():
-		return 0, context.Cause(c.ctx)
+	c.stateMu.Lock()
+	candidates := c.screenViewing
+	c.screenViewing = nil
+	c.stateMu.Unlock()
+	if len(candidates) == 0 {
+		return 0, nil
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()

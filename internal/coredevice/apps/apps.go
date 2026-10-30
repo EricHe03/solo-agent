@@ -25,9 +25,11 @@ const (
 )
 
 type App struct {
-	BundleID string
-	Name     string
-	Path     string
+	BundleID      string
+	Name          string
+	Path          string
+	Version       string
+	BundleVersion string
 }
 
 // DDI 27B48 advertises both listapps and streamapplist on appservice (DDI
@@ -38,6 +40,9 @@ type App struct {
 // streaming side channel follow pymobiledevice3 90b8d44,
 // pymobiledevice3/remote/core_device/app_service.py:41-54 and
 // pymobiledevice3/remote/core_device/core_device_service.py:46-63, 95-135.
+// An entry's version and bundleVersion carried CFBundleShortVersionString and
+// CFBundleVersion, and some system apps had neither (iPhone18,2, iOS 27.2
+// 24B115).
 func List(ctx context.Context, device *coredevice.Device) ([]App, error) {
 	conn, err := device.DialXPC(ctx, serviceName)
 	if err != nil {
@@ -66,7 +71,9 @@ func List(ctx context.Context, device *coredevice.Device) ([]App, error) {
 			return nil, E.New("apps: unexpected application entry: ", fmt.Sprint(value))
 		}
 		path, _ := entry["path"].(string)
-		result = append(result, App{BundleID: bundleID, Name: name, Path: path})
+		version, _ := entry["version"].(string)
+		bundleVersion, _ := entry["bundleVersion"].(string)
+		result = append(result, App{BundleID: bundleID, Name: name, Path: path, Version: version, BundleVersion: bundleVersion})
 	}
 	common.SortBy(result, func(app App) string { return strings.ToLower(app.Name) + "\x00" + app.BundleID })
 	return result, nil

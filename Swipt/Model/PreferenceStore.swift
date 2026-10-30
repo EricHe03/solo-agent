@@ -21,14 +21,14 @@ final class PreferenceStore {
         do {
             item = try database.read { try Item.fetchOne($0, key: name) }
         } catch {
-            StorageNotice.shared.report("Couldn’t Read Settings", error: error)
+            ErrorAlert.shared.report("Couldn’t Read Settings", error: error)
             return nil
         }
         guard let item else { return nil }
         do {
             return try JSONDecoder().decode(type, from: item.data)
         } catch {
-            StorageNotice.logger.error("remove unreadable preference \(name, privacy: .public): \(error, privacy: .public)")
+            AppDirectory.logger.error("remove unreadable preference \(name, privacy: .public): \(error, privacy: .public)")
             remove(name)
             return nil
         }
@@ -41,7 +41,7 @@ final class PreferenceStore {
             try database.write { try Item(name: name, data: data).save($0) }
             return true
         } catch {
-            StorageNotice.shared.report("Couldn’t Save Settings", error: error)
+            ErrorAlert.shared.report("Couldn’t Save Settings", error: error)
             return false
         }
     }
@@ -50,7 +50,7 @@ final class PreferenceStore {
         do {
             _ = try database.write { try Item.deleteOne($0, key: name) }
         } catch {
-            StorageNotice.shared.report("Couldn’t Save Settings", error: error)
+            ErrorAlert.shared.report("Couldn’t Save Settings", error: error)
         }
     }
 }

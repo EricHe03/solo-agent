@@ -26,8 +26,8 @@ final class AppLaunch {
         _ = AppDatabase.shared
         #if os(iOS)
         BadgeDots.install()
-        if ServerFeature.isAvailable {
-            ServerController.shared.resume()
+        if Platform.isSupported {
+            Platform.shared.start()
         }
         #endif
     }
@@ -71,8 +71,9 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        if response.notification.request.identifier == ServerController.problemNotification {
-            HomeRequest.shared.pending = .mcp
+        let content = response.notification.request.content
+        if content.categoryIdentifier == ErrorAlert.notificationCategory {
+            ErrorAlert.shared.reopen(content)
         }
     }
 }

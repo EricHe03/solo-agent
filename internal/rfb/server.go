@@ -38,7 +38,7 @@ func (s ServerScreen) Density() float64 {
 }
 
 type ServerHandler interface {
-	Screen() ServerScreen
+	Screen(ctx context.Context) (ServerScreen, error)
 	SessionStarted(session *ServerSession)
 	HandleEvent(session *ServerSession, event ViewerEvent)
 	Clipboard(ctx context.Context) (*Clipboard, error)
@@ -193,8 +193,7 @@ func (s *Server) Sessions() []*ServerSession {
 	return slices.Collect(maps.Keys(s.sessions))
 }
 
-func (s *Server) ScreenChanged() {
-	screen := s.handler.Screen()
+func (s *Server) ScreenChanged(screen ServerScreen) {
 	for _, session := range s.Sessions() {
 		session.screenChanged(screen)
 	}

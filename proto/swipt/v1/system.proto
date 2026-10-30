@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package swipt.v1;
+
+import "swipt/v1/common.proto";
+
+option go_package = "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1;swiptv1";
+
+service SystemService {
+  rpc GetInfo(GetInfoRequest) returns (GetInfoResponse);
+}
+
+message GetInfoRequest {}
+
+message GetInfoResponse {
+  string server_version = 1;
+  string device_name = 2;
+  string udid = 3;
+  DeviceConnection device_connection = 4;
+}

@@ -17,308 +17,308 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "يتصل Swipt بخدمات المطورين على هذا الجهاز ويخدم عملاء MCP على شبكتك المحلية."
+            "state" : "needs_review",
+            "value" : "يتصل Swipt بخدمات المطورين على هذا الجهاز."
           }
         },
         "bg" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt се свързва с услугите за разработчици на това устройство и обслужва MCP клиенти във Вашата локална мрежа."
+            "state" : "needs_review",
+            "value" : "Swipt се свързва с услугите за разработчици на това устройство."
           }
         },
         "bn" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt এই ডিভাইসের ডেভেলপার পরিষেবাগুলোর সাথে কানেক্ট করে এবং আপনার লোকাল নেটওয়ার্কে MCP ক্লায়েন্টদের পরিষেবা দেয়।"
+            "state" : "needs_review",
+            "value" : "Swipt এই ডিভাইসের ডেভেলপার পরিষেবাগুলোর সাথে কানেক্ট করে।"
           }
         },
         "ca" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’app Swipt es connecta als serveis per a desenvolupadors d’aquest dispositiu i dona servei als clients MCP de la xarxa local."
+            "state" : "needs_review",
+            "value" : "L’app Swipt es connecta als serveis per a desenvolupadors d’aquest dispositiu."
           }
         },
         "cs" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aplikace Swipt se připojuje ke službám pro vývojáře na tomto zařízení a obsluhuje klienty MCP ve vaší místní síti."
+            "state" : "needs_review",
+            "value" : "Aplikace Swipt se připojuje ke službám pro vývojáře na tomto zařízení."
           }
         },
         "da" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt opretter forbindelse til udviklertjenester på denne enhed og betjener MCP-klienter på dit lokale netværk."
+            "state" : "needs_review",
+            "value" : "Swipt opretter forbindelse til udviklertjenester på denne enhed."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt verbindet sich mit den Entwicklerdiensten dieses Geräts und stellt MCP-Clients in deinem lokalen Netzwerk einen Server bereit."
+            "state" : "needs_review",
+            "value" : "Swipt verbindet sich mit den Entwicklerdiensten dieses Geräts."
           }
         },
         "el" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Το Swipt συνδέεται στις υπηρεσίες προγραμματιστών αυτής της συσκευής και εξυπηρετεί πελάτες MCP στο τοπικό σας δίκτυο."
+            "state" : "needs_review",
+            "value" : "Το Swipt συνδέεται στις υπηρεσίες προγραμματιστών αυτής της συσκευής."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt connects to developer services on this device and serves MCP clients on your local network."
+            "value" : "Swipt connects to developer services on this device and, if you publish its API, accepts connections on the local network."
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt se conecta a los servicios para desarrolladores de este dispositivo y atiende a clientes MCP en tu red local."
+            "state" : "needs_review",
+            "value" : "Swipt se conecta a los servicios para desarrolladores de este dispositivo."
           }
         },
         "es-419" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt se conecta a los servicios para desarrolladores de este dispositivo y atiende a clientes MCP en tu red local."
+            "state" : "needs_review",
+            "value" : "Swipt se conecta a los servicios para desarrolladores de este dispositivo."
           }
         },
         "fi" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt muodostaa yhteyden tämän laitteen kehittäjäpalveluihin ja palvelee MCP-asiakkaita lähiverkossasi."
+            "state" : "needs_review",
+            "value" : "Swipt muodostaa yhteyden tämän laitteen kehittäjäpalveluihin."
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt se connecte aux services pour développeurs de cet appareil et dessert les clients MCP sur votre réseau local."
+            "state" : "needs_review",
+            "value" : "Swipt se connecte aux services pour développeurs de cet appareil."
           }
         },
         "fr-CA" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’app Swipt se connecte aux services pour développeurs de cet appareil et dessert les clients MCP sur votre réseau local."
+            "state" : "needs_review",
+            "value" : "L’app Swipt se connecte aux services pour développeurs de cet appareil."
           }
         },
         "gu" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt આ ડિવાઇસ પરની ડેવલપર સેવાઓ સાથે કનેક્ટ થાય છે અને તમારા લોકલ નેટવર્ક પર MCP ક્લાયન્ટને સેવા આપે છે."
+            "state" : "needs_review",
+            "value" : "Swipt આ ડિવાઇસ પરની ડેવલપર સેવાઓ સાથે કનેક્ટ થાય છે."
           }
         },
         "he" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "‏Swipt מתחבר לשירותי המפתחים במכשיר הזה ומשרת לקוחות MCP ברשת המקומית שלך."
+            "state" : "needs_review",
+            "value" : "‏Swipt מתחבר לשירותי המפתחים במכשיר הזה."
           }
         },
         "hi" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt इस डिवाइस की डेवलपर सेवाओं से कनेक्ट होता है और आपके लोकल नेटवर्क पर MCP क्लाइंट को सेवा देता है।"
+            "state" : "needs_review",
+            "value" : "Swipt इस डिवाइस की डेवलपर सेवाओं से कनेक्ट होता है।"
           }
         },
         "hr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aplikacija Swipt povezuje se s uslugama za razvojne programere na ovom uređaju i poslužuje MCP klijente na vašoj lokalnoj mreži."
+            "state" : "needs_review",
+            "value" : "Aplikacija Swipt povezuje se s uslugama za razvojne programere na ovom uređaju."
           }
         },
         "hu" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "A Swipt csatlakozik az eszköz fejlesztői szolgáltatásaihoz, és kiszolgálja a helyi hálózat MCP-klienseit."
+            "state" : "needs_review",
+            "value" : "A Swipt csatlakozik az eszköz fejlesztői szolgáltatásaihoz."
           }
         },
         "id" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt terhubung ke layanan pengembang di perangkat ini dan melayani klien MCP di jaringan lokal Anda."
+            "state" : "needs_review",
+            "value" : "Swipt terhubung ke layanan pengembang di perangkat ini."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt si connette ai servizi per sviluppatori di questo dispositivo e serve i client MCP sulla tua rete locale."
+            "state" : "needs_review",
+            "value" : "Swipt si connette ai servizi per sviluppatori di questo dispositivo."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swiptは、このデバイスのデベロッパサービスに接続し、ローカルネットワーク上のMCPクライアントにサービスを提供します。"
+            "state" : "needs_review",
+            "value" : "Swiptは、このデバイスのデベロッパサービスに接続します。許可した場合は、ローカルネットワーク上のペアリング済みのコンピュータからの接続も受け付けます。"
           }
         },
         "kk" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt осы құрылғыдағы әзірлеуші қызметтеріне қосылады және жергілікті желіңіздегі MCP клиенттеріне қызмет көрсетеді."
+            "state" : "needs_review",
+            "value" : "Swipt осы құрылғыдағы әзірлеуші қызметтеріне қосылады."
           }
         },
         "kn" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt ಈ ಸಾಧನದ ಡೆವಲಪರ್ ಸೇವೆಗಳಿಗೆ ಸಂಪರ್ಕಗೊಳ್ಳುತ್ತದೆ ಮತ್ತು ನಿಮ್ಮ ಸ್ಥಳೀಯ ನೆಟ್‌ವರ್ಕ್‌ನಲ್ಲಿರುವ MCP ಕ್ಲೈಂಟ್‌ಗಳಿಗೆ ಸೇವೆ ಒದಗಿಸುತ್ತದೆ."
+            "state" : "needs_review",
+            "value" : "Swipt ಈ ಸಾಧನದ ಡೆವಲಪರ್ ಸೇವೆಗಳಿಗೆ ಸಂಪರ್ಕಗೊಳ್ಳುತ್ತದೆ."
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt는 이 기기의 개발자 서비스에 연결하고 로컬 네트워크의 MCP 클라이언트에 서비스를 제공합니다."
+            "state" : "needs_review",
+            "value" : "Swipt는 이 기기의 개발자 서비스에 연결합니다."
           }
         },
         "lt" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "„Swipt” prisijungia prie šio įrenginio kūrėjų paslaugų ir aptarnauja MCP klientus jūsų vietiniame tinkle."
+            "state" : "needs_review",
+            "value" : "„Swipt” prisijungia prie šio įrenginio kūrėjų paslaugų."
           }
         },
         "ml" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt ഈ ഡിവൈസിലെ ഡെവലപ്പർ സേവനങ്ങളിലേക്ക് കണക്റ്റ് ചെയ്യുകയും നിങ്ങളുടെ ലോക്കൽ നെറ്റ്‌വർക്കിലെ MCP ക്ലയന്റുകൾക്ക് സേവനം നൽകുകയും ചെയ്യുന്നു."
+            "state" : "needs_review",
+            "value" : "Swipt ഈ ഡിവൈസിലെ ഡെവലപ്പർ സേവനങ്ങളിലേക്ക് കണക്റ്റ് ചെയ്യുന്നു."
           }
         },
         "mr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt या डिव्हाइसवरील डेव्हलपर सेवांशी कनेक्ट होते आणि तुमच्या लोकल नेटवर्कवरील MCP क्लायंटना सेवा देते."
+            "state" : "needs_review",
+            "value" : "Swipt या डिव्हाइसवरील डेव्हलपर सेवांशी कनेक्ट होते."
           }
         },
         "ms" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt bersambung ke perkhidmatan pembangun pada peranti ini dan melayani klien MCP pada rangkaian setempat anda."
+            "state" : "needs_review",
+            "value" : "Swipt bersambung ke perkhidmatan pembangun pada peranti ini."
           }
         },
         "nb" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt kobler til utviklertjenestene på denne enheten og betjener MCP-klienter på det lokale nettverket ditt."
+            "state" : "needs_review",
+            "value" : "Swipt kobler til utviklertjenestene på denne enheten."
           }
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt maakt verbinding met de ontwikkelaarsdiensten op dit apparaat en bedient MCP-clients op je lokale netwerk."
+            "state" : "needs_review",
+            "value" : "Swipt maakt verbinding met de ontwikkelaarsdiensten op dit apparaat."
           }
         },
         "or" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt ଏହି ଡିଭାଇସ୍‌ର ଡେଭେଲପର୍ ସେବା ସହ ସଂଯୋଗ କରେ ଏବଂ ଆପଣଙ୍କ ଲୋକାଲ୍ ନେଟୱାର୍କରେ MCP କ୍ଲାଏଣ୍ଟମାନଙ୍କୁ ସେବା ପ୍ରଦାନ କରେ।"
+            "state" : "needs_review",
+            "value" : "Swipt ଏହି ଡିଭାଇସ୍‌ର ଡେଭେଲପର୍ ସେବା ସହ ସଂଯୋଗ କରେ।"
           }
         },
         "pa" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt ਇਸ ਡਿਵਾਈਸ ਦੀਆਂ ਡਿਵੈਲਪਰ ਸੇਵਾਵਾਂ ਨਾਲ ਕਨੈਕਟ ਹੁੰਦੀ ਹੈ ਅਤੇ ਤੁਹਾਡੇ ਸਥਾਨਕ ਨੈੱਟਵਰਕ 'ਤੇ MCP ਕਲਾਇੰਟਾਂ ਨੂੰ ਸੇਵਾ ਦਿੰਦੀ ਹੈ।"
+            "state" : "needs_review",
+            "value" : "Swipt ਇਸ ਡਿਵਾਈਸ ਦੀਆਂ ਡਿਵੈਲਪਰ ਸੇਵਾਵਾਂ ਨਾਲ ਕਨੈਕਟ ਹੁੰਦੀ ਹੈ।"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aplikacja Swipt łączy się z usługami deweloperskimi tego urządzenia i obsługuje klientów MCP w Twojej sieci lokalnej."
+            "state" : "needs_review",
+            "value" : "Aplikacja Swipt łączy się z usługami deweloperskimi tego urządzenia."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "O Swipt se conecta aos serviços para desenvolvedores deste dispositivo e atende clientes MCP na sua rede local."
+            "state" : "needs_review",
+            "value" : "O Swipt se conecta aos serviços para desenvolvedores deste dispositivo."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "O Swipt liga-se aos serviços para programadores deste dispositivo e serve clientes MCP na sua rede local."
+            "state" : "needs_review",
+            "value" : "O Swipt liga-se aos serviços para programadores deste dispositivo."
           }
         },
         "ro" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aplicația Swipt se conectează la serviciile pentru dezvoltatori ale acestui dispozitiv și deservește clienții MCP din rețeaua locală."
+            "state" : "needs_review",
+            "value" : "Aplicația Swipt se conectează la serviciile pentru dezvoltatori ale acestui dispozitiv."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt подключается к службам разработчика на этом устройстве и обслуживает клиентов MCP в Вашей локальной сети."
+            "state" : "needs_review",
+            "value" : "Swipt подключается к службам разработчика на этом устройстве."
           }
         },
         "sk" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apka Swipt sa pripája k vývojárskym službám tohto zariadenia a obsluhuje klientov MCP vo vašej lokálnej sieti."
+            "state" : "needs_review",
+            "value" : "Apka Swipt sa pripája k vývojárskym službám tohto zariadenia."
           }
         },
         "sl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aplikacija Swipt se poveže s storitvami za razvijalce v tej napravi in streže odjemalcem MCP v vašem lokalnem omrežju."
+            "state" : "needs_review",
+            "value" : "Aplikacija Swipt se poveže s storitvami za razvijalce v tej napravi."
           }
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt ansluter till utvecklartjänsterna på den här enheten och betjänar MCP-klienter i ditt lokala nätverk."
+            "state" : "needs_review",
+            "value" : "Swipt ansluter till utvecklartjänsterna på den här enheten."
           }
         },
         "ta" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt இந்தச் சாதனத்தின் டெவெலப்பர் சேவைகளுடன் இணைகிறது, மேலும் உங்கள் உள்ளூர் நெட்வொர்க்கில் உள்ள MCP கிளையன்ட்டுகளுக்குச் சேவை வழங்குகிறது."
+            "state" : "needs_review",
+            "value" : "Swipt இந்தச் சாதனத்தின் டெவெலப்பர் சேவைகளுடன் இணைகிறது."
           }
         },
         "te" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt ఈ డివైజ్‌లోని డెవలపర్ సర్వీస్‌లకు కనెక్ట్ అవుతుంది, మీ లోకల్ నెట్‌వర్క్‌లోని MCP క్లయింట్‌లకు సర్వీస్ అందిస్తుంది."
+            "state" : "needs_review",
+            "value" : "Swipt ఈ డివైజ్‌లోని డెవలపర్ సర్వీస్‌లకు కనెక్ట్ అవుతుంది."
           }
         },
         "th" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt จะเชื่อมต่อกับบริการสำหรับนักพัฒนาบนอุปกรณ์นี้ และให้บริการไคลเอ็นต์ MCP บนเครือข่ายเฉพาะที่ของคุณ"
+            "state" : "needs_review",
+            "value" : "Swipt จะเชื่อมต่อกับบริการสำหรับนักพัฒนาบนอุปกรณ์นี้"
           }
         },
         "tr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt, bu aygıttaki geliştirici hizmetlerine bağlanır ve yerel ağınızdaki MCP istemcilerine hizmet verir."
+            "state" : "needs_review",
+            "value" : "Swipt, bu aygıttaki geliştirici hizmetlerine bağlanır."
           }
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Програма Swipt підключається до служб для розробників на цьому пристрої та обслуговує клієнтів MCP у вашій локальній мережі."
+            "state" : "needs_review",
+            "value" : "Програма Swipt підключається до служб для розробників на цьому пристрої."
           }
         },
         "ur" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "‏Swipt اس ڈیوائس پر ڈیولپر سروسز سے منسلک ہوتی ہے اور آپ کے مقامی نیٹ ورک پر MCP کلائنٹس کو سروس فراہم کرتی ہے۔"
+            "state" : "needs_review",
+            "value" : "‏Swipt اس ڈیوائس پر ڈیولپر سروسز سے منسلک ہوتی ہے۔"
           }
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt kết nối với các dịch vụ dành cho nhà phát triển trên thiết bị này và phục vụ các ứng dụng khách MCP trên mạng cục bộ của bạn."
+            "state" : "needs_review",
+            "value" : "Swipt kết nối với các dịch vụ dành cho nhà phát triển trên thiết bị này."
           }
         },
         "zh-HK" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipt 會連線至此裝置上的開發者服務，並為你區域網路上的 MCP 用戶端提供服務。"
+            "state" : "needs_review",
+            "value" : "Swipt 會連線至此裝置上的開發者服務；如果你允許，它亦會接受區域網絡上已配對電腦的連線。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt 会连接此设备上的开发者服务，并为你本地网络上的 MCP 客户端提供服务。"
+            "value" : "Swipt 会连接此设备上的开发者服务；如果你发布它的 API，它还会接受本地网络上的连接。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt 會連線至此裝置上的開發者服務，並為你區域網路上的 MCP 用戶端提供服務。"
+            "value" : "Swipt 會連線至此裝置上的開發者服務；如果你發佈它的 API，它也會接受區域網路上的連線。"
           }
         }
       }

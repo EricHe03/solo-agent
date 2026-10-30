@@ -1,0 +1,235 @@
+package libSwipt
+
+import (
+	"context"
+	"encoding/json"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/swipt-automation/swipt/internal/automation"
+	"github.com/swipt-automation/swipt/internal/log"
+)
+
+const (
+	SwipletSourceFolder  = automation.SourceFolder
+	SwipletDataFolder    = automation.DataFolder
+	SwipletInterfaceFile = automation.InterfaceFile
+	SwipletExtensionFile = automation.ExtensionFile
+	SwipletIconFile      = automation.IconFile
+)
+
+const (
+	CallerApp       = string(automation.CallerApp)
+	CallerShortcuts = string(automation.CallerShortcuts)
+)
+
+type PlatformOptions struct {
+	SwipletDirectory  string
+	DocumentDirectory string
+	CacheDirectory    string
+	Languages         string
+	AppBundleID       string
+}
+
+type PlatformHandler interface {
+	OnDialog(dialogID int64, request string)
+	OnDialogWithdrawn(dialogID int64)
+	OnBackdrop(image []byte)
+	OnServiceChanged(swiplet string, enabled bool, status string, message string, since int64)
+	OnSwipletsChanged()
+	OnAPIFailed(message string)
+	AppActive() bool
+}
+
+type Platform struct {
+	logFactory *log.Factory
+	handler    PlatformHandler
+	app        string
+	device     *Device
+	host       *automation.Host
+	dialog     automation.Dialog
+
+	dialogAccess sync.Mutex
+	dialogs      map[int64]chan string
+	lastDialog   int64
+
+	apiAccess sync.Mutex
+	api       *apiState
+}
+
+func NewPlatform(options *PlatformOptions, handler PlatformHandler, deviceOptions *DeviceOptions, deviceHandler DeviceHandler, graphicsHandler GraphicsHandler) *Platform {
+	p := &Platform{logFactory: newLogFactory(), handler: handler, app: options.AppBundleID, dialogs: make(map[int64]chan string)}
+	p.device = newDevice(deviceOptions, deviceHandler, p.logFactory)
+	p.dialog = automation.Dialog{App: p.app, InApp: true, Ask: p.ask, Backdrop: handler.OnBackdrop, Active: handler.AppActive}
+	var graphics automation.Graphics
+	if graphicsHandler != nil {
+		graphics = graphicsBridge{handler: graphicsHandler}
+	}
+	p.host = automation.New(automation.Options{
+		Device:            p.device.connection.Phone(),
+		Directory:         options.SwipletDirectory,
+		Documents:         options.DocumentDirectory,
+		Caches:            options.CacheDirectory,
+		Languages:         strings.Fields(options.Languages),
+		LogFactory:        p.logFactory,
+		Dialog:            p.dialog,
+		Graphics:          graphics,
+		OnSwipletsChanged: handler.OnSwipletsChanged,
+	})
+	p.device.services = p.host
+	return p
+}
+
+func (p *Platform) Device() *Device {
+	return p.device
+}
+
+func (p *Platform) Start() error {
+	if err := p.device.connection.Start(); err != nil {
+		return err
+	}
+	go func() {
+		_ = p.host.WatchServices(context.Background(), func(swiplet string, state automation.ServiceState) {
+			p.handler.OnServiceChanged(swiplet, state.Enabled, string(state.Status), state.Error, unixMilli(state.Since))
+		})
+	}()
+	p.host.Start()
+	return nil
+}
+
+func (p *Platform) Close() error {
+	_ = p.SetAPI(nil)
+	p.host.Close()
+	return p.device.connection.Close()
+}
+
+func unixMilli(at time.Time) int64 {
+	if at.IsZero() {
+		return 0
+	}
+	return at.UnixMilli()
+}
+
+type ActionCall struct {
+	cancel  context.CancelFunc
+	run     func() (string, error)
+	answers chan dialogAnswer
+}
+
+type dialogAnswer struct {
+	text      string
+	dismissed bool
+}
+
+type ActionObserver interface {
+	OnRequest(request string)
+}
+
+func (p *Platform) NewActionCall(swiplet, action, input, caller string, observer ActionObserver, showsInApp bool) *ActionCall {
+	ctx, cancel := context.WithCancel(context.Background())
+	call := &ActionCall{cancel: cancel, answers: make(chan dialogAnswer, 1)}
+	dialog := automation.Dialog{App: p.app, InApp: showsInApp, Backdrop: p.handler.OnBackdrop, Active: p.handler.AppActive, Ask: func(ctx context.Context, request string) (string, error) {
+		observer.OnRequest(request)
+		select {
+		case answer := <-call.answers:
+			if answer.dismissed {
+				return "", automation.ErrDismissed
+			}
+			return answer.text, nil
+		case <-ctx.Done():
+			return "", ctx.Err()
+		}
+	}}
+	call.run = func() (string, error) {
+		output, err := p.host.Call(ctx, automation.CallRequest{
+			Swiplet: swiplet, Action: action, Input: json.RawMessage(input), Caller: automation.Caller(caller), Dialog: dialog,
+		})
+		return string(output), err
+	}
+	return call
+}
+
+func (c *ActionCall) Run() (string, error) {
+	defer c.cancel()
+	return c.run()
+}
+
+func (c *ActionCall) Answer(answer string) {
+	select {
+	case c.answers <- dialogAnswer{text: answer}:
+	default:
+	}
+}
+
+func (c *ActionCall) Dismiss() {
+	select {
+	case c.answers <- dialogAnswer{dismissed: true}:
+	default:
+	}
+}
+
+func (c *ActionCall) Cancel() {
+	c.cancel()
+}
+
+type ServiceState struct {
+	Enabled bool
+	Status  string
+	Error   string
+	Since   int64
+}
+
+func (p *Platform) SetServiceEnabled(swiplet string, enabled bool) error {
+	return p.host.SetServiceEnabled(swiplet, enabled)
+}
+
+func (p *Platform) ServiceState(swiplet string) *ServiceState {
+	state, err := p.host.Service(swiplet)
+	if err != nil {
+		return &ServiceState{Status: string(automation.ServiceStopped)}
+	}
+	return &ServiceState{Enabled: state.Enabled, Status: string(state.Status), Error: state.Error, Since: unixMilli(state.Since)}
+}
+
+func (p *Platform) ask(ctx context.Context, request string) (string, error) {
+	answers := make(chan string, 1)
+	p.dialogAccess.Lock()
+	p.lastDialog++
+	id := p.lastDialog
+	p.dialogs[id] = answers
+	p.dialogAccess.Unlock()
+	p.handler.OnDialog(id, request)
+	select {
+	case answer, answered := <-answers:
+		if !answered {
+			return "", automation.ErrDismissed
+		}
+		return answer, nil
+	case <-ctx.Done():
+		if p.takeDialog(id) != nil {
+			p.handler.OnDialogWithdrawn(id)
+		}
+		return "", ctx.Err()
+	}
+}
+
+func (p *Platform) takeDialog(id int64) chan string {
+	p.dialogAccess.Lock()
+	defer p.dialogAccess.Unlock()
+	answers := p.dialogs[id]
+	delete(p.dialogs, id)
+	return answers
+}
+
+func (p *Platform) AnswerDialog(dialogID int64, answer string) {
+	if answers := p.takeDialog(dialogID); answers != nil {
+		answers <- answer
+	}
+}
+
+func (p *Platform) DismissDialog(dialogID int64) {
+	if answers := p.takeDialog(dialogID); answers != nil {
+		close(answers)
+	}
+}

@@ -2,9 +2,6 @@ package log
 
 import (
 	"context"
-	"fmt"
-	"io"
-	"strings"
 	"sync"
 	"time"
 
@@ -28,36 +25,44 @@ type Entry struct {
 	Message string
 }
 
+const entryCapacity = 4096
+
 type Options struct {
 	Level          Level
-	Writer         io.Writer
 	PlatformWriter PlatformWriter
 }
 
-const entryCapacity = 4096
-
 type Factory struct {
-	baseTime       time.Time
 	level          Level
-	writer         io.Writer
 	platformWriter PlatformWriter
 
-	access  sync.Mutex
-	entries []Entry
-	start   int
+	access      sync.Mutex
+	entries     []Entry
+	start       int
+	subscribers map[int]func(Entry)
+	next        int
 }
 
 func NewFactory(options Options) *Factory {
 	return &Factory{
-		baseTime:       time.Now(),
 		level:          options.Level,
-		writer:         options.Writer,
 		platformWriter: options.PlatformWriter,
+		subscribers:    make(map[int]func(Entry)),
 	}
 }
 
-func (f *Factory) SetLevel(level Level) {
-	f.level = level
+func (f *Factory) Subscribe(receive func(Entry)) (backlog []Entry, cancel func()) {
+	f.access.Lock()
+	defer f.access.Unlock()
+	backlog = append(append(backlog, f.entries[f.start:]...), f.entries[:f.start]...)
+	f.next++
+	id := f.next
+	f.subscribers[id] = receive
+	return backlog, func() {
+		f.access.Lock()
+		delete(f.subscribers, id)
+		f.access.Unlock()
+	}
 }
 
 func (f *Factory) Logger() ContextLogger {
@@ -68,41 +73,29 @@ func (f *Factory) NewLogger(tag string) ContextLogger {
 	return &factoryLogger{factory: f, tag: tag}
 }
 
-func (f *Factory) Entries(since time.Time, level Level) []Entry {
-	f.access.Lock()
-	defer f.access.Unlock()
-	var entries []Entry
-	for _, part := range [][]Entry{f.entries[f.start:], f.entries[:f.start]} {
-		for _, entry := range part {
-			if entry.Level <= level && !entry.Time.Before(since) {
-				entries = append(entries, entry)
-			}
+func (f *Factory) output(level Level, tag string, message string) {
+	if level <= LevelDebug {
+		entry := Entry{Time: time.Now(), Level: level, Tag: tag, Message: message}
+		f.access.Lock()
+		if len(f.entries) < entryCapacity {
+			f.entries = append(f.entries, entry)
+		} else {
+			f.entries[f.start] = entry
+			f.start = (f.start + 1) % entryCapacity
 		}
+		for _, receive := range f.subscribers {
+			receive(entry)
+		}
+		f.access.Unlock()
 	}
-	return entries
-}
-
-func (f *Factory) output(entry Entry) {
-	f.access.Lock()
-	if len(f.entries) < entryCapacity {
-		f.entries = append(f.entries, entry)
-	} else {
-		f.entries[f.start] = entry
-		f.start = (f.start + 1) % entryCapacity
-	}
-	f.access.Unlock()
-	if entry.Level > f.level {
+	if level > f.level {
 		return
 	}
-	message := entry.Message
-	if entry.Tag != "" {
-		message = entry.Tag + ": " + message
-	}
-	if f.writer != nil {
-		fmt.Fprintf(f.writer, "%s[%04d] %s\n", strings.ToUpper(FormatLevel(entry.Level)), int64(entry.Time.Sub(f.baseTime)/time.Second), message)
+	if tag != "" {
+		message = tag + ": " + message
 	}
 	if f.platformWriter != nil {
-		f.platformWriter.WriteMessage(entry.Level, message)
+		f.platformWriter.WriteMessage(level, message)
 	}
 }
 
@@ -112,7 +105,7 @@ type factoryLogger struct {
 }
 
 func (l *factoryLogger) log(level Level, args []any) {
-	l.factory.output(Entry{Time: time.Now(), Level: level, Tag: l.tag, Message: F.ToString(args...)})
+	l.factory.output(level, l.tag, F.ToString(args...))
 }
 
 func (l *factoryLogger) Trace(args ...any) {

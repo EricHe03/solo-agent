@@ -5,12 +5,37 @@ SHELL := /bin/bash
 lib:
 	go run ./cmd/internal/build_libswipt
 
-build_ios:
+.PHONY: proto
+proto:
+	rm -rf internal/api/gen
+	mkdir -p internal/api/gen
+	protoc -I proto --go_out=internal/api/gen --go_opt=paths=source_relative --go-grpc_out=internal/api/gen --go-grpc_opt=paths=source_relative proto/swipt/v1/*.proto
+
+RUNTIME := internal/automation/runtime
+RUNTIME_BUNDLE := build/runtime/main.jsbundle
+RUNTIME_BUNDLE_INPUTS := $(shell find $(RUNTIME)/src/app $(RUNTIME)/patches -type f) $(RUNTIME)/package.json $(RUNTIME)/app.json package.json bun.lock
+
+lib_react:
+	bun install --frozen-lockfile
+	node node_modules/react-native/scripts/setup-apple-spm.js update --product-name Swipt --yes
+
+$(RUNTIME_BUNDLE): $(RUNTIME_BUNDLE_INPUTS)
+	mkdir -p build/runtime
+	cd $(RUNTIME) && CI=1 bun expo export:embed --platform ios --dev false --minify false --entry-file src/app/index.tsx --bundle-output ../../../build/runtime/main.js --assets-dest ../../../build/runtime/assets
+	node_modules/hermes-compiler/hermesc/osx-bin/hermesc -emit-binary -O -w -out $@ build/runtime/main.js
+
+runtime_bundle: $(RUNTIME_BUNDLE)
+
+runtime:
+	bun install --frozen-lockfile
+	cd $(RUNTIME) && bun build.mjs
+
+build_ios: runtime_bundle
 	xcodebuild build -skipMacroValidation -scheme Swipt -configuration Debug -destination 'generic/platform=iOS' | xcbeautify | grep -A 10 -e "Build Succeeded" -e "BUILD FAILED" -e "❌"
 
-build_ios_ipa: lib archive_ios_ipa
+build_ios_ipa: lib lib_react archive_ios_ipa
 
-archive_ios_ipa:
+archive_ios_ipa: runtime_bundle
 	rm -rf build/Swipt-iOS.xcarchive build/Payload build/Swipt.ipa
 	xcodebuild archive -skipMacroValidation $(XCODEBUILD_FLAGS) -scheme Swipt -configuration Release -destination 'generic/platform=iOS' -archivePath build/Swipt-iOS.xcarchive \
 		CODE_SIGNING_ALLOWED=NO | xcbeautify
@@ -31,7 +56,7 @@ altstore_source:
 	go run ./cmd/internal/build_altstore_source
 
 build_macos:
-	xcodebuild build -skipMacroValidation -scheme Swipt -configuration Debug -destination 'generic/platform=macOS' | xcbeautify | grep -A 10 -e "Build Succeeded" -e "BUILD FAILED" -e "❌"
+	xcodebuild build -skipMacroValidation -scheme 'Swipt macOS' -configuration Debug -destination 'generic/platform=macOS' | xcbeautify | grep -A 10 -e "Build Succeeded" -e "BUILD FAILED" -e "❌"
 
 fmt:
 	gofumpt -l -w cmd libswipt internal

@@ -15,16 +15,21 @@ struct SettingsView: View {
                     Label("App", systemImage: "app")
                 }
                 #if os(iOS)
-                if ServerFeature.isAvailable {
+                if Platform.isSupported {
+                    NavigationLink {
+                        BackgroundView()
+                    } label: {
+                        Label("Background Service", systemImage: "arrow.clockwise.circle")
+                    }
                     NavigationLink {
                         AutoUnlockView()
                     } label: {
                         Label("Automatic Unlock", systemImage: "lock.open")
                     }
                     NavigationLink {
-                        ServicesView()
+                        DeviceView()
                     } label: {
-                        Label("Services", systemImage: "hammer")
+                        Label("Device", systemImage: DeviceView.systemImage)
                     }
                 }
                 #endif

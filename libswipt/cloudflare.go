@@ -3,13 +3,10 @@ package libSwipt
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/cloudflare"
-	"github.com/swipt-automation/swipt/internal/deviceserver"
-	"github.com/swipt-automation/swipt/internal/phonemcp"
 )
 
 const (
@@ -28,16 +25,11 @@ type CloudflareTunnelOptions struct {
 
 type CloudflareTunnelHandler interface {
 	OnState(tunnel string, hostname string)
+	OnError(message string)
 }
 
 type CloudflareTunnel struct {
 	tunnel *cloudflare.Tunnel
-}
-
-type CloudflareOptions struct {
-	Tunnel *CloudflareTunnel
-	Path   string
-	Token  string
 }
 
 type CloudflareAccount struct {
@@ -76,7 +68,7 @@ func (l *CloudflareLogin) Cancel() {
 	l.login.Cancel()
 }
 
-func NewCloudflareTunnel(options *CloudflareTunnelOptions, handler CloudflareTunnelHandler) (*CloudflareTunnel, error) {
+func (p *Platform) NewCloudflareTunnel(options *CloudflareTunnelOptions, handler CloudflareTunnelHandler) (*CloudflareTunnel, error) {
 	var account cloudflare.Account
 	if options.Mode == CloudflareModeTunnel {
 		var err error
@@ -94,29 +86,11 @@ func NewCloudflareTunnel(options *CloudflareTunnelOptions, handler CloudflareTun
 		Hostname: options.Hostname,
 		State:    options.Tunnel,
 		OnState:  handler.OnState,
-		Logger:   newLogFactory().NewLogger("cloudflare"),
+		OnError:  func(err error) { handler.OnError(err.Error()) },
+		Logger:   p.logFactory.NewLogger("cloudflare"),
 	})}, nil
 }
 
 func (t *CloudflareTunnel) Close() error {
 	return t.tunnel.Close()
-}
-
-func (s *DeviceServer) SetCloudflareMCP(options *CloudflareOptions) error {
-	if options == nil {
-		return s.server.SetTunnelMCP(nil)
-	}
-	if options.Tunnel == nil {
-		return E.New("cloudflare: missing tunnel")
-	}
-	if options.Token == "" {
-		return E.New("cloudflare: missing token")
-	}
-	if !strings.HasPrefix(options.Path, "/") {
-		return E.New("cloudflare: invalid path ", options.Path)
-	}
-	return s.server.SetTunnelMCP(&deviceserver.MCPOptions{
-		Listen: options.Tunnel.tunnel.Listen,
-		Server: phonemcp.New(s.runner, phonemcp.Options{Token: options.Token, Path: options.Path, Logger: s.logFactory.NewLogger("mcp")}),
-	})
 }

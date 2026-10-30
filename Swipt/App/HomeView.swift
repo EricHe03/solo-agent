@@ -5,7 +5,6 @@ import SwiftUI
 final class HomeRequest {
     enum Pending: Equatable {
         case settings
-        case mcp
     }
 
     static let shared = HomeRequest()
@@ -14,26 +13,25 @@ final class HomeRequest {
 
 enum HomeTab: Hashable {
     case automation
-    case mcp
+    case developer
     case settings
 }
 
 struct HomeView: View {
     @State private var selection: HomeTab = .automation
-    #if os(iOS)
-    private let server = ServerController.shared
-    #endif
     private let homeRequest = HomeRequest.shared
+    #if os(iOS)
+    private let developer = DeveloperSettings.shared
+    #endif
 
     var body: some View {
         layout
-            .modifier(StorageNoticeAlert())
+            .modifier(ErrorAlertPresenter())
             .onChangeCompat(of: homeRequest.pending, initial: true) { pending in
                 guard let pending else { return }
                 homeRequest.pending = nil
                 switch pending {
                 case .settings: selection = .settings
-                case .mcp: selection = .mcp
                 }
             }
     }
@@ -49,13 +47,13 @@ struct HomeView: View {
                             automationView
                         }
                     }
-                    Tab("MCP", systemImage: "server.rack", value: HomeTab.mcp) {
+                    Tab("Developer", systemImage: "terminal", value: HomeTab.developer) {
                         NavigationStackCompat {
-                            mcpView
+                            developerView
                         }
                     }
-                    .badge(isMCPRunning ? Text(verbatim: "") : nil)
-                    .accessibilityValue(Text("Running"), isEnabled: isMCPRunning)
+                    .badge(isPublishing ? Text(verbatim: "") : nil)
+                    .accessibilityValue(Text("Published"), isEnabled: isPublishing)
                     Tab("Settings", systemImage: "gearshape", value: HomeTab.settings) {
                         NavigationStackCompat {
                             SettingsView()
@@ -71,12 +69,12 @@ struct HomeView: View {
                     .tabItem { Label("Automation", systemImage: "wand.and.stars") }
                     .tag(HomeTab.automation)
                     NavigationStackCompat {
-                        mcpView
+                        developerView
                     }
-                    .tabItem { Label("MCP", systemImage: "server.rack") }
-                    .tag(HomeTab.mcp)
-                    .badge(isMCPRunning ? Text(verbatim: "") : nil)
-                    .accessibilityValue(isMCPRunning ? Text("Running") : Text(verbatim: ""))
+                    .tabItem { Label("Developer", systemImage: "terminal") }
+                    .tag(HomeTab.developer)
+                    .badge(isPublishing ? Text(verbatim: "") : nil)
+                    .accessibilityValue(isPublishing ? Text("Published") : Text(verbatim: ""))
                     NavigationStackCompat {
                         SettingsView()
                     }
@@ -90,8 +88,8 @@ struct HomeView: View {
             List(selection: Binding(get: { selection }, set: { if let page = $0 { selection = page } })) {
                 Label("Automation", systemImage: "wand.and.stars")
                     .tag(HomeTab.automation)
-                Label("MCP", systemImage: "server.rack")
-                    .tag(HomeTab.mcp)
+                Label("Developer", systemImage: "terminal")
+                    .tag(HomeTab.developer)
                 Label("Settings", systemImage: "gearshape")
                     .tag(HomeTab.settings)
             }
@@ -102,9 +100,9 @@ struct HomeView: View {
                 case .automation:
                     ContentUnavailableView("Not Available on Mac", systemImage: "desktopcomputer")
                         .navigationTitle("Automation")
-                case .mcp:
+                case .developer:
                     ContentUnavailableView("Not Available on Mac", systemImage: "desktopcomputer")
-                        .navigationTitle("MCP Server")
+                        .navigationTitle("Developer")
                 case .settings:
                     SettingsView()
                 }
@@ -117,24 +115,24 @@ struct HomeView: View {
     #if os(iOS)
     @ViewBuilder
     private var automationView: some View {
-        if #available(iOS 27, *), ServerFeature.isAvailable {
+        if #available(iOS 27, *), Platform.isSupported {
             AutomationView()
         } else {
-            ServerUnavailableView(title: "Automation")
+            PlatformUnsupportedView(title: "Automation")
         }
     }
 
     @ViewBuilder
-    private var mcpView: some View {
-        if ServerFeature.isAvailable {
-            MCPView()
+    private var developerView: some View {
+        if Platform.isSupported {
+            DeveloperView()
         } else {
-            ServerUnavailableView(title: "MCP Server")
+            PlatformUnsupportedView(title: "Developer")
         }
     }
 
-    private var isMCPRunning: Bool {
-        server.phase.isRunning && server.isMCPActive
+    private var isPublishing: Bool {
+        Platform.isSupported && developer.isPublishing
     }
     #endif
 }

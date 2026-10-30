@@ -9,8 +9,10 @@ import (
 )
 
 const (
-	appStatesService = "com.apple.instruments.server.services.mobilenotifications"
-	appStatesChannel = 1
+	appStatesService  = "com.apple.instruments.server.services.mobilenotifications"
+	appStatesChannel  = 1
+	deviceInfoService = "com.apple.instruments.server.services.deviceinfo"
+	deviceInfoChannel = 1
 )
 
 // appName is the executable's name, and execName the bundle's path as the app
@@ -91,4 +93,46 @@ func (a *AppStates) Err() error {
 
 func (a *AppStates) Close() error {
 	return a.conn.Close()
+}
+
+// runningProcessWithPid: answers the dictionary runningProcesses lists for
+// the process, which holds foregroundRunning when its task is running and
+// scheduled and its endowment namespaces hold the one tested (24B5110a
+// DVTInstrumentsFoundation 0x262bdb224, 0x262bdab28..0x262bdab80): an app
+// kept it under SpringBoard's paste prompt and in the app switcher, and lost
+// it on going to the home screen (iPhone18,2, iOS 27.2 24B115).
+func ForegroundProcesses(ctx context.Context, device *coredevice.Device, pids []uint64) ([]uint64, error) {
+	conn, err := device.DialService(ctx, serviceName)
+	if err != nil {
+		return nil, E.Cause(err, "instruments: connect")
+	}
+	dtxConn, err := dtx.NewConn(ctx, conn, func(dtx.Event) (any, bool) {
+		return nil, true
+	})
+	if err != nil {
+		conn.Close()
+		return nil, E.Cause(err, "instruments: initialize DTX")
+	}
+	defer dtxConn.Close()
+	err = dtxConn.Notify(ctx, 0, "_notifyOfPublishedCapabilities:", map[string]any{
+		"com.apple.private.DTXBlockCompression": int64(0), "com.apple.private.DTXConnection": int64(1),
+	})
+	if err != nil {
+		return nil, E.Cause(err, "instruments: announce capabilities")
+	}
+	if _, err = dtxConn.Invoke(ctx, 0, "_requestChannelWithCode:identifier:", dtx.Int32(deviceInfoChannel), deviceInfoService); err != nil {
+		return nil, E.Cause(err, "instruments: open ", deviceInfoService)
+	}
+	var foreground []uint64
+	for _, pid := range pids {
+		value, err := dtxConn.Invoke(ctx, deviceInfoChannel, "runningProcessWithPid:", int64(pid))
+		if err != nil {
+			return nil, E.Cause(err, "instruments: read process ", pid)
+		}
+		fields, _ := value.(map[string]any)
+		if running, _ := fields["foregroundRunning"].(bool); running {
+			foreground = append(foreground, pid)
+		}
+	}
+	return foreground, nil
 }

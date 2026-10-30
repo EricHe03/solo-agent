@@ -1,0 +1,26 @@
+diff --git a/build/platforms/apple/apple.js b/build/platforms/apple/apple.js
+index 156cb951d8f370a311b0f68a16d9bb0874949a94..bb182862bab9100dbbda3c5dc544c4d1672814e2 100644
+--- a/build/platforms/apple/apple.js
++++ b/build/platforms/apple/apple.js
+@@ -209,7 +209,7 @@ internal import ExpoModulesCore
+ ${generateCommonImportList(swiftModules)}
+ ${generateDebugOnlyImportList(debugOnlySwiftModules)}
+ @objc(${className})
+-internal class ${className}: ModulesProvider {
++nonisolated internal class ${className}: ModulesProvider {
+   public override func getModuleClasses() -> [ExpoModuleTupleType] {
+ ${generateModuleClasses(modulesClassNames, debugOnlyModulesClassNames)}
+   }
+diff --git a/src/platforms/apple/apple.ts b/src/platforms/apple/apple.ts
+index 4e1bcc772098b2d24d956f15d493b88b6c861e92..eba3ee9c66498ddb6025fdc9c9c943ec6d7ea136 100644
+--- a/src/platforms/apple/apple.ts
++++ b/src/platforms/apple/apple.ts
+@@ -268,7 +268,7 @@ internal import ExpoModulesCore
+ ${generateCommonImportList(swiftModules)}
+ ${generateDebugOnlyImportList(debugOnlySwiftModules)}
+ @objc(${className})
+-internal class ${className}: ModulesProvider {
++nonisolated internal class ${className}: ModulesProvider {
+   public override func getModuleClasses() -> [ExpoModuleTupleType] {
+ ${generateModuleClasses(modulesClassNames, debugOnlyModulesClassNames)}
+   }

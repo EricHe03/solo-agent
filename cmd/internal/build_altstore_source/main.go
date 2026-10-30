@@ -105,7 +105,7 @@ func main() {
 			Name:                 info["CFBundleDisplayName"].(string),
 			BundleIdentifier:     info["CFBundleIdentifier"].(string),
 			DeveloperName:        "nekohasekai",
-			LocalizedDescription: "Swipt automates this iPhone or iPad with JavaScript workflows and an MCP server.",
+			LocalizedDescription: "Swipt automates this iPhone or iPad with JavaScript swiplets.",
 			IconURL:              releaseURL + "icon.png",
 			Category:             "utilities",
 			Versions: []version{{

@@ -83,7 +83,7 @@ func (a Account) request(ctx context.Context, method string, path string, body a
 	}
 	err = json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&envelope)
 	if err != nil {
-		return E.Extend(err, response.Status)
+		return E.Cause(err, "cloudflare: decode the response to ", path, " (", response.Status, ")")
 	}
 	if !envelope.Success {
 		messages := make([]string, 0, len(envelope.Errors))

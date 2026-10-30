@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	cloudflared "github.com/sagernet/sing-cloudflared"
+	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
 	M "github.com/sagernet/sing/common/metadata"
 )
@@ -31,6 +32,7 @@ type Options struct {
 	Hostname string
 	State    string
 	OnState  func(state string, hostname string)
+	OnError  func(err error)
 	Logger   logger.ContextLogger
 }
 
@@ -46,6 +48,7 @@ type Tunnel struct {
 	account  Account
 	hostname string
 	onState  func(state string, hostname string)
+	onError  func(err error)
 	logger   logger.ContextLogger
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -64,6 +67,7 @@ func New(options Options) *Tunnel {
 		account:  options.Account,
 		hostname: options.Hostname,
 		onState:  options.OnState,
+		onError:  options.OnError,
 		logger:   options.Logger,
 		fallback: newPipeListener(nil),
 		idle: &http.Server{
@@ -154,7 +158,7 @@ func (t *Tunnel) run() {
 			ClientVersion: userAgent,
 		})
 		if err != nil {
-			t.logger.Error("create tunnel: ", err)
+			t.fail(E.Cause(err, "cloudflare: create the tunnel"))
 			return
 		}
 		err = service.Start()
@@ -165,7 +169,14 @@ func (t *Tunnel) run() {
 		if t.ctx.Err() != nil {
 			return
 		}
-		t.logger.Error("start tunnel: ", err)
+		t.fail(E.Cause(err, "cloudflare: start the tunnel"))
+	}
+}
+
+func (t *Tunnel) fail(err error) {
+	t.logger.Error(err)
+	if t.onError != nil {
+		t.onError(err)
 	}
 }
 
@@ -181,7 +192,7 @@ func (t *Tunnel) route(ctx context.Context) {
 	}
 	err := t.account.routeTunnel(ctx, state.ID, t.hostname)
 	if err != nil {
-		t.logger.Error(err)
+		t.fail(err)
 		return
 	}
 	t.access.Lock()

@@ -2,6 +2,8 @@ import Foundation
 import os
 
 nonisolated enum AppDirectory {
+    static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Swipt", category: "storage")
+
     #if os(macOS)
     static let group = FileManager.default.containerURL(
         forSecurityApplicationGroupIdentifier: Bundle.main.object(forInfoDictionaryKey: "AppGroupIdentifier") as! String)!
@@ -13,7 +15,7 @@ nonisolated enum AppDirectory {
             values.isExcludedFromBackup = true
             try caches.setResourceValues(values)
         } catch {
-            StorageNotice.logger.error("exclude caches from backup: \(error, privacy: .public)")
+            AppDirectory.logger.error("exclude caches from backup: \(error, privacy: .public)")
         }
         return caches
     }()

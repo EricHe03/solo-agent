@@ -11,14 +11,39 @@
 		5C0000000000000000000202 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000A02 /* GRDB */; };
 		5C0000000000000000000203 /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000A04 /* Atomics */; };
 		5C0000000000000000000204 /* Perception in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000A06 /* Perception */; };
-		5C0000000000000000000205 /* Runestone in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, ); productRef = 5C0000000000000000000A08 /* Runestone */; };
-		5C0000000000000000000206 /* TreeSitterJavaScriptRunestone in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, ); productRef = 5C0000000000000000000A0A /* TreeSitterJavaScriptRunestone */; };
-		5C0000000000000000000207 /* TreeSitterJSONRunestone in Frameworks */ = {isa = PBXBuildFile; platformFilters = (ios, ); productRef = 5C0000000000000000000A0B /* TreeSitterJSONRunestone */; };
+		5C0000000000000000000209 /* main.jsbundle in Resources */ = {isa = PBXBuildFile; fileRef = 5C0000000000000000000104 /* main.jsbundle */; };
+		5C0000000000000000000211 /* LibSwipt.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C0000000000000000000102 /* LibSwipt.xcframework */; };
+		5C0000000000000000000212 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000A12 /* GRDB */; };
+		5C0000000000000000000213 /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000A14 /* Atomics */; };
+		5C0000000000000000000214 /* Perception in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000A16 /* Perception */; };
+		B8518CE5FDAB7DF459E6F68D /* ReactHeaders in Frameworks */ = {isa = PBXBuildFile; productRef = 498E50E31DE999B1E37B3BA3 /* ReactHeaders */;};
+		E607909C20CB8315345A1B6A /* ReactNativeHeaders in Frameworks */ = {isa = PBXBuildFile; productRef = 13FCB96423C3DCD21CCCA838 /* ReactNativeHeaders */;};
+		6526CB368C2B58922CB3D462 /* ReactNativeDependenciesHeaders in Frameworks */ = {isa = PBXBuildFile; productRef = 35275AB4768CC953FE98900B /* ReactNativeDependenciesHeaders */;};
+		37213526D23A4B98CCB63AA3 /* Autolinked in Frameworks */ = {isa = PBXBuildFile; productRef = C7DF07ACFBB6A242C3561F57 /* Autolinked */;};
+		99E8557F48A28A72FCBF23AA /* ReactCodegen in Frameworks */ = {isa = PBXBuildFile; productRef = B8620434D246F3C1579C16E9 /* ReactCodegen */;};
+		215493E59FD3EDA8ACC2523B /* ReactAppDependencyProvider in Frameworks */ = {isa = PBXBuildFile; productRef = 506AD430BABC05B5F2EF11B1 /* ReactAppDependencyProvider */;};
+		7B50D3CF05E387E0E739AF3C /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD564CA09DD9F8B4A546CD0 /* ExpoModulesProvider.swift */;};
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		5C0000000000000000000101 /* Swipt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Swipt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C0000000000000000000102 /* LibSwipt.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = LibSwipt.xcframework; sourceTree = "<group>"; };
+		5C0000000000000000000103 /* Swipt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Swipt.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C0000000000000000000104 /* main.jsbundle */ = {isa = PBXFileReference; lastKnownFileType = file; name = main.jsbundle; path = build/runtime/main.jsbundle; sourceTree = SOURCE_ROOT; };
+		9AB7FBF108A16B496B88F86F /* ReactNativeSPM.xcconfig */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.xcconfig;
+			name = ReactNativeSPM.xcconfig;
+			path = ReactNativeSPM/ReactNativeSPM.xcconfig;
+			sourceTree = SOURCE_ROOT;
+		};
+		ECD564CA09DD9F8B4A546CD0 /* ExpoModulesProvider.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			name = ExpoModulesProvider.swift;
+			path = build/generated/autolinking/expo/ExpoModulesProvider.swift;
+			sourceTree = SOURCE_ROOT;
+		};
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,6 +54,13 @@
 			);
 			target = 5C0000000000000000000501 /* Swipt */;
 		};
+		5C0000000000000000000303 /* Exceptions for "Swipt" folder in "Swipt macOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5C0000000000000000000502 /* Swipt macOS */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -36,6 +68,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				5C0000000000000000000302 /* Exceptions for "Swipt" folder in "Swipt" target */,
+				5C0000000000000000000303 /* Exceptions for "Swipt" folder in "Swipt macOS" target */,
 			);
 			path = Swipt;
 			sourceTree = "<group>";
@@ -51,9 +84,23 @@
 				5C0000000000000000000202 /* GRDB in Frameworks */,
 				5C0000000000000000000203 /* Atomics in Frameworks */,
 				5C0000000000000000000204 /* Perception in Frameworks */,
-				5C0000000000000000000205 /* Runestone in Frameworks */,
-				5C0000000000000000000206 /* TreeSitterJavaScriptRunestone in Frameworks */,
-				5C0000000000000000000207 /* TreeSitterJSONRunestone in Frameworks */,
+				B8518CE5FDAB7DF459E6F68D /* ReactHeaders in Frameworks */,
+				E607909C20CB8315345A1B6A /* ReactNativeHeaders in Frameworks */,
+				6526CB368C2B58922CB3D462 /* ReactNativeDependenciesHeaders in Frameworks */,
+				37213526D23A4B98CCB63AA3 /* Autolinked in Frameworks */,
+				99E8557F48A28A72FCBF23AA /* ReactCodegen in Frameworks */,
+				215493E59FD3EDA8ACC2523B /* ReactAppDependencyProvider in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C0000000000000000000412 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C0000000000000000000211 /* LibSwipt.xcframework in Frameworks */,
+				5C0000000000000000000212 /* GRDB in Frameworks */,
+				5C0000000000000000000213 /* Atomics in Frameworks */,
+				5C0000000000000000000214 /* Perception in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -64,8 +111,11 @@
 			isa = PBXGroup;
 			children = (
 				5C0000000000000000000301 /* Swipt */,
+				5C0000000000000000000104 /* main.jsbundle */,
 				5C0000000000000000000012 /* Frameworks */,
 				5C0000000000000000000013 /* Products */,
+				9AB7FBF108A16B496B88F86F /* ReactNativeSPM.xcconfig */,
+				A331621F919FB38A87706E05 /* SPM Generated Sources */,
 			);
 			sourceTree = "<group>";
 		};
@@ -81,8 +131,17 @@
 			isa = PBXGroup;
 			children = (
 				5C0000000000000000000101 /* Swipt.app */,
+				5C0000000000000000000103 /* Swipt.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A331621F919FB38A87706E05 /* SPM Generated Sources */ = {
+			isa = PBXGroup;
+			children = (
+				ECD564CA09DD9F8B4A546CD0 /* ExpoModulesProvider.swift */,
+			);
+			name = "SPM Generated Sources";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -92,9 +151,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5C0000000000000000000702 /* Build configuration list for PBXNativeTarget "Swipt" */;
 			buildPhases = (
+				542F6BBF0B6D2EE4A7E6BC7E /* Sync SPM Autolinking */,
+				EACA37646092C359F37F3D58 /* Build ExpoModulesJSI */,
 				5C0000000000000000000401 /* Sources */,
 				5C0000000000000000000402 /* Frameworks */,
+				11488A7061C8582F256B78D7 /* Embed React Native Flavored Frameworks */,
 				5C0000000000000000000403 /* Resources */,
+				A8C742A01B815A04A9F5F4B5 /* Generate Expo app.config */,
 			);
 			buildRules = (
 			);
@@ -108,12 +171,40 @@
 				5C0000000000000000000A02 /* GRDB */,
 				5C0000000000000000000A04 /* Atomics */,
 				5C0000000000000000000A06 /* Perception */,
-				5C0000000000000000000A08 /* Runestone */,
-				5C0000000000000000000A0A /* TreeSitterJavaScriptRunestone */,
-				5C0000000000000000000A0B /* TreeSitterJSONRunestone */,
+				498E50E31DE999B1E37B3BA3 /* ReactHeaders */,
+				13FCB96423C3DCD21CCCA838 /* ReactNativeHeaders */,
+				35275AB4768CC953FE98900B /* ReactNativeDependenciesHeaders */,
+				C7DF07ACFBB6A242C3561F57 /* Autolinked */,
+				B8620434D246F3C1579C16E9 /* ReactCodegen */,
+				506AD430BABC05B5F2EF11B1 /* ReactAppDependencyProvider */,
 			);
 			productName = Swipt;
 			productReference = 5C0000000000000000000101 /* Swipt.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5C0000000000000000000502 /* Swipt macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5C0000000000000000000703 /* Build configuration list for PBXNativeTarget "Swipt macOS" */;
+			buildPhases = (
+				5C0000000000000000000411 /* Sources */,
+				5C0000000000000000000412 /* Frameworks */,
+				5C0000000000000000000413 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5C0000000000000000000301 /* Swipt */,
+			);
+			name = "Swipt macOS";
+			packageProductDependencies = (
+				5C0000000000000000000A12 /* GRDB */,
+				5C0000000000000000000A14 /* Atomics */,
+				5C0000000000000000000A16 /* Perception */,
+			);
+			productName = Swipt;
+			productReference = 5C0000000000000000000103 /* Swipt.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -127,6 +218,9 @@
 				LastUpgradeCheck = 2720;
 				TargetAttributes = {
 					5C0000000000000000000501 = {
+						CreatedOnToolsVersion = 27.2;
+					};
+					5C0000000000000000000502 = {
 						CreatedOnToolsVersion = 27.2;
 					};
 				};
@@ -194,8 +288,9 @@
 				5C0000000000000000000A01 /* XCRemoteSwiftPackageReference "GRDB" */,
 				5C0000000000000000000A03 /* XCRemoteSwiftPackageReference "swift-atomics" */,
 				5C0000000000000000000A05 /* XCRemoteSwiftPackageReference "swift-perception" */,
-				5C0000000000000000000A07 /* XCRemoteSwiftPackageReference "Runestone" */,
-				5C0000000000000000000A09 /* XCLocalSwiftPackageReference "Packages/TreeSitterLanguages" */,
+				863A1402A50C477833EDD307 /* XCLocalSwiftPackageReference "build/xcframeworks" */,
+				3A394E5107344B7A414D6CF6 /* XCLocalSwiftPackageReference "build/generated/autolinking" */,
+				E2B7FB9E6BA3DE86AD9025E7 /* XCLocalSwiftPackageReference "build/generated/ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5C0000000000000000000013 /* Products */;
@@ -203,12 +298,21 @@
 			projectRoot = "";
 			targets = (
 				5C0000000000000000000501 /* Swipt */,
+				5C0000000000000000000502 /* Swipt macOS */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		5C0000000000000000000403 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C0000000000000000000209 /* main.jsbundle in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C0000000000000000000413 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -219,6 +323,14 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		5C0000000000000000000401 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7B50D3CF05E387E0E739AF3C /* ExpoModulesProvider.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C0000000000000000000411 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -280,7 +392,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -337,7 +449,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -349,24 +461,21 @@
 		};
 		5C0000000000000000000603 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9AB7FBF108A16B496B88F86F /* ReactNativeSPM.xcconfig */;
 			buildSettings = {
-				"APP_GROUP_IDENTIFIER[sdk=macosx*]" = "$(TeamIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Swipt/Swipt.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P8XK3KHB48;
-				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				ENABLE_PREVIEWS = YES;
-				"EXCLUDED_SOURCE_FILE_NAMES[sdk=macosx*]" = "$(SRCROOT)/Swipt/Server/*";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Swipt/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Swipt;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				"INFOPLIST_KEY_LSApplicationCategoryType[sdk=macosx*]" = "public.app-category.utilities";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Swipt connects to developer services on this device and serves MCP clients on your local network.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Swipt connects to developer services on this device and, if you publish its API, accepts connections on the local network.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Swipt gets your approximate location only to keep automating this device while you use other apps or the device is locked. It doesn’t keep your location or send it anywhere.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -376,13 +485,17 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lresolv",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
 				PRODUCT_MODULE_NAME = Swipt;
 				PRODUCT_NAME = Swipt;
+				PROJECT_ROOT = "$(SRCROOT)/internal/automation/runtime";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -395,24 +508,21 @@
 		};
 		5C0000000000000000000604 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9AB7FBF108A16B496B88F86F /* ReactNativeSPM.xcconfig */;
 			buildSettings = {
-				"APP_GROUP_IDENTIFIER[sdk=macosx*]" = "$(TeamIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Swipt/Swipt.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P8XK3KHB48;
-				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				ENABLE_PREVIEWS = YES;
-				"EXCLUDED_SOURCE_FILE_NAMES[sdk=macosx*]" = "$(SRCROOT)/Swipt/Server/*";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Swipt/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Swipt;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				"INFOPLIST_KEY_LSApplicationCategoryType[sdk=macosx*]" = "public.app-category.utilities";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Swipt connects to developer services on this device and serves MCP clients on your local network.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Swipt connects to developer services on this device and, if you publish its API, accepts connections on the local network.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Swipt gets your approximate location only to keep automating this device while you use other apps or the device is locked. It doesn’t keep your location or send it anywhere.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -422,13 +532,17 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lresolv",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
 				PRODUCT_MODULE_NAME = Swipt;
 				PRODUCT_NAME = Swipt;
+				PROJECT_ROOT = "$(SRCROOT)/internal/automation/runtime";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -436,6 +550,104 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5C0000000000000000000605 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APP_GROUP_IDENTIFIER = "$(TeamIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Swipt/Swipt.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P8XK3KHB48;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				EXCLUDED_SOURCE_FILE_NAMES = (
+					"$(SRCROOT)/Swipt/Automation/*",
+					"$(SRCROOT)/Swipt/Developer/*",
+					"$(SRCROOT)/Swipt/Device/*",
+					"$(SRCROOT)/Swipt/Platform/*",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Swipt/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Swipt;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Swipt connects to developer services on this device and, if you publish its API, accepts connections on the local network.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lresolv",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
+				PRODUCT_MODULE_NAME = Swipt;
+				PRODUCT_NAME = Swipt;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		5C0000000000000000000606 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APP_GROUP_IDENTIFIER = "$(TeamIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Swipt/Swipt.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P8XK3KHB48;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				EXCLUDED_SOURCE_FILE_NAMES = (
+					"$(SRCROOT)/Swipt/Automation/*",
+					"$(SRCROOT)/Swipt/Developer/*",
+					"$(SRCROOT)/Swipt/Device/*",
+					"$(SRCROOT)/Swipt/Platform/*",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Swipt/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Swipt;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Swipt connects to developer services on this device and, if you publish its API, accepts connections on the local network.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lresolv",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
+				PRODUCT_MODULE_NAME = Swipt;
+				PRODUCT_NAME = Swipt;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -460,14 +672,16 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-/* End XCConfigurationList section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		5C0000000000000000000A09 /* XCLocalSwiftPackageReference "Packages/TreeSitterLanguages" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = Packages/TreeSitterLanguages;
+		5C0000000000000000000703 /* Build configuration list for PBXNativeTarget "Swipt macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C0000000000000000000605 /* Debug */,
+				5C0000000000000000000606 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
-/* End XCLocalSwiftPackageReference section */
+/* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		5C0000000000000000000A01 /* XCRemoteSwiftPackageReference "GRDB" */ = {
@@ -494,14 +708,6 @@
 				minimumVersion = 2.0.12;
 			};
 		};
-		5C0000000000000000000A07 /* XCRemoteSwiftPackageReference "Runestone" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/simonbs/Runestone";
-			requirement = {
-				kind = revision;
-				revision = ffd8697cd1f02e9e60099f835d110da7a02ff635;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -520,20 +726,128 @@
 			package = 5C0000000000000000000A05 /* XCRemoteSwiftPackageReference "swift-perception" */;
 			productName = Perception;
 		};
-		5C0000000000000000000A08 /* Runestone */ = {
+		5C0000000000000000000A12 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 5C0000000000000000000A07 /* XCRemoteSwiftPackageReference "Runestone" */;
-			productName = Runestone;
+			package = 5C0000000000000000000A01 /* XCRemoteSwiftPackageReference "GRDB" */;
+			productName = GRDB;
 		};
-		5C0000000000000000000A0A /* TreeSitterJavaScriptRunestone */ = {
+		5C0000000000000000000A14 /* Atomics */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = TreeSitterJavaScriptRunestone;
+			package = 5C0000000000000000000A03 /* XCRemoteSwiftPackageReference "swift-atomics" */;
+			productName = Atomics;
 		};
-		5C0000000000000000000A0B /* TreeSitterJSONRunestone */ = {
+		5C0000000000000000000A16 /* Perception */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = TreeSitterJSONRunestone;
+			package = 5C0000000000000000000A05 /* XCRemoteSwiftPackageReference "swift-perception" */;
+			productName = Perception;
 		};
+		498E50E31DE999B1E37B3BA3 /* ReactHeaders */ = {isa = XCSwiftPackageProductDependency; package = 863A1402A50C477833EDD307 /* XCLocalSwiftPackageReference "build/xcframeworks" */; productName = ReactHeaders;};
+		13FCB96423C3DCD21CCCA838 /* ReactNativeHeaders */ = {isa = XCSwiftPackageProductDependency; package = 863A1402A50C477833EDD307 /* XCLocalSwiftPackageReference "build/xcframeworks" */; productName = ReactNativeHeaders;};
+		35275AB4768CC953FE98900B /* ReactNativeDependenciesHeaders */ = {isa = XCSwiftPackageProductDependency; package = 863A1402A50C477833EDD307 /* XCLocalSwiftPackageReference "build/xcframeworks" */; productName = ReactNativeDependenciesHeaders;};
+		C7DF07ACFBB6A242C3561F57 /* Autolinked */ = {isa = XCSwiftPackageProductDependency; package = 3A394E5107344B7A414D6CF6 /* XCLocalSwiftPackageReference "build/generated/autolinking" */; productName = Autolinked;};
+		B8620434D246F3C1579C16E9 /* ReactCodegen */ = {isa = XCSwiftPackageProductDependency; package = E2B7FB9E6BA3DE86AD9025E7 /* XCLocalSwiftPackageReference "build/generated/ios" */; productName = ReactCodegen;};
+		506AD430BABC05B5F2EF11B1 /* ReactAppDependencyProvider */ = {isa = XCSwiftPackageProductDependency; package = E2B7FB9E6BA3DE86AD9025E7 /* XCLocalSwiftPackageReference "build/generated/ios" */; productName = ReactAppDependencyProvider;};
 /* End XCSwiftPackageProductDependency section */
+/* Begin XCLocalSwiftPackageReference section */
+		863A1402A50C477833EDD307 /* XCLocalSwiftPackageReference "build/xcframeworks" */ = {isa = XCLocalSwiftPackageReference; relativePath = build/xcframeworks;};
+		3A394E5107344B7A414D6CF6 /* XCLocalSwiftPackageReference "build/generated/autolinking" */ = {isa = XCLocalSwiftPackageReference; relativePath = build/generated/autolinking;};
+		E2B7FB9E6BA3DE86AD9025E7 /* XCLocalSwiftPackageReference "build/generated/ios" */ = {isa = XCLocalSwiftPackageReference; relativePath = build/generated/ios;};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		542F6BBF0B6D2EE4A7E6BC7E /* Sync SPM Autolinking */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Sync SPM Autolinking";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "SCRIPT=\"$SRCROOT/ReactNativeSPM/Scripts/sync-autolinking.sh\"\nif [ ! -f \"$SCRIPT\" ]; then\n  echo \"error: $SCRIPT is missing. Run 'npx react-native spm update' to generate it.\"\n  exit 1\nfi\nexec /bin/bash \"$SCRIPT\"";
+		};
+		11488A7061C8582F256B78D7 /* Embed React Native Flavored Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/build/xcframeworks/.artifact-stamp",
+				"$(SRCROOT)/ReactNativeSPM/Scripts/embed-flavored-frameworks.sh",
+				"$(RN_SPM_REACT_FRAMEWORK)",
+				"$(RN_SPM_REACT_NATIVE_DEPENDENCIES_FRAMEWORK)",
+				"$(RN_SPM_HERMES_FRAMEWORK)",
+				"$(RN_SPM_EXPO_FILE_SYSTEM_FRAMEWORK)",
+				"$(RN_SPM_EXPO_FONT_FRAMEWORK)",
+				"$(RN_SPM_EXPO_MODULES_CORE_FRAMEWORK)",
+				"$(RN_SPM_EXPO_MODULES_WORKLETS_FRAMEWORK)",
+			);
+			name = "Embed React Native Flavored Frameworks";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/React.framework",
+				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/ReactNativeDependencies.framework",
+				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/hermesvm.framework",
+				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/ExpoFileSystem.framework",
+				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/ExpoFont.framework",
+				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/ExpoModulesCore.framework",
+				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/ExpoModulesWorklets.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "SCRIPT=\"$SRCROOT/ReactNativeSPM/Scripts/embed-flavored-frameworks.sh\"\nif [ ! -f \"$SCRIPT\" ]; then\n  echo \"error: $SCRIPT is missing. Run 'npx react-native spm update' to generate it.\"\n  exit 1\nfi\nexec /bin/bash \"$SCRIPT\"";
+		};
+		EACA37646092C359F37F3D58 /* Build ExpoModulesJSI */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build ExpoModulesJSI";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -euo pipefail\n\nif [ -z \"${NODE_BINARY:-}\" ]; then\n  set +eu\n  if [ -f \"$SRCROOT/.xcode.env\" ]; then . \"$SRCROOT/.xcode.env\"; fi\n  if [ -f \"$SRCROOT/.xcode.env.local\" ]; then . \"$SRCROOT/.xcode.env.local\"; fi\n  set -eu\nfi\nNODE_BINARY=\"${NODE_BINARY:-$(command -v node || true)}\"\nif [ -z \"$NODE_BINARY\" ]; then\n  echo \"error: ExpoModulesJSI could not be built because node was not found. The build uses node to find react-native and expo-modules-jsi. Set NODE_BINARY in $SRCROOT/.xcode.env, for example: echo \\\"export NODE_BINARY=\\$(command -v node)\\\" >> \\\"$SRCROOT/.xcode.env\\\"\" >&2\n  exit 1\nfi\n\nPROJECT_ROOT=\"${PROJECT_ROOT:-$(cd \"$SRCROOT/..\" && pwd)}\"\n\n# expo-modules-jsi is a dependency of expo-modules-core, not of the app, so it is resolved through\n# that chain: under pnpm it is not reachable from the app root.\nRESOLVED=\"$(\"$NODE_BINARY\" -e '\n  const path = require(\"path\");\n  const dir = (name, from) => path.dirname(require.resolve(`${name}/package.json`, { paths: [from] }));\n  const root = process.argv[1];\n  const core = dir(\"expo-modules-core\", dir(\"expo\", root));\n  console.log(`${dir(\"react-native\", root)}\\n${dir(\"expo-modules-jsi\", core)}`);\n' \"$PROJECT_ROOT\" || true)\"\nRN_DIR=\"$(printf '%s\\n' \"$RESOLVED\" | sed -n 1p)\"\nJSI_DIR=\"$(printf '%s\\n' \"$RESOLVED\" | sed -n 2p)\"\nif [ -z \"$RN_DIR\" ] || [ -z \"$JSI_DIR\" ]; then\n  echo \"error: ExpoModulesJSI could not be built because react-native, or expo-modules-jsi through expo and expo-modules-core, could not be resolved from $PROJECT_ROOT. The dependencies are not installed, or PROJECT_ROOT does not point at the app. Install the app's dependencies, then build again.\" >&2\n  exit 1\nfi\nif [ ! -f \"$JSI_DIR/apple/scripts/build-swiftpm-app-phase.sh\" ]; then\n  echo \"error: ExpoModulesJSI could not be built because $JSI_DIR has no apple/scripts/build-swiftpm-app-phase.sh. The installed expo-modules-jsi is older than this version of expo. Update expo-modules-jsi by reinstalling the app's dependencies so they match this version of expo, then build again.\" >&2\n  exit 1\nfi\n\nexport RN_DIR\nexec /bin/bash \"$JSI_DIR/apple/scripts/build-swiftpm-app-phase.sh\"\n";
+		};
+		A8C742A01B815A04A9F5F4B5 /* Generate Expo app.config */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Generate Expo app.config";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/EXConstants.bundle/app.config",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -eo pipefail\n\n# Resolve node the way RN's own phases do: app-local env files first, PATH last.\n# `.xcode.env` may reference unset vars, so relax errexit while sourcing it.\nif [ -z \"${NODE_BINARY:-}\" ]; then\n  set +e\n  if [ -f \"$SRCROOT/.xcode.env\" ]; then . \"$SRCROOT/.xcode.env\"; fi\n  if [ -f \"$SRCROOT/.xcode.env.local\" ]; then . \"$SRCROOT/.xcode.env.local\"; fi\n  set -e\nfi\nif [ -z \"${NODE_BINARY:-}\" ]; then\n  NODE_BINARY=\"$(command -v node || true)\"\nfi\nif [ -z \"$NODE_BINARY\" ]; then\n  echo \"error: expo-constants could not find node while generating the embedded app config. Set NODE_BINARY in $SRCROOT/.xcode.env — run: echo \\\"export NODE_BINARY=\\$(command -v node)\\\" >> \\\"$SRCROOT/.xcode.env\\\"\" >&2\n  exit 1\nfi\nexport NODE_BINARY\n\nexport PROJECT_ROOT=\"${PROJECT_ROOT:-$SRCROOT/..}\"\n\n# Resolve the package from the app at BUILD time; a path baked in at generation\n# time dangles as soon as the store layout changes.\nEXPO_CONSTANTS_DIR=\"$(\"$NODE_BINARY\" --print \"require('path').dirname(require.resolve('expo-constants/package.json', { paths: [process.argv[1]] }))\" \"$PROJECT_ROOT\" 2>/dev/null || true)\"\nif [ -z \"$EXPO_CONSTANTS_DIR\" ] || [ ! -f \"$EXPO_CONSTANTS_DIR/scripts/get-app-config-ios.sh\" ]; then\n  echo \"error: expo-constants could not be resolved from $PROJECT_ROOT, so the embedded app config was not generated. Reinstall your dependencies, or remove expo-constants if it is no longer used.\" >&2\n  exit 1\nfi\n\n# Where the shared script assembles EXConstants.bundle. Under CocoaPods this is\n# the pod target's CONFIGURATION_BUILD_DIR; here the phase is on the app target,\n# so point it at the app's own resources directory.\nexport EXPO_CONSTANTS_APP_CONFIG_DEST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n\n# The shared script no-ops unless it is running inside the Pods project, to keep\n# the classic and pod integrations from both writing app.config. SwiftPM injects\n# exactly one phase, so opt out of that de-duplication.\nexport EXPO_CONSTANTS_ALLOW_NON_PODS=1\n\nexec \"$EXPO_CONSTANTS_DIR/scripts/get-app-config-ios.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 	};
 	rootObject = 5C0000000000000000000001 /* Project object */;
 }

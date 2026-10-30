@@ -11,14 +11,6 @@
       }
     },
     {
-      "identity" : "runestone",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/simonbs/Runestone",
-      "state" : {
-        "revision" : "ffd8697cd1f02e9e60099f835d110da7a02ff635"
-      }
-    },
-    {
       "identity" : "swift-atomics",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-atomics",

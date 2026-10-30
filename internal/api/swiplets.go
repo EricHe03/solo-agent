@@ -1,0 +1,473 @@
+package api
+
+import (
+	"archive/zip"
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"io/fs"
+	"path"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/sagernet/sing/common"
+	E "github.com/sagernet/sing/common/exceptions"
+	F "github.com/sagernet/sing/common/format"
+	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
+	"github.com/swipt-automation/swipt/internal/automation"
+	"github.com/swipt-automation/swipt/internal/device"
+	"github.com/swipt-automation/swipt/internal/log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const largestUpload = 128 << 20
+
+type swipletService struct {
+	swiptv1.UnimplementedSwipletServiceServer
+	*Server
+}
+
+func schemaOf(data json.RawMessage) *structpb.Struct {
+	if len(data) == 0 {
+		return nil
+	}
+	schema := &structpb.Struct{}
+	if protojson.Unmarshal(data, schema) != nil {
+		return nil
+	}
+	return schema
+}
+
+func serviceStateOf(state automation.ServiceState) *swiptv1.ServiceState {
+	out := &swiptv1.ServiceState{Enabled: state.Enabled}
+	if state.Failure != nil {
+		out.Error = scriptError(state.Failure)
+	}
+	switch state.Status {
+	case automation.ServiceStopped:
+		out.Status = swiptv1.ServiceStatus_SERVICE_STATUS_STOPPED
+	case automation.ServiceStarting:
+		out.Status = swiptv1.ServiceStatus_SERVICE_STATUS_STARTING
+	case automation.ServiceRunning:
+		out.Status = swiptv1.ServiceStatus_SERVICE_STATUS_RUNNING
+	case automation.ServiceFailed:
+		out.Status = swiptv1.ServiceStatus_SERVICE_STATUS_FAILED
+	}
+	if !state.Since.IsZero() {
+		out.Since = timestamppb.New(state.Since)
+	}
+	return out
+}
+
+func (s *swipletService) swipletOf(swiplet automation.Swiplet) *swiptv1.Swiplet {
+	manifest := swiplet.Manifest
+	out := &swiptv1.Swiplet{
+		Id: swiplet.ID, Title: manifest.Name, Version: manifest.Version, HasUi: manifest.Interface, HasService: manifest.Service,
+		Actions: common.Map(manifest.Actions, func(action automation.ActionInfo) *swiptv1.SwipletAction {
+			return &swiptv1.SwipletAction{
+				Name: action.Name, Title: action.Title, Description: action.Description,
+				ExposedToShortcuts: slices.Contains(action.Expose, automation.CallerShortcuts),
+				InputSchema:        schemaOf(action.Input), OutputSchema: schemaOf(action.Output),
+			}
+		}),
+	}
+	if manifest.Service {
+		if state, err := s.options.Swiplets.Service(swiplet.ID); err == nil {
+			out.Service = serviceStateOf(state)
+		}
+	}
+	return out
+}
+
+func (s *swipletService) ListSwiplets(context.Context, *swiptv1.ListSwipletsRequest) (*swiptv1.ListSwipletsResponse, error) {
+	return &swiptv1.ListSwipletsResponse{Swiplets: common.Map(s.options.Swiplets.Swiplets(), s.swipletOf)}, nil
+}
+
+func inputOf(value *structpb.Value) (json.RawMessage, error) {
+	if value == nil {
+		return nil, nil
+	}
+	data, err := protojson.Marshal(value)
+	if err != nil {
+		return nil, E.Cause1(device.ErrInvalid, err)
+	}
+	return data, nil
+}
+
+func logOf(tag string, entry automation.LogEntry) *swiptv1.LogEntry {
+	return logEntry(log.Entry{Time: entry.Time, Level: entry.Level, Tag: tag, Message: entry.Message})
+}
+
+func scriptError(failure *automation.Failure) *swiptv1.ScriptError {
+	return &swiptv1.ScriptError{
+		Name: failure.Name, Message: failure.Message,
+		Stack: common.Map(failure.Stack, func(frame automation.Frame) *swiptv1.StackFrame {
+			return &swiptv1.StackFrame{Function: frame.Function, File: frame.File, Line: uint32(max(frame.Line, 0)), Column: uint32(max(frame.Column, 0))}
+		}),
+	}
+}
+
+func actionResult(output json.RawMessage, err error) (*swiptv1.ActionResult, error) {
+	if failure, isFailure := automation.ScriptFailure(err); isFailure {
+		return &swiptv1.ActionResult{Outcome: &swiptv1.ActionResult_Error{Error: scriptError(failure)}}, nil
+	}
+	if err != nil {
+		return nil, apiError(err)
+	}
+	value := &structpb.Value{}
+	if err = protojson.Unmarshal(output, value); err != nil {
+		return nil, apiError(E.Cause(err, "read the output"))
+	}
+	return &swiptv1.ActionResult{Outcome: &swiptv1.ActionResult_Output{Output: value}}, nil
+}
+
+type execution struct {
+	output json.RawMessage
+	err    error
+}
+
+func relay(ctx context.Context, tag string, run func(logs func(automation.LogEntry)) (json.RawMessage, error), send func(*swiptv1.LogEntry) error) (json.RawMessage, error) {
+	logs := make(chan automation.LogEntry, logBuffer)
+	done := make(chan execution, 1)
+	go func() {
+		output, err := run(func(entry automation.LogEntry) {
+			select {
+			case logs <- entry:
+			default:
+			}
+		})
+		done <- execution{output, err}
+	}()
+	for {
+		select {
+		case entry := <-logs:
+			if err := send(logOf(tag, entry)); err != nil {
+				return nil, err
+			}
+		case result := <-done:
+			for {
+				select {
+				case entry := <-logs:
+					if err := send(logOf(tag, entry)); err != nil {
+						return nil, err
+					}
+					continue
+				default:
+				}
+				return result.output, result.err
+			}
+		case <-ctx.Done():
+			result := <-done
+			return result.output, E.Errors(result.err, context.Cause(ctx))
+		}
+	}
+}
+
+func (s *swipletService) CallAction(request *swiptv1.CallActionRequest, stream grpc.ServerStreamingServer[swiptv1.CallActionResponse]) error {
+	ctx := stream.Context()
+	input, err := inputOf(request.Input)
+	if err != nil {
+		return apiError(err)
+	}
+	output, err := relay(ctx, "swiplet/"+request.SwipletId, func(logs func(automation.LogEntry)) (json.RawMessage, error) {
+		return s.options.Swiplets.Call(ctx, automation.CallRequest{
+			Swiplet: request.SwipletId, Action: request.Action, Input: input, Caller: automation.CallerAPI,
+			Dialog: s.options.Dialog, Log: logs,
+		})
+	}, func(entry *swiptv1.LogEntry) error {
+		return stream.Send(&swiptv1.CallActionResponse{Part: &swiptv1.CallActionResponse_Log{Log: entry}})
+	})
+	if revoked := revocation(ctx); revoked != nil {
+		return revoked
+	}
+	result, err := actionResult(output, err)
+	if err != nil {
+		return err
+	}
+	return stream.Send(&swiptv1.CallActionResponse{Part: &swiptv1.CallActionResponse_Result{Result: result}})
+}
+
+func (s *swipletService) SetServiceEnabled(ctx context.Context, request *swiptv1.SetServiceEnabledRequest) (*swiptv1.SetServiceEnabledResponse, error) {
+	host := s.options.Swiplets
+	requested := time.Now()
+	if err := host.SetServiceEnabled(request.SwipletId, request.Enabled); err != nil {
+		return nil, apiError(err)
+	}
+	state, err := host.AwaitService(ctx, request.SwipletId, request.Enabled, requested)
+	if err != nil {
+		return nil, apiError(err)
+	}
+	return &swiptv1.SetServiceEnabledResponse{Service: serviceStateOf(state)}, nil
+}
+
+func (s *swipletService) WatchServices(request *swiptv1.WatchServicesRequest, stream grpc.ServerStreamingServer[swiptv1.WatchServicesResponse]) error {
+	if id := request.SwipletId; id != "" {
+		if _, err := s.options.Swiplets.Service(id); err != nil {
+			return apiError(err)
+		}
+	}
+	ctx, cancel := context.WithCancelCause(stream.Context())
+	defer cancel(nil)
+	err := s.options.Swiplets.WatchServices(ctx, func(id string, state automation.ServiceState) {
+		if request.SwipletId != "" && id != request.SwipletId {
+			return
+		}
+		if err := stream.Send(&swiptv1.WatchServicesResponse{SwipletId: id, Service: serviceStateOf(state)}); err != nil {
+			cancel(err)
+		}
+	})
+	if cause := context.Cause(ctx); cause != nil && !errors.Is(cause, context.Canceled) {
+		return cause
+	}
+	return apiError(err)
+}
+
+func (s *swipletService) DeploySwiplet(stream grpc.ClientStreamingServer[swiptv1.DeploySwipletRequest, swiptv1.DeploySwipletResponse]) error {
+	var archive bytes.Buffer
+	for {
+		request, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if archive.Len()+len(request.Chunk) > largestUpload {
+			return status.Error(codes.ResourceExhausted, F.ToString("the archive is larger than ", largestUpload>>20, " MiB"))
+		}
+		archive.Write(request.Chunk)
+	}
+	reader, err := zip.NewReader(bytes.NewReader(archive.Bytes()), int64(archive.Len()))
+	if err != nil {
+		return apiError(E.Cause1(device.ErrInvalid, E.Cause(err, "open the archive")))
+	}
+	contents, err := automation.ReadArchive(reader, "")
+	if err != nil {
+		if !errors.Is(err, device.ErrInvalid) {
+			err = E.Cause1(device.ErrInvalid, err)
+		}
+		return apiError(err)
+	}
+	host := s.options.Swiplets
+	_, missing := host.Swiplet(contents.Manifest.ID)
+	installed, err := host.Install(bytes.NewReader(archive.Bytes()), int64(archive.Len()))
+	if err != nil {
+		return apiError(err)
+	}
+	s.options.Logger.Info("deployed ", installed.ID, " ", installed.Manifest.Version)
+	return stream.SendAndClose(&swiptv1.DeploySwipletResponse{Swiplet: s.swipletOf(installed), Replaced: missing == nil})
+}
+
+func (s *swipletService) RemoveSwiplet(_ context.Context, request *swiptv1.RemoveSwipletRequest) (*swiptv1.RemoveSwipletResponse, error) {
+	if err := s.options.Swiplets.Remove(request.SwipletId); err != nil {
+		return nil, apiError(err)
+	}
+	return &swiptv1.RemoveSwipletResponse{}, nil
+}
+
+func dataPath(name string) (string, error) {
+	if strings.HasPrefix(name, "/") && name != "/" {
+		return "", E.Extend(device.ErrInvalid, "the path ", strconv.Quote(name), " is absolute; give one within the swiplet's data directory, such as settings.json")
+	}
+	cleaned := path.Clean(strings.TrimPrefix(name, "/"))
+	if cleaned == "." {
+		return "", nil
+	}
+	if !fs.ValidPath(cleaned) {
+		return "", E.Extend(device.ErrInvalid, "the path ", strconv.Quote(name), " leaves the data directory")
+	}
+	return cleaned, nil
+}
+
+func fileInfoOf(directory string, file automation.FileInfo) *swiptv1.FileInfo {
+	return &swiptv1.FileInfo{Path: path.Join(directory, file.Name), Directory: file.Directory, Size: file.Size, Modified: timestamppb.New(file.Modified)}
+}
+
+func (s *swipletService) statFile(id, name string) (*swiptv1.FileInfo, error) {
+	if name == "" {
+		return &swiptv1.FileInfo{Directory: true}, nil
+	}
+	parent := path.Dir(name)
+	if parent == "." {
+		parent = ""
+	}
+	files, err := s.options.Swiplets.ListFiles(id, parent)
+	if err != nil {
+		return nil, err
+	}
+	index := slices.IndexFunc(files, func(file automation.FileInfo) bool { return file.Name == path.Base(name) })
+	if index < 0 {
+		return nil, automation.FileNotFound(id, name)
+	}
+	return fileInfoOf(parent, files[index]), nil
+}
+
+func (s *swipletService) walkFiles(id, directory string, visit func(*swiptv1.FileInfo) error) error {
+	files, err := s.options.Swiplets.ListFiles(id, directory)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		info := fileInfoOf(directory, file)
+		if err = visit(info); err != nil {
+			return err
+		}
+		if file.Directory {
+			if err = s.walkFiles(id, info.Path, visit); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (s *swipletService) ListDataFiles(_ context.Context, request *swiptv1.ListDataFilesRequest) (*swiptv1.ListDataFilesResponse, error) {
+	directory, err := dataPath(request.Path)
+	if err != nil {
+		return nil, apiError(err)
+	}
+	var out []*swiptv1.FileInfo
+	if request.Recursive {
+		err = s.walkFiles(request.SwipletId, directory, func(info *swiptv1.FileInfo) error {
+			out = append(out, info)
+			return nil
+		})
+	} else {
+		var files []automation.FileInfo
+		files, err = s.options.Swiplets.ListFiles(request.SwipletId, directory)
+		out = common.Map(files, func(file automation.FileInfo) *swiptv1.FileInfo { return fileInfoOf(directory, file) })
+	}
+	if err != nil {
+		return nil, apiError(err)
+	}
+	return &swiptv1.ListDataFilesResponse{Files: out}, nil
+}
+
+func sendFile(info *swiptv1.FileInfo, data []byte, send func(*swiptv1.FileInfo, *swiptv1.FileChunk) error) error {
+	if err := send(info, nil); err != nil {
+		return err
+	}
+	for offset := 0; offset < len(data); offset += chunkSize {
+		chunk := &swiptv1.FileChunk{Path: info.Path, Offset: int64(offset), Data: data[offset:min(offset+chunkSize, len(data))]}
+		if err := send(nil, chunk); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *swipletService) ReadDataFile(request *swiptv1.ReadDataFileRequest, stream grpc.ServerStreamingServer[swiptv1.ReadDataFileResponse]) error {
+	id := request.SwipletId
+	name, err := dataPath(request.Path)
+	if err != nil {
+		return apiError(err)
+	}
+	send := func(info *swiptv1.FileInfo, chunk *swiptv1.FileChunk) error {
+		if info != nil {
+			return stream.Send(&swiptv1.ReadDataFileResponse{Part: &swiptv1.ReadDataFileResponse_File{File: info}})
+		}
+		return stream.Send(&swiptv1.ReadDataFileResponse{Part: &swiptv1.ReadDataFileResponse_Chunk{Chunk: chunk}})
+	}
+	info, err := s.statFile(id, name)
+	if err != nil {
+		return apiError(err)
+	}
+	if !info.Directory {
+		data, err := s.options.Swiplets.ReadFile(id, name)
+		if err != nil {
+			return apiError(err)
+		}
+		return sendFile(info, data, send)
+	}
+	return apiError(s.walkFiles(id, name, func(info *swiptv1.FileInfo) error {
+		if info.Directory {
+			return send(info, nil)
+		}
+		data, err := s.options.Swiplets.ReadFile(id, info.Path)
+		if err != nil {
+			return err
+		}
+		return sendFile(info, data, send)
+	}))
+}
+
+func (s *swipletService) WriteDataFile(stream grpc.ClientStreamingServer[swiptv1.WriteDataFileRequest, swiptv1.WriteDataFileResponse]) error {
+	var header *swiptv1.WriteDataFileHeader
+	var data bytes.Buffer
+	for {
+		request, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		switch part := request.Part.(type) {
+		case *swiptv1.WriteDataFileRequest_Header:
+			if header != nil {
+				return apiError(E.Extend(device.ErrInvalid, "the header was sent twice"))
+			}
+			header = part.Header
+		case *swiptv1.WriteDataFileRequest_Data:
+			if header == nil {
+				return apiError(E.Extend(device.ErrInvalid, "the data came before the header"))
+			}
+			if data.Len()+len(part.Data) > largestUpload {
+				return status.Error(codes.ResourceExhausted, F.ToString("the file is larger than ", largestUpload>>20, " MiB"))
+			}
+			data.Write(part.Data)
+		}
+	}
+	if header == nil {
+		return apiError(E.Extend(device.ErrInvalid, "the header is missing"))
+	}
+	name, err := dataPath(header.Path)
+	if err == nil && name == "" {
+		err = E.Extend(device.ErrInvalid, "the path names the data directory")
+	}
+	if err == nil {
+		err = s.options.Swiplets.WriteFile(header.SwipletId, name, data.Bytes())
+	}
+	if err != nil {
+		return apiError(err)
+	}
+	info, err := s.statFile(header.SwipletId, name)
+	if err != nil {
+		return apiError(err)
+	}
+	return stream.SendAndClose(&swiptv1.WriteDataFileResponse{File: info})
+}
+
+func (s *swipletService) RemoveDataFile(_ context.Context, request *swiptv1.RemoveDataFileRequest) (*swiptv1.RemoveDataFileResponse, error) {
+	id := request.SwipletId
+	name, err := dataPath(request.Path)
+	if err == nil && name == "" {
+		err = E.Extend(device.ErrInvalid, "the path names the data directory")
+	}
+	var info *swiptv1.FileInfo
+	if err == nil {
+		info, err = s.statFile(id, name)
+	}
+	if err == nil && info.Directory && !request.Recursive {
+		var files []automation.FileInfo
+		if files, err = s.options.Swiplets.ListFiles(id, name); err == nil && len(files) > 0 {
+			err = status.Error(codes.FailedPrecondition, name+" is a directory that holds files; remove it recursively")
+		}
+	}
+	if err == nil {
+		err = s.options.Swiplets.RemoveFile(id, name)
+	}
+	if err != nil {
+		return nil, apiError(err)
+	}
+	return &swiptv1.RemoveDataFileResponse{}, nil
+}

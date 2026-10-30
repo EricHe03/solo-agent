@@ -106,6 +106,22 @@ jobs:
           path: Frameworks/LibSwipt.xcframework
           key: libswipt-ios-arm64-${{ needs.calculate_version.outputs.library_hash }}
           fail-on-cache-miss: true
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - name: Cache React Native artifacts
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/ReactNative
+          key: react-native-${{ hashFiles('bun.lock') }}
+          restore-keys: react-native-
+      - name: Set up React Native
+        run: make lib_react
       - name: Get Xcode version
         id: xcode
         run: echo "build=$(xcodebuild -version | tail -1 | cut -d ' ' -f 3)" >> "$GITHUB_OUTPUT"
@@ -113,7 +129,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/CompilationCache
-          key: swift-ios-${{ steps.xcode.outputs.build }}-${{ hashFiles('Swipt/**', 'Swipt.xcodeproj/**', 'Frameworks/LibSwipt.xcframework/ios-arm64/LibSwipt.framework/Versions/A/Headers/**', 'Frameworks/LibSwipt.xcframework/ios-arm64/LibSwipt.framework/Versions/A/Modules/**') }}
+          key: swift-ios-${{ steps.xcode.outputs.build }}-${{ hashFiles('Swipt/**', 'Swipt.xcodeproj/**', 'bun.lock', 'internal/automation/runtime/patches/**', 'internal/automation/runtime/modules/**', 'Frameworks/LibSwipt.xcframework/ios-arm64/LibSwipt.framework/Versions/A/Headers/**', 'Frameworks/LibSwipt.xcframework/ios-arm64/LibSwipt.framework/Versions/A/Modules/**') }}
       - name: Build
         run: make archive_ios_ipa altstore_source
         env:

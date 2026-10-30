@@ -1,0 +1,122 @@
+diff --git a/Package.swift b/Package.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..00a11631b6573c3bdd4abc3e801a853f17cf8601
+--- /dev/null
++++ b/Package.swift
+@@ -0,0 +1,30 @@
++// swift-tools-version: 6.2
++import PackageDescription
++
++let package = Package(
++  name: "expo-ui",
++  platforms: [
++    .iOS("16.4"),
++    .tvOS("16.4"),
++    .macOS("13.4"),
++  ],
++  products: [
++    .library(name: "ExpoUI", targets: ["ExpoUI", "ExpoUIObjC"])
++  ],
++  dependencies: [],
++  targets: [
++    .target(
++      name: "ExpoUI",
++      dependencies: ["ExpoUIObjC"],
++      path: "ios",
++      exclude: ["ExpoUI.podspec", "ExpoUITouchHandlerHelper.h", "ExpoUITouchHandlerHelper.mm"]
++    ),
++    .target(
++      name: "ExpoUIObjC",
++      dependencies: [],
++      path: "ios",
++      sources: ["ExpoUITouchHandlerHelper.mm"],
++      publicHeadersPath: "."
++    ),
++  ]
++)
+diff --git a/build/swift-ui/NavigationStack/index.d.ts b/build/swift-ui/NavigationStack/index.d.ts
+index dea89eed5ebd197db51ce8c2991ea10706455275..743cfaf10fe018975033c63afcc8fa7492689dad 100644
+--- a/build/swift-ui/NavigationStack/index.d.ts
++++ b/build/swift-ui/NavigationStack/index.d.ts
+@@ -11,6 +11,11 @@ export interface NavigationStackProps extends CommonViewModifierProps {
+      * Leave it undefined to let the stack manage its own path.
+      */
+     path?: string[];
++    /**
++     * Attaches the root view and destinations to the navigation stack the view is already in, instead
++     * of creating a nested one. `path` and `onPathChange` don't apply, since that stack owns the path.
++     */
++    embedded?: boolean;
+     /**
+      * Callback function that is called when the stack pushes or pops a view, for example when a
+      * `NavigationLink` is tapped or the user swipes back. Gets called with the new path.
+diff --git a/ios/NavigationStackView.swift b/ios/NavigationStackView.swift
+index 5b203e671e4dcbb93dcad0ad55952fa82222ead2..dcff22526283de8468a5f42ba7f81cbb5b60563f 100644
+--- a/ios/NavigationStackView.swift
++++ b/ios/NavigationStackView.swift
+@@ -5,6 +5,7 @@ import ExpoModulesCore
+ 
+ internal final class NavigationStackViewProps: UIBaseViewProps {
+   @Field var path: [String]?
++  @Field var embedded: Bool = false
+   var onPathChange = EventDispatcher()
+ }
+ 
+@@ -45,14 +46,22 @@ internal struct NavigationStackView: ExpoSwiftUI.View {
+   }
+ 
+   var body: some View {
+-    NavigationStack(path: pathBinding) {
+-      rootContent
+-        .navigationDestination(for: String.self) { value in
+-          NavigationDestinationContent(props: props, value: value)
+-        }
++    if props.embedded {
++      rootWithDestinations
++    } else {
++      NavigationStack(path: pathBinding) {
++        rootWithDestinations
++      }
+     }
+   }
+ 
++  private var rootWithDestinations: some View {
++    rootContent
++      .navigationDestination(for: String.self) { value in
++        NavigationDestinationContent(props: props, value: value)
++      }
++  }
++
+   @ViewBuilder
+   private var rootContent: some View {
+     ForEach(props.children?.withoutSlot("destination") ?? [], id: \.id) { child in
+diff --git a/ios/RNHostView.swift b/ios/RNHostView.swift
+index f2d5a184732bc9027e801f76d97654d4b83501af..52a0964e4f0ceec7fc48454034979beb0c311834 100644
+--- a/ios/RNHostView.swift
++++ b/ios/RNHostView.swift
+@@ -2,6 +2,9 @@
+ 
+ import SwiftUI
+ import ExpoModulesCore
++#if canImport(ExpoUIObjC)
++import ExpoUIObjC
++#endif
+ 
+ internal final class RNHostViewProps: ExpoSwiftUI.ViewProps {
+   @Field var matchContentsHorizontal: Bool = false
+diff --git a/src/swift-ui/NavigationStack/index.tsx b/src/swift-ui/NavigationStack/index.tsx
+index f17c45e4b3e346fd9c6e4feab04779f09297c347..c36e701e5919dc1d7cd341dd43f59e355b1087e1 100644
+--- a/src/swift-ui/NavigationStack/index.tsx
++++ b/src/swift-ui/NavigationStack/index.tsx
+@@ -16,6 +16,11 @@ export interface NavigationStackProps extends CommonViewModifierProps {
+    * Leave it undefined to let the stack manage its own path.
+    */
+   path?: string[];
++  /**
++   * Attaches the root view and destinations to the navigation stack the view is already in, instead
++   * of creating a nested one. `path` and `onPathChange` don't apply, since that stack owns the path.
++   */
++  embedded?: boolean;
+   /**
+    * Callback function that is called when the stack pushes or pops a view, for example when a
+    * `NavigationLink` is tapped or the user swipes back. Gets called with the new path.

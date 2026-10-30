@@ -100,7 +100,8 @@ type RemoteClient struct {
 	stateMu                 sync.Mutex
 	pending                 []*pendingRead
 	batchRawElementDisabled bool
-	notifications           chan []translationObject
+	screenViewing           []translationObject
+	screenViewingPending    chan struct{}
 	pushed                  func(Push)
 }
 
@@ -130,9 +131,9 @@ func DialRemote(ctx, owner context.Context, device *coredevice.Device, pushed fu
 	operation, cancel := context.WithCancelCause(ctx)
 	c := &RemoteClient{
 		conn: dtxConn, ctx: operation, owner: owner, cancel: cancel,
-		deviceClass:   device.Info().DeviceClass,
-		notifications: make(chan []translationObject, 1),
-		pushed:        pushed,
+		deviceClass:          device.Info().DeviceClass,
+		screenViewingPending: make(chan struct{}, 1),
+		pushed:               pushed,
 	}
 	c.mu.Lock()
 	go c.readLoop()
@@ -197,6 +198,7 @@ func (c *RemoteClient) Close() error {
 				select {
 				case <-c.conn.Done():
 				case <-ctx.Done():
+					c.closeErr = E.New("accessibility: the device kept the connection open after clientNeedsAccessibility: false")
 				}
 			}
 			cancel()
@@ -204,6 +206,11 @@ func (c *RemoteClient) Close() error {
 		c.conn.Close()
 	})
 	return c.closeErr
+}
+
+func (c *RemoteClient) CloseCause(cause error) error {
+	c.cancel(cause)
+	return c.Close()
 }
 
 type PasscodeState struct {

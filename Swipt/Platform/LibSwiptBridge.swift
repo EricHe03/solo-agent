@@ -1,0 +1,165 @@
+import Foundation
+import LibSwipt
+
+nonisolated struct SwipletService: Equatable, Sendable {
+    enum Status: String, Sendable {
+        case starting
+        case running
+        case stopped
+        case failed
+    }
+
+    var enabled = false
+    var status = Status.stopped
+    var error = ""
+    var since: Date?
+
+    init() {}
+
+    init(enabled: Bool, status: String, error: String, since: Int64) {
+        self.enabled = enabled
+        self.status = Status(rawValue: status) ?? .stopped
+        self.error = error
+        self.since = since > 0 ? Date(timeIntervalSince1970: TimeInterval(since) / 1000) : nil
+    }
+}
+
+nonisolated enum PlatformEvent: Sendable {
+    case dialog(id: Int64, request: String?)
+    case service(swiplet: String, SwipletService)
+    case swipletsChanged
+    case apiFailed(String)
+}
+
+nonisolated final class PlatformEvents: NSObject, LibSwiptPlatformHandlerProtocol, @unchecked Sendable {
+    private let deliver = LockedState<(@Sendable (PlatformEvent) -> Void)?>(initialState: nil)
+    private let deliverBackdrop: @Sendable (Data?) -> Void
+    private let isActive: @Sendable () -> Bool
+
+    init(backdrop deliverBackdrop: @escaping @Sendable (Data?) -> Void, active isActive: @escaping @Sendable () -> Bool) {
+        self.deliverBackdrop = deliverBackdrop
+        self.isActive = isActive
+    }
+
+    func connect(_ deliver: @escaping @Sendable (PlatformEvent) -> Void) {
+        self.deliver.withLock { $0 = deliver }
+    }
+
+    func onDialog(_ dialogID: Int64, request: String?) {
+        deliver.withLock { $0 }?(.dialog(id: dialogID, request: request ?? ""))
+    }
+
+    func onDialogWithdrawn(_ dialogID: Int64) {
+        deliver.withLock { $0 }?(.dialog(id: dialogID, request: nil))
+    }
+
+    func onServiceChanged(_ swiplet: String?, enabled: Bool, status: String?, message: String?, since: Int64) {
+        deliver.withLock { $0 }?(.service(swiplet: swiplet ?? "", SwipletService(enabled: enabled, status: status ?? "", error: message ?? "", since: since)))
+    }
+
+    func onSwipletsChanged() {
+        deliver.withLock { $0 }?(.swipletsChanged)
+    }
+
+    func onAPIFailed(_ message: String?) {
+        deliver.withLock { $0 }?(.apiFailed(message ?? ""))
+    }
+
+    func onBackdrop(_ image: Data?) {
+        deliverBackdrop(image)
+    }
+
+    func appActive() -> Bool {
+        isActive()
+    }
+}
+
+nonisolated struct DeviceStateChange: Sendable {
+    var state: Int32
+    var errorCode: Int32
+    var message: String
+}
+
+nonisolated final class DeviceEvents: NSObject, LibSwiptDeviceHandlerProtocol, @unchecked Sendable {
+    private let deliver = LockedState<(@Sendable (DeviceStateChange) -> Void)?>(initialState: nil)
+
+    func connect(_ deliver: @escaping @Sendable (DeviceStateChange) -> Void) {
+        self.deliver.withLock { $0 = deliver }
+    }
+
+    func onStateChanged(_ state: Int32, errorCode: Int32, message: String?) {
+        deliver.withLock { $0 }?(DeviceStateChange(state: state, errorCode: errorCode, message: message ?? ""))
+    }
+
+    func backlightState() -> Int32 {
+        LocalBacklight.state
+    }
+}
+
+nonisolated final class CloudflareTunnelEvents: NSObject, LibSwiptCloudflareTunnelHandlerProtocol, @unchecked Sendable {
+    private let deliver: @Sendable (_ tunnel: String, _ hostname: String) -> Void
+    private let deliverError: @Sendable (String) -> Void
+
+    init(_ deliver: @escaping @Sendable (_ tunnel: String, _ hostname: String) -> Void, error deliverError: @escaping @Sendable (String) -> Void) {
+        self.deliver = deliver
+        self.deliverError = deliverError
+    }
+
+    func onState(_ tunnel: String?, hostname: String?) {
+        deliver(tunnel ?? "", hostname ?? "")
+    }
+
+    func onError(_ message: String?) {
+        deliverError(message ?? "")
+    }
+}
+
+nonisolated final class DiskImageImportEvents: NSObject, LibSwiptDiskImageImportHandlerProtocol, @unchecked Sendable {
+    private let deliver: @Sendable (DiskImageImportProgress) -> Void
+
+    init(_ deliver: @escaping @Sendable (DiskImageImportProgress) -> Void) {
+        self.deliver = deliver
+    }
+
+    func onProgress(_ received: Int64, total: Int64) {
+        deliver(DiskImageImportProgress(received: received, total: total > 0 ? total : nil))
+    }
+}
+
+nonisolated final class ActionEvents: NSObject, LibSwiptActionObserverProtocol, @unchecked Sendable {
+    private let deliverRequest: @Sendable (String) -> Void
+
+    init(request deliverRequest: @escaping @Sendable (String) -> Void) {
+        self.deliverRequest = deliverRequest
+    }
+
+    func onRequest(_ request: String?) {
+        deliverRequest(request ?? "")
+    }
+}
+
+nonisolated enum PairingEvent: Sendable {
+    case pin(String)
+    case paired(Data)
+    case failed(errorCode: Int32, message: String)
+}
+
+nonisolated final class PairingEvents: NSObject, LibSwiptPairingHandlerProtocol, @unchecked Sendable {
+    private let deliver: @Sendable (PairingEvent) -> Void
+
+    init(_ deliver: @escaping @Sendable (PairingEvent) -> Void) {
+        self.deliver = deliver
+    }
+
+    func onPIN(_ pin: String?) {
+        deliver(.pin(pin ?? ""))
+    }
+
+    func onPaired(_ record: Data?) {
+        deliver(.paired(record ?? Data()))
+    }
+
+    func onPairingFailed(_ errorCode: Int32, message: String?) {
+        deliver(.failed(errorCode: errorCode, message: message ?? ""))
+    }
+}

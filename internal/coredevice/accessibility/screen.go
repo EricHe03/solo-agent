@@ -46,7 +46,7 @@ func untilAnswered(read func() (*Screen, error)) (*Screen, error) {
 	}
 }
 
-func (c *RemoteClient) ReadScreen(ctx context.Context, springboard uint64) (*Screen, error) {
+func (c *RemoteClient) ReadScreen(ctx context.Context, springboard uint64, overlay func(front Element) bool) (*Screen, error) {
 	return untilAnswered(func() (*Screen, error) {
 		var rounds []time.Duration
 		run := func(batch *Batch) error {
@@ -74,22 +74,22 @@ func (c *RemoteClient) ReadScreen(ctx context.Context, springboard uint64) (*Scr
 		modal := second.Snapshot(app, SnapshotOptions{Attributes: []int64{nativeClassName}, HonorModal: true})
 		focused := second.Focused(app)
 		var systemSnapshot *Result[*Snapshot]
-		if system.Value.Ref.PID != app.Ref.PID {
+		if system.Value.Ref.PID != app.Ref.PID && (overlay == nil || overlay(app)) {
 			systemSnapshot = second.Snapshot(system.Value, SnapshotOptions{})
 		}
 		if err := run(second); err != nil {
 			return nil, err
 		}
 		if err := bundle.Err("read the frontmost application's bundle ID"); err != nil {
-			return nil, err
+			return nil, c.silent(ctx, app, false, err)
 		}
 		if err := full.Err("snapshot the frontmost application"); err != nil {
-			return nil, err
+			return nil, c.silent(ctx, app, false, err)
 		}
 		if err := modal.Err("snapshot the frontmost application's modal view"); err != nil {
 			return nil, err
 		}
-		screen := &Screen{BundleID: bundle.Value, Root: full.Value.Root}
+		screen := &Screen{BundleID: bundle.Value, App: app, Root: full.Value.Root}
 		if focused.Code == 0 {
 			ref := focused.Value.Ref
 			screen.Focused = &ref
@@ -109,22 +109,18 @@ func (c *RemoteClient) ReadScreen(ctx context.Context, springboard uint64) (*Scr
 	})
 }
 
-var placementAttributes = []int64{nativeAutomationType, nativeFrame, nativeVisibleFrame, nativeActivation, nativeContextID}
+var placementAttributes = []int64{nativeAutomationType, nativeTraits, nativeFrame, nativeVisibleFrame, nativeActivation, nativeContextID}
 
 var fieldAttributes = map[string][]int64{
-	"role":        {nativeTraits},
 	"class":       {nativeClassName},
 	"label":       {nativeLabel},
-	"value":       {nativeValue, nativeNumberValue},
+	"value":       {nativeValue, nativeNumberValue, nativePlaceholder},
 	"identifier":  {nativeIdentifier},
 	"placeholder": {nativePlaceholder},
 	"hint":        {nativeHelp, nativeHint},
 	"url":         {nativeURL},
-	"traits":      {nativeTraits},
-	"disabled":    {nativeTraits},
-	"selected":    {nativeTraits},
-	"secure":      {nativeTraits},
 	"expanded":    {nativeExpanded},
+	"actions":     {nativeCustomActions},
 }
 
 func SnapshotAttributes(fields []string) []int64 {
@@ -139,37 +135,95 @@ func SnapshotAttributes(fields []string) []int64 {
 	return attributes
 }
 
+type ApplicationOptions struct {
+	PID        uint64
+	Attributes []int64
+	Modal      bool
+	Focused    bool
+}
+
 // An app that read the pasteboard while launching answered no snapshot until
 // its paste prompt was answered, while the frontmost application was already
 // SpringBoard (iPhone18,2, iOS 27.2 24B115).
-func (c *RemoteClient) ReadFront(ctx context.Context, attributes []int64) (*Screen, error) {
-	return untilAnswered(func() (*Screen, error) {
-		batch := &Batch{}
-		front := batch.Frontmost()
-		if err := c.Run(ctx, batch); err != nil {
+func (c *RemoteClient) ReadApplication(ctx context.Context, options ApplicationOptions) (*Screen, error) {
+	read := func() (*Screen, error) {
+		first := &Batch{}
+		var app *Result[Element]
+		if options.PID == 0 {
+			app = first.Frontmost()
+		} else {
+			app = first.Application(options.PID)
+		}
+		if err := c.Run(ctx, first); err != nil {
 			return nil, err
 		}
-		if err := front.Err("read the frontmost application"); err != nil {
+		if err := app.Err("read the application"); err != nil {
 			return nil, err
 		}
-		return c.ReadApplication(ctx, front.Value, attributes)
-	})
+		second := &Batch{}
+		bundle := second.BundleID(app.Value)
+		full := second.Snapshot(app.Value, SnapshotOptions{Attributes: options.Attributes})
+		var modal *Result[*Snapshot]
+		if options.Modal {
+			modal = second.Snapshot(app.Value, SnapshotOptions{Attributes: []int64{nativeClassName}, HonorModal: true})
+		}
+		var focused *Result[Element]
+		if options.Focused {
+			focused = second.Focused(app.Value)
+		}
+		if err := c.Run(ctx, second); err != nil {
+			return nil, err
+		}
+		if err := bundle.Err("read the application's bundle ID"); err != nil {
+			return nil, c.silent(ctx, app.Value, options.PID != 0, err)
+		}
+		if err := full.Err("snapshot the application"); err != nil {
+			return nil, c.silent(ctx, app.Value, options.PID != 0, err)
+		}
+		screen := &Screen{BundleID: bundle.Value, App: app.Value, Root: full.Value.Root}
+		if modal != nil {
+			if err := modal.Err("snapshot the application's modal view"); err != nil {
+				return nil, err
+			}
+			markInert(full.Value.Root, modal.Value.Listed, false)
+		}
+		if focused != nil && focused.Code == 0 {
+			ref := focused.Value.Ref
+			screen.Focused = &ref
+		}
+		return screen, nil
+	}
+	if options.PID != 0 {
+		return read()
+	}
+	return untilAnswered(read)
 }
 
-func (c *RemoteClient) ReadApplication(ctx context.Context, app Element, attributes []int64) (*Screen, error) {
-	batch := &Batch{}
-	bundle := batch.BundleID(app)
-	full := batch.Snapshot(app, SnapshotOptions{Attributes: attributes})
-	if err := c.Run(ctx, batch); err != nil {
-		return nil, err
+type SilentFrontmostError struct {
+	PID uint64
+	err error
+}
+
+func (e *SilentFrontmostError) Error() string {
+	return e.err.Error()
+}
+
+func (e *SilentFrontmostError) Unwrap() error {
+	return e.err
+}
+
+func (c *RemoteClient) silent(ctx context.Context, app Element, check bool, err error) error {
+	if !errors.Is(err, ErrNoAnswer) {
+		return err
 	}
-	if err := bundle.Err("read the application's bundle ID"); err != nil {
-		return nil, err
+	if check {
+		batch := &Batch{}
+		front := batch.Frontmost()
+		if c.Run(ctx, batch) != nil || front.Code != 0 || front.Value.Ref.PID != app.Ref.PID {
+			return err
+		}
 	}
-	if err := full.Err("snapshot the application"); err != nil {
-		return nil, err
-	}
-	return &Screen{BundleID: bundle.Value, App: app, Root: full.Value.Root}, nil
+	return &SilentFrontmostError{PID: app.Ref.PID, err: err}
 }
 
 // Behind a UIKit alert, the snapshot that honors modal views kept the alert's

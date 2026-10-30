@@ -20,18 +20,19 @@ typedef enum {
 	JSC_GET,
 	JSC_SET,
 	JSC_SET_FUNCTION,
-	JSC_NEW_FUNCTION,
 	JSC_SET_REJECTION,
 	JSC_CALL,
 	JSC_TO_STRING,
-	JSC_JSON,
 	JSC_DESCRIBE,
 	JSC_IS_FUNCTION,
 	JSC_NUMBER,
 	JSC_BYTES,
 	JSC_PROTECT,
 	JSC_UNPROTECT,
+	JSC_NATIVE,
 } jsc_kind;
+
+typedef void (*jsc_native)(JSGlobalContextRef context, int32_t command, JSValueRef value, uint64_t argument);
 
 typedef struct {
 	jsc_kind kind;
@@ -44,6 +45,9 @@ typedef struct {
 	const JSChar *name;
 	size_t name_length;
 	uintptr_t handle;
+	uintptr_t native;
+	int32_t native_command;
+	uint64_t native_argument;
 
 	JSValueRef result;
 	JSChar *out;

@@ -53,19 +53,10 @@ struct LabeledContentCompat<Label: View, Content: View>: View {
 
     var body: some View {
         #if os(iOS)
-        if #available(iOS 16, *) {
-            LabeledContent {
-                content
-            } label: {
-                label
-            }
-        } else {
-            HStack {
-                label
-                Spacer()
-                content
-                    .foregroundStyle(.secondary)
-            }
+        LabeledContent {
+            content
+        } label: {
+            label
         }
         #else
         LabeledContent {
@@ -218,50 +209,7 @@ extension View {
 }
 
 extension View {
-    func onGeometryChangeCompat<T: Equatable & Sendable>(
-        for type: T.Type, of transform: @escaping @Sendable (GeometryProxy) -> T, action: @escaping (_ newValue: T) -> Void
-    ) -> some View {
-        if #available(iOS 16, *) {
-            return onGeometryChange(for: type, of: transform, action: action)
-        } else {
-            return background {
-                GeometryReader { proxy in
-                    Color.clear
-                        .onAppear { action(transform(proxy)) }
-                        .onChange(of: transform(proxy), perform: action)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    func persistentSystemOverlaysCompat(_ visibility: Visibility) -> some View {
-        if #available(iOS 16, *) {
-            persistentSystemOverlays(visibility)
-        } else {
-            self
-        }
-    }
-
-    #if os(iOS)
-    @ViewBuilder
-    func defersSystemGesturesCompat(on edges: Edge.Set) -> some View {
-        if #available(iOS 16, *) {
-            defersSystemGestures(on: edges)
-        } else {
-            self
-        }
-    }
-
-    @ViewBuilder
-    func presentationBackgroundCompat(_ style: some ShapeStyle) -> some View {
-        if #available(iOS 16.4, *) {
-            presentationBackground(style)
-        } else {
-            self
-        }
-    }
-    #else
+    #if os(macOS)
     @ViewBuilder
     func windowToolbarFullScreenVisibilityCompat() -> some View {
         if #available(macOS 15, *) {
@@ -271,15 +219,6 @@ extension View {
         }
     }
     #endif
-
-    @ViewBuilder
-    func popoverOnCompact() -> some View {
-        if #available(iOS 16.4, *) {
-            presentationCompactAdaptation(.popover)
-        } else {
-            self
-        }
-    }
 
     @ViewBuilder
     func selectionFeedbackCompat(trigger: some Equatable) -> some View {
@@ -307,15 +246,6 @@ extension View {
         #else
         self
         #endif
-    }
-
-    @ViewBuilder
-    func menuOrderFixedCompat() -> some View {
-        if #available(iOS 16, *) {
-            menuOrder(.fixed)
-        } else {
-            self
-        }
     }
 
     @ViewBuilder
@@ -390,35 +320,6 @@ struct GlassEffectContainerCompat<Content: View>: View {
             }
         } else {
             content
-        }
-    }
-}
-
-struct AxisStack<Content: View>: View {
-    private let axis: Axis
-    private let spacing: CGFloat?
-    private let content: Content
-
-    init(_ axis: Axis, spacing: CGFloat? = nil, @ViewBuilder content: () -> Content) {
-        self.axis = axis
-        self.spacing = spacing
-        self.content = content()
-    }
-
-    var body: some View {
-        if #available(iOS 16, *) {
-            let layout = axis == .vertical ? AnyLayout(VStackLayout(spacing: spacing)) : AnyLayout(HStackLayout(spacing: spacing))
-            layout {
-                content
-            }
-        } else if axis == .vertical {
-            VStack(spacing: spacing) {
-                content
-            }
-        } else {
-            HStack(spacing: spacing) {
-                content
-            }
         }
     }
 }

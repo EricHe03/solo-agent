@@ -14,6 +14,9 @@ typedef bool (*jsc_should_terminate_callback)(JSContextRef, void *);
 typedef void (*jsc_set_time_limit)(JSContextGroupRef, double, jsc_should_terminate_callback, void *);
 typedef void (*jsc_set_rejection_callback)(JSGlobalContextRef, JSObjectRef, JSValueRef *);
 
+extern void *objc_autoreleasePoolPush(void);
+extern void objc_autoreleasePoolPop(void *pool);
+
 struct jsc_runtime {
 	pthread_t thread;
 	pthread_mutex_t mutex;
@@ -238,12 +241,6 @@ static void jsc_execute(jsc_runtime *rt, jsc_command *cmd) {
 		JSStringRelease(name);
 		break;
 	}
-	case JSC_NEW_FUNCTION: {
-		JSValueRef value = jsc_make_host(rt, cmd->handle);
-		JSValueProtect(ctx, value);
-		cmd->result = value;
-		break;
-	}
 	case JSC_SET_REJECTION: {
 		jsc_set_rejection_callback set = (jsc_set_rejection_callback)dlsym(RTLD_DEFAULT, "JSGlobalContextSetUnhandledRejectionCallback");
 		set(rt->context, jsc_make_host(rt, cmd->handle), NULL);
@@ -256,9 +253,6 @@ static void jsc_execute(jsc_runtime *rt, jsc_command *cmd) {
 	}
 	case JSC_TO_STRING:
 		jsc_finish_text(rt, cmd, JSValueToStringCopy(ctx, cmd->value, &exception), exception);
-		break;
-	case JSC_JSON:
-		jsc_finish_text(rt, cmd, JSValueCreateJSONString(ctx, cmd->value, 0, &exception), exception);
 		break;
 	case JSC_DESCRIBE:
 		jsc_copy_out(cmd, jsc_describe_value(rt, cmd->value));
@@ -295,6 +289,9 @@ static void jsc_execute(jsc_runtime *rt, jsc_command *cmd) {
 	case JSC_UNPROTECT:
 		JSValueUnprotect(ctx, cmd->value);
 		break;
+	case JSC_NATIVE:
+		((jsc_native)cmd->native)(rt->context, cmd->native_command, cmd->value, cmd->native_argument);
+		break;
 	}
 }
 
@@ -307,7 +304,9 @@ static void jsc_service(jsc_runtime *rt, bool *until) {
 		}
 		rt->pending = NULL;
 		pthread_mutex_unlock(&rt->mutex);
+		void *pool = objc_autoreleasePoolPush();
 		jsc_execute(rt, cmd);
+		objc_autoreleasePoolPop(pool);
 		pthread_mutex_lock(&rt->mutex);
 		cmd->done = true;
 		pthread_cond_broadcast(&rt->cond);

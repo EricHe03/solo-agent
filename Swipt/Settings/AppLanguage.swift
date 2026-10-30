@@ -38,7 +38,7 @@ enum AppLanguage {
 
     static func systemDefaultName(in selected: String?) -> String {
         let system = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)?[key] as? [String] ?? Locale.preferredLanguages
-        guard #available(iOS 16, *), let code = selected ?? Bundle.preferredLocalizations(from: available, forPreferences: system).first else {
+        guard let code = selected ?? Bundle.preferredLocalizations(from: available, forPreferences: system).first else {
             return String(localized: "System Default")
         }
         return String(localized: LocalizedStringResource("System Default", locale: Locale(identifier: code)))

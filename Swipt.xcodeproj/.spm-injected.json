@@ -1,0 +1,95 @@
+{
+  "rootUuid": "5C0000000000000000000001",
+  "target": "Swipt",
+  "targetUuid": "5C0000000000000000000501",
+  "injectedUuids": [
+    "11488A7061C8582F256B78D7",
+    "13FCB96423C3DCD21CCCA838",
+    "215493E59FD3EDA8ACC2523B",
+    "35275AB4768CC953FE98900B",
+    "37213526D23A4B98CCB63AA3",
+    "3A394E5107344B7A414D6CF6",
+    "498E50E31DE999B1E37B3BA3",
+    "506AD430BABC05B5F2EF11B1",
+    "542F6BBF0B6D2EE4A7E6BC7E",
+    "6526CB368C2B58922CB3D462",
+    "7B50D3CF05E387E0E739AF3C",
+    "863A1402A50C477833EDD307",
+    "99E8557F48A28A72FCBF23AA",
+    "9AB7FBF108A16B496B88F86F",
+    "A331621F919FB38A87706E05",
+    "A8C742A01B815A04A9F5F4B5",
+    "B8518CE5FDAB7DF459E6F68D",
+    "B8620434D246F3C1579C16E9",
+    "C7DF07ACFBB6A242C3561F57",
+    "E2B7FB9E6BA3DE86AD9025E7",
+    "E607909C20CB8315345A1B6A",
+    "EACA37646092C359F37F3D58",
+    "ECD564CA09DD9F8B4A546CD0"
+  ],
+  "createdArrayFields": [],
+  "xcconfig": {
+    "fileRefUuid": "9AB7FBF108A16B496B88F86F",
+    "configUuids": [
+      "5C0000000000000000000603",
+      "5C0000000000000000000604"
+    ],
+    "includedByConfigUuids": [],
+    "removedPodsRootReactNativePath": false
+  },
+  "generatedSources": {
+    "build/generated/autolinking/expo/ExpoModulesProvider.swift": [
+      "ECD564CA09DD9F8B4A546CD0",
+      "7B50D3CF05E387E0E739AF3C"
+    ]
+  },
+  "scriptPhases": {
+    "expo-modules-jsi.build": "EACA37646092C359F37F3D58",
+    "expo-constants.app-config": "A8C742A01B815A04A9F5F4B5"
+  },
+  "linkedFrameworks": [
+    {
+      "id": "react",
+      "frameworkName": "React"
+    },
+    {
+      "id": "react-native-dependencies",
+      "frameworkName": "ReactNativeDependencies"
+    },
+    {
+      "id": "hermes",
+      "frameworkName": "hermesvm"
+    },
+    {
+      "id": "expo-file-system",
+      "frameworkName": "ExpoFileSystem"
+    },
+    {
+      "id": "expo-font",
+      "frameworkName": "ExpoFont"
+    },
+    {
+      "id": "expo-modules-core",
+      "frameworkName": "ExpoModulesCore"
+    },
+    {
+      "id": "expo-modules-worklets",
+      "frameworkName": "ExpoModulesWorklets"
+    }
+  ],
+  "artifactsVersionOverride": null,
+  "configCommand": [
+    "node",
+    "node_modules/expo/bin/autolinking",
+    "react-native-config",
+    "--json",
+    "--platform",
+    "ios",
+    "--source-dir",
+    "."
+  ],
+  "scheme": {
+    "file": "Swipt.xcscheme",
+    "created": false
+  }
+}

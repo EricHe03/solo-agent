@@ -221,7 +221,10 @@ func (s *ServerSession) handshake() error {
 	if err != nil {
 		return E.Cause(err, "read ClientInit")
 	}
-	screen := s.server.handler.Screen()
+	screen, err := s.server.handler.Screen(s.ctx)
+	if err != nil {
+		return err
+	}
 	s.screen = screen
 	s.framebuffer = [2]int{screen.Width, screen.Height}
 	s.logger.Debug("client init: flags ", fmt.Sprintf("%#x", clientInit), ", version ", version.String())
@@ -514,8 +517,8 @@ func (s *ServerSession) deviceLocked(screen ServerScreen) []serverRectangle {
 }
 
 func (s *ServerSession) setEncodings(encodings []Encoding) {
-	screen := s.server.handler.Screen()
 	s.access.Lock()
+	screen := s.screen
 	s.encodings = encodings
 	var rectangles []serverRectangle
 	if !s.layoutSent && slices.Contains(s.encodings, EncodingDisplayLayout) {

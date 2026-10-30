@@ -3,6 +3,7 @@
 xcuserdata/
 .DS_Store
 /build/
+node_modules/
 CLAUDE.md
 AGENTS.md
 /.claude/

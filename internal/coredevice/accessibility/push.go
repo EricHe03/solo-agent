@@ -22,6 +22,7 @@ type Push struct {
 	Notification uint64
 	PID          uint64
 	Tree         []PushedNode
+	Frontmost    *Element
 }
 
 type PushedNode struct {
@@ -45,10 +46,18 @@ func pushedTree(value any) Push {
 	data, _ := value.(map[string]any)
 	tree, _ := data["treeDump"].([]any)
 	var nodes []PushedNode
+	var frontmost *Element
 	index := make(map[[2]uint64]int)
 	for _, item := range tree {
 		entry, ok := item.(map[string]any)
 		if !ok {
+			continue
+		}
+		if kind, _ := unsigned(entry["associatedRequestType"]); kind == requestFrontmost {
+			if app, ok := parseTranslation(entry["resultData"]); ok && app.application {
+				front := app.element()
+				frontmost = &front
+			}
 			continue
 		}
 		obj, _ := parseTranslation(entry["associatedTranslationObject"])
@@ -70,5 +79,5 @@ func pushedTree(value any) Push {
 			}
 		}
 	}
-	return Push{Tree: nodes}
+	return Push{Tree: nodes, Frontmost: frontmost}
 }

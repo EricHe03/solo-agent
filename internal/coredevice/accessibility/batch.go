@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"slices"
+	"strconv"
 
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
@@ -22,6 +23,15 @@ type Result[T any] struct {
 
 var ErrNoAnswer = E.New("accessibility: the device answered nothing")
 
+type CodeError struct {
+	Operation string
+	Code      uint64
+}
+
+func (e *CodeError) Error() string {
+	return "accessibility: " + e.Operation + ": error " + strconv.FormatUint(e.Code, 10)
+}
+
 func (r *Result[T]) Err(operation string) error {
 	switch r.Code {
 	case 0:
@@ -29,7 +39,7 @@ func (r *Result[T]) Err(operation string) error {
 	case errorNoElement:
 		return E.Extend(ErrNoAnswer, operation)
 	}
-	return E.New("accessibility: ", operation, ": error ", r.Code)
+	return &CodeError{Operation: operation, Code: r.Code}
 }
 
 func (b *Batch) add(request remoteRequest, handle func(remoteResponse, *Batch) error) {
@@ -58,6 +68,10 @@ func (c *RemoteClient) Run(ctx context.Context, batch *Batch) error {
 
 func (c *RemoteClient) Err() error {
 	return context.Cause(c.ctx)
+}
+
+func (c *RemoteClient) Done() <-chan struct{} {
+	return c.ctx.Done()
 }
 
 const errorNoElement = math.MaxUint64

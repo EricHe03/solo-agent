@@ -26,7 +26,7 @@ type PairingResponder struct {
 	cancel    context.CancelFunc
 }
 
-func NewPairingResponderWithRecord(hostName string, record []byte, handler PairingHandler) (*PairingResponder, error) {
+func (d *Device) NewPairingResponder(hostName string, record []byte, handler PairingHandler) (*PairingResponder, error) {
 	var identity *pairing.Record
 	if len(record) > 0 {
 		file, err := parsePairingFile(record)
@@ -44,7 +44,7 @@ func NewPairingResponderWithRecord(hostName string, record []byte, handler Pairi
 				handler.OnPIN(pin)
 			}
 		},
-		Logger: newLogFactory().NewLogger("pairing"),
+		Logger: d.logFactory.NewLogger("pairing"),
 	})
 	if err != nil {
 		cancel()

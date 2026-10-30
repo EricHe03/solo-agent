@@ -1,0 +1,588 @@
+//go:build darwin && cgo
+
+package automation
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"reflect"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/sagernet/sing/common"
+	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/swipt-automation/swipt/internal/coredevice/accessibility"
+	"github.com/swipt-automation/swipt/internal/device"
+)
+
+type operation struct {
+	engine *engine
+	name   string
+	args   []json.RawMessage
+}
+
+type operationFunc func(ctx context.Context, call *operation) (any, error)
+
+var operations map[string]operationFunc
+
+func init() {
+	operations = map[string]operationFunc{
+		"device.info":  deviceInfo,
+		"device.state": deviceState,
+		"device.unlock": screenAction(func(ctx context.Context, phone *device.Phone, _ *operation) error {
+			return phone.Unlock(ctx)
+		}),
+		"device.tap":           screenAction(deviceTap),
+		"device.swipe":         screenAction(deviceGesture),
+		"device.drag":          screenAction(deviceGesture),
+		"device.pinch":         screenAction(devicePinch),
+		"device.touch":         screenAction(deviceTouch),
+		"device.pressKey":      screenAction(devicePressKey),
+		"device.button":        screenAction(deviceButton),
+		"device.launch":        screenAction(deviceLaunch),
+		"device.apps":          deviceApps,
+		"device.appIcon":       deviceAppIcon,
+		"device.clipboard":     deviceClipboard,
+		"device.setClipboard":  deviceSetClipboard,
+		"device.setLocation":   deviceSetLocation,
+		"device.clearLocation": deviceClearLocation,
+		"ui.snapshot":          uiSnapshot,
+		"ui.find":              uiFind,
+		"ui.tap":               screenAction(uiTap),
+		"ui.locate":            screenAction(uiLocate),
+		"dialog":               presentDialog,
+		"fetch":                fetch,
+		"graphics":             graphicsRun,
+	}
+}
+
+func (o *operation) decode(required int, values ...any) error {
+	args := o.args
+	if len(args) > len(values) {
+		return E.Cause1(ErrInvalid, E.New("takes ", len(values), " arguments, not ", len(args)))
+	}
+	for index, value := range values {
+		if index >= len(args) || string(args[index]) == "null" {
+			if index < required {
+				if numeric(reflect.TypeOf(value)) {
+					return E.Cause1(ErrInvalid, E.New("argument ", index+1, " is missing or not a finite number"))
+				}
+				return E.Cause1(ErrInvalid, E.New("argument ", index+1, " is missing"))
+			}
+			continue
+		}
+		if err := json.Unmarshal(args[index], value); err != nil {
+			return E.Cause1(ErrInvalid, E.Cause(err, "argument ", index+1))
+		}
+	}
+	return nil
+}
+
+func (o *operation) phone() (*device.Phone, error) {
+	phone := o.engine.host.options.Device
+	if phone == nil {
+		return nil, E.Cause1(device.ErrUnavailable, E.New("this server has no device"))
+	}
+	return phone, nil
+}
+
+func (o *operation) screen(ctx context.Context) (*device.Phone, error) {
+	phone, err := o.phone()
+	if err != nil {
+		return nil, err
+	}
+	if err = o.engine.host.lease.wait(ctx); err != nil {
+		return nil, err
+	}
+	return phone, nil
+}
+
+func screenAction(act func(ctx context.Context, phone *device.Phone, call *operation) error) operationFunc {
+	return func(ctx context.Context, call *operation) (any, error) {
+		phone, err := call.screen(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return nil, act(ctx, phone, call)
+	}
+}
+
+var terseErrors = []error{ErrInvalid, ErrNotFound, ErrNotAllowed, device.ErrNotFound, device.ErrTimeout}
+
+func Message(err error) string {
+	message := err.Error()
+	for _, sentinel := range terseErrors {
+		if !errors.Is(err, sentinel) {
+			continue
+		}
+		prefix := sentinel.Error() + ": "
+		for strings.HasPrefix(message, prefix) {
+			message = message[len(prefix):]
+		}
+		message = strings.ReplaceAll(message, ": "+prefix, ": ")
+	}
+	return message
+}
+
+func FailureOf(err error) string {
+	type failure struct {
+		Name    string `json:"name"`
+		Message string `json:"message"`
+	}
+	out := failure{Name: "Error", Message: Message(err)}
+	scripted, isScripted := errors.AsType[*Failure](err)
+	switch {
+	case isScripted && scripted.Name != "":
+		out.Name = scripted.Name
+	case E.IsMulti(err, device.ErrDisconnected, device.ErrUnavailable, device.ErrLocked, device.ErrStalled, accessibility.ErrStalled):
+		out.Name = "UnavailableError"
+	case E.IsMulti(err, context.DeadlineExceeded, device.ErrTimeout):
+		out.Name = "TimeoutError"
+	case errors.Is(err, ErrDismissed), E.IsCanceled(err):
+		out.Name = "AbortError"
+	case errors.Is(err, ErrInvalid):
+		out.Name = "TypeError"
+	case E.IsMulti(err, ErrNotFound, device.ErrNotFound):
+		out.Name = "NotFoundError"
+	case errors.Is(err, ErrNotAllowed):
+		out.Name = "NotAllowedError"
+	}
+	data, _ := json.Marshal(out)
+	return string(data)
+}
+
+type Frame struct {
+	Function string `json:"function"`
+	File     string `json:"file"`
+	Line     int    `json:"line"`
+	Column   int    `json:"column"`
+}
+
+type Failure struct {
+	Name    string  `json:"name"`
+	Message string  `json:"message"`
+	Stack   []Frame `json:"stack"`
+}
+
+func (f *Failure) Error() string {
+	return f.Message
+}
+
+func (f *Failure) Summary() string {
+	text := f.Name + ": " + f.Message
+	if len(f.Stack) > 0 {
+		frame := f.Stack[0]
+		text += " (" + frame.File + ":" + strconv.Itoa(frame.Line) + ":" + strconv.Itoa(frame.Column) + ")"
+	}
+	return text
+}
+
+func (f *Failure) Is(target error) bool {
+	switch f.Name {
+	case "AbortError":
+		return target == context.Canceled
+	case "TypeError":
+		return target == ErrInvalid
+	case "NotFoundError":
+		return target == ErrNotFound
+	case "NotAllowedError":
+		return target == ErrNotAllowed
+	}
+	return false
+}
+
+func failureError(text string) error {
+	failure := &Failure{}
+	if json.Unmarshal([]byte(text), failure) != nil {
+		return &Failure{Name: "Error", Message: text}
+	}
+	return failure
+}
+
+type point device.Point
+
+func (p *point) UnmarshalJSON(data []byte) error {
+	values, ok := numbers(data, 2)
+	if !ok {
+		return E.New("expected a point [x, y] of finite numbers")
+	}
+	*p = point{values[0], values[1]}
+	return nil
+}
+
+func numbers(data []byte, count int) ([]float64, bool) {
+	var values []*float64
+	if json.Unmarshal(data, &values) != nil || len(values) != count || slices.Contains(values, nil) {
+		return nil, false
+	}
+	return common.Map(values, func(value *float64) float64 { return *value }), true
+}
+
+type strict struct {
+	value any
+}
+
+func (o *strict) UnmarshalJSON(data []byte) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return E.New("expected an options object")
+	}
+	structType := reflect.TypeOf(o.value).Elem()
+	names := make([]string, structType.NumField())
+	for index := range names {
+		names[index], _, _ = strings.Cut(structType.Field(index).Tag.Get("json"), ",")
+	}
+	for name, value := range fields {
+		index := slices.Index(names, name)
+		if index < 0 {
+			return E.New("unknown option ", strconv.Quote(name), "; the options are ", strings.Join(names, ", "))
+		}
+		if string(value) == "null" {
+			return E.New("option ", name, " is null")
+		}
+	}
+	return json.Unmarshal(data, o.value)
+}
+
+type touchOptions struct {
+	Count  *int     `json:"count"`
+	HoldMs *float64 `json:"holdMs"`
+}
+
+func (o touchOptions) values() (int, time.Duration, error) {
+	if o.Count != nil && *o.Count < 1 {
+		return 0, 0, E.Cause1(ErrInvalid, E.New("count must be at least 1"))
+	}
+	hold, err := duration("holdMs", o.HoldMs)
+	return common.PtrValueOrDefault(o.Count), hold, err
+}
+
+func numeric(value reflect.Type) bool {
+	for value.Kind() == reflect.Pointer {
+		value = value.Elem()
+	}
+	return value.Kind() >= reflect.Int && value.Kind() <= reflect.Float64
+}
+
+func duration(name string, value *float64) (time.Duration, error) {
+	if value == nil {
+		return 0, nil
+	}
+	if *value <= 0 {
+		return 0, E.Cause1(ErrInvalid, E.New(name, " must be positive"))
+	}
+	return milliseconds(*value), nil
+}
+
+func milliseconds(value float64) time.Duration {
+	return time.Duration(value * float64(time.Millisecond))
+}
+
+func deviceInfo(ctx context.Context, call *operation) (any, error) {
+	if err := call.decode(0); err != nil {
+		return nil, err
+	}
+	phone, err := call.phone()
+	if err != nil {
+		return nil, err
+	}
+	info, err := phone.Info(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"name": info.Name, "model": info.Model, "os": info.OSVersion, "build": info.Build, "language": info.Language,
+		"screen": map[string]any{
+			"width": info.Screen.Width, "height": info.Screen.Height,
+			"scale": info.Screen.Scale, "orientation": info.Screen.Orientation,
+		},
+	}, nil
+}
+
+func readState(ctx context.Context, phone *device.Phone, name string) (any, error) {
+	switch name {
+	case "foreground":
+		return phone.Frontmost(ctx)
+	case "locked":
+		return phone.Locked(ctx)
+	case "display":
+		return phone.Display(ctx)
+	}
+	return nil, E.Cause1(ErrInvalid, E.New("unknown state ", strconv.Quote(name)))
+}
+
+func deviceState(ctx context.Context, call *operation) (any, error) {
+	var name string
+	if err := call.decode(1, &name); err != nil {
+		return nil, err
+	}
+	phone, err := call.phone()
+	if err != nil {
+		return nil, err
+	}
+	return readState(ctx, phone, name)
+}
+
+func deviceTap(ctx context.Context, phone *device.Phone, call *operation) error {
+	var at point
+	var options touchOptions
+	if err := call.decode(1, &at, &strict{&options}); err != nil {
+		return err
+	}
+	count, hold, err := options.values()
+	if err != nil {
+		return err
+	}
+	return phone.TapPoint(ctx, device.Point(at), count, hold)
+}
+
+func deviceGesture(ctx context.Context, phone *device.Phone, call *operation) error {
+	var from, to point
+	var options struct {
+		DurationMs *float64 `json:"durationMs"`
+		PressMs    *float64 `json:"pressMs"`
+	}
+	if err := call.decode(2, &from, &to, &strict{&options}); err != nil {
+		return err
+	}
+	move, err := duration("durationMs", options.DurationMs)
+	if err != nil {
+		return err
+	}
+	var fingers [][]device.TouchSample
+	if call.name == "device.swipe" {
+		if options.PressMs != nil {
+			return E.Cause1(ErrInvalid, E.New("pressMs applies to drag"))
+		}
+		fingers, err = device.SwipePath(device.Point(from), device.Point(to), move)
+	} else {
+		if options.PressMs != nil && *options.PressMs < 0 {
+			return E.Cause1(ErrInvalid, E.New("pressMs must not be negative"))
+		}
+		fingers, err = device.DragPath(device.Point(from), device.Point(to), move, milliseconds(common.PtrValueOrDefault(options.PressMs)))
+	}
+	if err != nil {
+		return E.Cause1(ErrInvalid, err)
+	}
+	return phone.Touch(ctx, fingers)
+}
+
+func devicePinch(ctx context.Context, phone *device.Phone, call *operation) error {
+	var center point
+	var scale float64
+	var options struct {
+		DurationMs *float64 `json:"durationMs"`
+	}
+	if err := call.decode(2, &center, &scale, &strict{&options}); err != nil {
+		return err
+	}
+	pinch, err := duration("durationMs", options.DurationMs)
+	if err != nil {
+		return err
+	}
+	return phone.Pinch(ctx, device.Point(center), scale, pinch)
+}
+
+func deviceTouch(ctx context.Context, phone *device.Phone, call *operation) error {
+	var fingers [][][3]*float64
+	if err := call.decode(1, &fingers); err != nil {
+		return err
+	}
+	samples := make([][]device.TouchSample, len(fingers))
+	for index, finger := range fingers {
+		for _, sample := range finger {
+			if slices.Contains(sample[:], nil) {
+				return E.Cause1(ErrInvalid, E.New("touch samples need finite numbers [x, y, ms]"))
+			}
+			samples[index] = append(samples[index], device.TouchSample{X: *sample[0], Y: *sample[1], T: milliseconds(*sample[2])})
+		}
+	}
+	return phone.Touch(ctx, samples)
+}
+
+func devicePressKey(ctx context.Context, phone *device.Phone, call *operation) error {
+	var combo string
+	if err := call.decode(1, &combo); err != nil {
+		return err
+	}
+	return phone.Key(ctx, combo)
+}
+
+func deviceButton(ctx context.Context, phone *device.Phone, call *operation) error {
+	var name string
+	if err := call.decode(1, &name); err != nil {
+		return err
+	}
+	return phone.Button(ctx, name)
+}
+
+func deviceLaunch(ctx context.Context, phone *device.Phone, call *operation) error {
+	var bundleID string
+	var options struct {
+		URL     string `json:"url"`
+		Restart bool   `json:"restart"`
+	}
+	if err := call.decode(1, &bundleID, &strict{&options}); err != nil {
+		return err
+	}
+	return phone.Launch(ctx, bundleID, options.URL, options.Restart, true)
+}
+
+func deviceClipboard(ctx context.Context, call *operation) (any, error) {
+	if err := call.decode(0); err != nil {
+		return nil, err
+	}
+	phone, err := call.phone()
+	if err != nil {
+		return nil, err
+	}
+	text, found, err := phone.Clipboard(ctx)
+	if err != nil || !found {
+		return nil, err
+	}
+	return text, nil
+}
+
+func deviceSetClipboard(ctx context.Context, call *operation) (any, error) {
+	if len(call.args) == 0 {
+		return nil, E.Cause1(ErrInvalid, E.New("argument 1 is missing"))
+	}
+	var text *string
+	if err := call.decode(0, &text); err != nil {
+		return nil, err
+	}
+	phone, err := call.phone()
+	if err != nil {
+		return nil, err
+	}
+	return nil, phone.SetClipboard(ctx, text)
+}
+
+func deviceSetLocation(ctx context.Context, call *operation) (any, error) {
+	var latitude, longitude float64
+	if err := call.decode(2, &latitude, &longitude); err != nil {
+		return nil, err
+	}
+	if latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180 {
+		return nil, E.Cause1(ErrInvalid, E.New("the latitude must be within ±90 and the longitude within ±180 degrees"))
+	}
+	phone, err := call.phone()
+	if err != nil {
+		return nil, err
+	}
+	if err = phone.SetLocation(ctx, latitude, longitude); err != nil {
+		return nil, err
+	}
+	call.engine.host.ownLocation(call.engine.swiplet.ID)
+	return nil, nil
+}
+
+func deviceClearLocation(ctx context.Context, call *operation) (any, error) {
+	if err := call.decode(0); err != nil {
+		return nil, err
+	}
+	phone, err := call.phone()
+	if err != nil {
+		return nil, err
+	}
+	call.engine.host.ownLocation("")
+	return nil, phone.ClearLocation(ctx)
+}
+
+type snapshotOptions struct {
+	Scope string `json:"scope"`
+	Full  bool   `json:"full"`
+}
+
+func uiSnapshot(ctx context.Context, call *operation) (any, error) {
+	var options snapshotOptions
+	if err := call.decode(0, &strict{&options}); err != nil {
+		return nil, err
+	}
+	if options.Scope != "" && options.Scope != "screen" && options.Scope != "frontApp" {
+		return nil, E.Cause1(ErrInvalid, E.New("scope must be screen or frontApp"))
+	}
+	phone, err := call.screen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	view, err := phone.Snapshot(ctx, device.SnapshotOptions{Front: options.Scope == "frontApp", Raw: options.Full})
+	if err != nil {
+		return nil, err
+	}
+	return call.engine.snapshots.keep(view), nil
+}
+
+func uiFind(ctx context.Context, call *operation) (any, error) {
+	if len(call.args) == 0 {
+		return nil, E.Cause1(ErrInvalid, E.New("argument 1 is missing"))
+	}
+	selector, err := device.ParseSelector(call.args[0])
+	if err != nil {
+		return nil, err
+	}
+	phone, err := call.screen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	view, err := phone.Snapshot(ctx, device.SnapshotOptions{App: selector.App()})
+	if err != nil {
+		return nil, err
+	}
+	return call.engine.snapshots.keep(view), nil
+}
+
+func uiTap(ctx context.Context, phone *device.Phone, call *operation) error {
+	var ref string
+	var options touchOptions
+	if err := call.decode(1, &ref, &strict{&options}); err != nil {
+		return err
+	}
+	count, hold, err := options.values()
+	if err != nil {
+		return err
+	}
+	return phone.TapElement(ctx, ref, count, hold)
+}
+
+func uiLocate(ctx context.Context, phone *device.Phone, call *operation) error {
+	var encoded []json.RawMessage
+	var options struct {
+		Action string   `json:"action"`
+		Each   bool     `json:"each"`
+		Count  *int     `json:"count"`
+		HoldMs *float64 `json:"holdMs"`
+		Text   *string  `json:"text"`
+		Name   *string  `json:"name"`
+	}
+	var timeoutMs *float64
+	if err := call.decode(2, &encoded, &options, &timeoutMs); err != nil {
+		return err
+	}
+	selectors := make([]*device.Selector, 0, len(encoded))
+	for _, data := range encoded {
+		selector, err := device.ParseSelector(data)
+		if err != nil {
+			return err
+		}
+		selectors = append(selectors, selector)
+	}
+	act := device.ElementAction{Kind: options.Action, Text: common.PtrValueOrDefault(options.Text), Name: common.PtrValueOrDefault(options.Name), Each: options.Each}
+	if options.Action == "tap" {
+		var err error
+		if act.Count, act.Hold, err = (touchOptions{Count: options.Count, HoldMs: options.HoldMs}).values(); err != nil {
+			return err
+		}
+	}
+	timeout := time.Duration(-1)
+	if timeoutMs != nil {
+		if *timeoutMs < 0 {
+			return E.Cause1(ErrInvalid, E.New("timeoutMs must not be negative"))
+		}
+		timeout = milliseconds(*timeoutMs)
+	}
+	return phone.Locate(ctx, selectors, act, timeout)
+}

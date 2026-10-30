@@ -24,3 +24,11 @@ extension Task where Success == Never, Failure == Never {
         try await sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
     }
 }
+
+nonisolated func blocking<T: Sendable>(_ work: @escaping @Sendable () throws -> T) async throws -> T {
+    try await withCheckedThrowingContinuation { continuation in
+        Thread.detachNewThread {
+            continuation.resume(with: Result(catching: work))
+        }
+    }
+}

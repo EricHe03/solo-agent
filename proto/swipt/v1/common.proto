@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package swipt.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1;swiptv1";
+
+enum LogLevel {
+  LOG_LEVEL_UNSPECIFIED = 0;
+  LOG_LEVEL_ERROR = 1;
+  LOG_LEVEL_WARN = 2;
+  LOG_LEVEL_INFO = 3;
+  LOG_LEVEL_DEBUG = 4;
+}
+
+message LogEntry {
+  google.protobuf.Timestamp time = 1;
+  LogLevel level = 2;
+  string tag = 3;
+  string message = 4;
+}
+
+message FileInfo {
+  string path = 1;
+  bool directory = 2;
+  int64 size = 3;
+  google.protobuf.Timestamp modified = 4;
+}
+
+message FileChunk {
+  string path = 1;
+  int64 offset = 2;
+  bytes data = 3;
+}
+
+message StackFrame {
+  string function = 1;
+  string file = 2;
+  uint32 line = 3;
+  uint32 column = 4;
+}
+
+message ScriptError {
+  string name = 1;
+  string message = 2;
+  reserved 3;
+  repeated StackFrame stack = 4;
+}
+
+message ActionResult {
+  oneof outcome {
+    google.protobuf.Value output = 1;
+    ScriptError error = 2;
+  }
+}
+
+enum DeviceConnectionState {
+  DEVICE_CONNECTION_STATE_UNSPECIFIED = 0;
+  DEVICE_CONNECTION_STATE_STOPPED = 1;
+  DEVICE_CONNECTION_STATE_CONNECTING = 2;
+  DEVICE_CONNECTION_STATE_PREPARING = 3;
+  DEVICE_CONNECTION_STATE_RUNNING = 4;
+  DEVICE_CONNECTION_STATE_FAILED = 5;
+}
+
+enum DeviceConnectionProblem {
+  DEVICE_CONNECTION_PROBLEM_UNSPECIFIED = 0;
+  DEVICE_CONNECTION_PROBLEM_UNREACHABLE = 1;
+  DEVICE_CONNECTION_PROBLEM_PAIRING_REJECTED = 2;
+  DEVICE_CONNECTION_PROBLEM_DEVELOPER_MODE_OFF = 3;
+  DEVICE_CONNECTION_PROBLEM_DISK_IMAGE_MISSING = 4;
+  DEVICE_CONNECTION_PROBLEM_DISK_IMAGE_MOUNT_FAILED = 5;
+  DEVICE_CONNECTION_PROBLEM_DEVICE_UNSUPPORTED = 6;
+  DEVICE_CONNECTION_PROBLEM_SCREEN_IN_USE = 7;
+  DEVICE_CONNECTION_PROBLEM_VPN_PEER_ADDRESS_MISSING = 8;
+  DEVICE_CONNECTION_PROBLEM_OTHER = 9;
+}
+
+message DeviceConnection {
+  DeviceConnectionState state = 1;
+  DeviceConnectionProblem problem = 2;
+  string message = 3;
+}

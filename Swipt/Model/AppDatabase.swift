@@ -19,7 +19,7 @@ enum AppDatabase {
             do {
                 return try load()
             } catch let error as DatabaseError where error.resultCode == .SQLITE_CORRUPT || error.resultCode == .SQLITE_NOTADB {
-                StorageNotice.logger.error("reset \(url.lastPathComponent, privacy: .public): \(error, privacy: .public)")
+                AppDirectory.logger.error("reset \(url.lastPathComponent, privacy: .public): \(error, privacy: .public)")
                 for path in [url.path, url.path + "-journal", url.path + "-wal", url.path + "-shm"] where FileManager.default.fileExists(atPath: path) {
                     try FileManager.default.removeItem(atPath: path)
                 }
@@ -38,10 +38,10 @@ enum AppDatabase {
         do {
             try migrator.migrate(database)
         } catch {
-            StorageNotice.logger.error("migrate \(url.lastPathComponent, privacy: .public): \(error, privacy: .public)")
+            AppDirectory.logger.error("migrate \(url.lastPathComponent, privacy: .public): \(error, privacy: .public)")
         }
         if try database.read(schema) != expected.read(schema) {
-            StorageNotice.logger.error("erase \(url.lastPathComponent, privacy: .public) saved with a different schema")
+            AppDirectory.logger.error("erase \(url.lastPathComponent, privacy: .public) saved with a different schema")
             try database.erase()
             try migrator.migrate(database)
         }

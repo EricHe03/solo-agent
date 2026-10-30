@@ -4,7 +4,7 @@ package jsc
 
 /*
 #cgo CFLAGS: -fmodules
-#cgo LDFLAGS: -framework JavaScriptCore
+#cgo LDFLAGS: -framework JavaScriptCore -lobjc
 
 #include <stdlib.h>
 #include "jsc_thread.h"
@@ -189,14 +189,6 @@ func (c *Context) SetUnhandledRejection(function Function) {
 	c.submit(cmd)
 }
 
-func (c *Context) NewFunction(function Function) Value {
-	cmd := command(C.JSC_NEW_FUNCTION)
-	defer C.free(unsafe.Pointer(cmd))
-	cmd.handle = C.uintptr_t(cgo.NewHandle(function))
-	c.submit(cmd)
-	return Value{c, cmd.result}
-}
-
 func (v Value) Get(name string) (Value, error) {
 	cmd := command(C.JSC_GET)
 	defer C.free(unsafe.Pointer(cmd))
@@ -259,14 +251,6 @@ func (v Value) ToString() (string, error) {
 	return output(cmd)
 }
 
-func (v Value) JSON() (string, error) {
-	cmd := command(C.JSC_JSON)
-	defer C.free(unsafe.Pointer(cmd))
-	cmd.value = v.ref
-	v.context.submit(cmd)
-	return output(cmd)
-}
-
 func (v Value) IsFunction() bool {
 	cmd := command(C.JSC_IS_FUNCTION)
 	defer C.free(unsafe.Pointer(cmd))
@@ -307,6 +291,13 @@ func (v Value) Release() {
 	defer C.free(unsafe.Pointer(cmd))
 	cmd.value = v.ref
 	v.context.submit(cmd)
+}
+
+func (c *Context) RunNative(function uintptr, kind int32, value Value, argument uint64) {
+	cmd := command(C.JSC_NATIVE)
+	defer C.free(unsafe.Pointer(cmd))
+	cmd.native, cmd.native_command, cmd.value, cmd.native_argument = C.uintptr_t(function), C.int32_t(kind), value.ref, C.uint64_t(argument)
+	c.submit(cmd)
 }
 
 func cString(value string) (*C.JSChar, C.size_t) {
