@@ -31,12 +31,6 @@ struct DeviceView: View {
                 device.remotePairing.refresh()
                 device.clearFailure()
             }
-            .onAppear {
-                device.startProbing()
-            }
-            .onDisappear {
-                device.stopProbing()
-            }
         }
     }
 
@@ -62,12 +56,6 @@ struct DeviceView: View {
                 }
                 if let reason = device.unavailableReason {
                     Text(reason)
-                }
-                if device.tunnelThroughLocalNetwork {
-                    Text("Loopback through the local network performs poorly.")
-                }
-                if !device.phase.isConnected, device.tunnelFound == false {
-                    Text("No loopback address found. Turn on [LocalDevVPN](https://apps.apple.com/app/id6755608044), or [sing-box](https://sing-box.sagernet.org) with `loopback_address` configured.")
                 }
             }
         }

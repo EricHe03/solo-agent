@@ -21,6 +21,8 @@ struct HomeView: View {
     @State private var selection: HomeTab = .automation
     private let homeRequest = HomeRequest.shared
     #if os(iOS)
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var isProbing = false
     private let developer = DeveloperSettings.shared
     #endif
 
@@ -40,7 +42,9 @@ struct HomeView: View {
     private var layout: some View {
         #if os(iOS)
         WithPerceptionTracking {
-            if #available(iOS 18, *) {
+            if Platform.isSupported, Platform.shared.device.tunnelFound == false {
+                LoopbackRequiredView()
+            } else if #available(iOS 18, *) {
                 TabView(selection: $selection) {
                     Tab("Automation", systemImage: "wand.and.stars", value: HomeTab.automation) {
                         NavigationStackCompat {
@@ -81,6 +85,15 @@ struct HomeView: View {
                     .tabItem { Label("Settings", systemImage: "gearshape") }
                     .tag(HomeTab.settings)
                 }
+            }
+        }
+        .onChangeCompat(of: scenePhase == .active, initial: true) { active in
+            guard Platform.isSupported, active != isProbing else { return }
+            isProbing = active
+            if active {
+                Platform.shared.device.startProbing()
+            } else {
+                Platform.shared.device.stopProbing()
             }
         }
         #else

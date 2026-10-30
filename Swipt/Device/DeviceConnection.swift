@@ -90,8 +90,10 @@ final class DeviceConnection {
         guard probeTask == nil else { return }
         probeTask = Task {
             while !Task.isCancelled {
+                let found: Bool
                 let throughLocalNetwork: Bool
-                if phase.isConnected {
+                if phase == .preparing || phase == .running {
+                    found = true
                     throughLocalNetwork = device.loopbackAddress()?.localNetwork ?? false
                 } else {
                     let port = remotePairing.port ?? 0
@@ -107,10 +109,11 @@ final class DeviceConnection {
                         probe.value.cancel()
                     }
                     guard !Task.isCancelled else { return }
-                    if tunnelFound != result.found {
-                        tunnelFound = result.found
-                    }
+                    found = result.found
                     throughLocalNetwork = result.localNetwork
+                }
+                if tunnelFound != found {
+                    tunnelFound = found
                 }
                 if tunnelThroughLocalNetwork != throughLocalNetwork {
                     tunnelThroughLocalNetwork = throughLocalNetwork
