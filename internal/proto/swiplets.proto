@@ -1,24 +1,24 @@
 syntax = "proto3";
 
-package swipt.v1;
+package swipt;
+option go_package = "github.com/swipt-automation/swipt/internal/proto";
 
+import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
-import "swipt/v1/common.proto";
-
-option go_package = "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1;swiptv1";
+import "internal/proto/common.proto";
 
 service SwipletService {
-  rpc ListSwiplets(ListSwipletsRequest) returns (ListSwipletsResponse);
+  rpc ListSwiplets(google.protobuf.Empty) returns (ListSwipletsResponse);
   rpc CallAction(CallActionRequest) returns (stream CallActionResponse);
   rpc SetServiceEnabled(SetServiceEnabledRequest) returns (SetServiceEnabledResponse);
   rpc WatchServices(WatchServicesRequest) returns (stream WatchServicesResponse);
   rpc DeploySwiplet(stream DeploySwipletRequest) returns (DeploySwipletResponse);
-  rpc RemoveSwiplet(RemoveSwipletRequest) returns (RemoveSwipletResponse);
+  rpc RemoveSwiplet(RemoveSwipletRequest) returns (google.protobuf.Empty);
   rpc ListDataFiles(ListDataFilesRequest) returns (ListDataFilesResponse);
   rpc ReadDataFile(ReadDataFileRequest) returns (stream ReadDataFileResponse);
   rpc WriteDataFile(stream WriteDataFileRequest) returns (WriteDataFileResponse);
-  rpc RemoveDataFile(RemoveDataFileRequest) returns (RemoveDataFileResponse);
+  rpc RemoveDataFile(RemoveDataFileRequest) returns (google.protobuf.Empty);
 }
 
 message SwipletAction {
@@ -54,8 +54,6 @@ message Swiplet {
   ServiceState service = 6;
   repeated SwipletAction actions = 7;
 }
-
-message ListSwipletsRequest {}
 
 message ListSwipletsResponse {
   repeated Swiplet swiplets = 1;
@@ -105,8 +103,6 @@ message RemoveSwipletRequest {
   string swiplet_id = 1;
 }
 
-message RemoveSwipletResponse {}
-
 message ListDataFilesRequest {
   string swiplet_id = 1;
   string path = 2;
@@ -150,5 +146,3 @@ message RemoveDataFileRequest {
   string path = 2;
   bool recursive = 3;
 }
-
-message RemoveDataFileResponse {}

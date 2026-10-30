@@ -1,11 +1,10 @@
 syntax = "proto3";
 
-package swipt.v1;
+package swipt;
+option go_package = "github.com/swipt-automation/swipt/internal/proto";
 
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
-
-option go_package = "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1;swiptv1";
 
 enum LogLevel {
   LOG_LEVEL_UNSPECIFIED = 0;

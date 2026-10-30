@@ -10,8 +10,9 @@ import (
 	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
-	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
 	"github.com/swipt-automation/swipt/internal/automation/declarations"
+	"github.com/swipt-automation/swipt/internal/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/spf13/cobra"
 )
@@ -106,14 +107,14 @@ func runJS(cmd *cobra.Command, args []string) error {
 	}
 	defer c.close()
 	if jsReset {
-		if _, err = c.repl.Reset(ctx, &swiptv1.ResetRequest{}); err != nil {
+		if _, err = c.repl.Reset(ctx, &emptypb.Empty{}); err != nil {
 			return err
 		}
 	}
 	if !run {
 		return nil
 	}
-	stream, err := c.repl.Execute(ctx, &swiptv1.ExecuteRequest{Code: code, TimeoutMs: uint32(globalTimeout.Milliseconds())})
+	stream, err := c.repl.Execute(ctx, &proto.ExecuteRequest{Code: code, TimeoutMs: uint32(globalTimeout.Milliseconds())})
 	if err != nil {
 		return err
 	}
@@ -122,7 +123,7 @@ func runJS(cmd *cobra.Command, args []string) error {
 		script = jsFile
 	}
 	images := &imageSink{}
-	var failure *swiptv1.ScriptError
+	var failure *proto.ScriptError
 	for {
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -132,33 +133,33 @@ func runJS(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		switch part := response.Part.(type) {
-		case *swiptv1.ExecuteResponse_Console:
+		case *proto.ExecuteResponse_Console:
 			printConsole(part.Console)
-		case *swiptv1.ExecuteResponse_Value:
+		case *proto.ExecuteResponse_Value:
 			fmt.Println(part.Value.Text)
-		case *swiptv1.ExecuteResponse_Image:
+		case *proto.ExecuteResponse_Image:
 			path, err := images.save(part.Image)
 			if err != nil {
 				return err
 			}
 			fmt.Println("[image: " + path + "]")
-		case *swiptv1.ExecuteResponse_Error:
+		case *proto.ExecuteResponse_Error:
 			failure = part.Error
 		}
 	}
 	if failure == nil {
 		return nil
 	}
-	return printScriptError(failure, func(frame *swiptv1.StackFrame) *swiptv1.StackFrame {
+	return printScriptError(failure, func(frame *proto.StackFrame) *proto.StackFrame {
 		if frame.File != "input.js" {
 			return frame
 		}
-		return &swiptv1.StackFrame{Function: frame.Function, File: script, Line: frame.Line, Column: frame.Column}
+		return &proto.StackFrame{Function: frame.Function, File: script, Line: frame.Line, Column: frame.Column}
 	})
 }
 
-func printConsole(output *swiptv1.ConsoleOutput) {
-	if output.Level == swiptv1.LogLevel_LOG_LEVEL_ERROR || output.Level == swiptv1.LogLevel_LOG_LEVEL_WARN {
+func printConsole(output *proto.ConsoleOutput) {
+	if output.Level == proto.LogLevel_LOG_LEVEL_ERROR || output.Level == proto.LogLevel_LOG_LEVEL_WARN {
 		fmt.Fprintln(os.Stderr, output.Text)
 		return
 	}

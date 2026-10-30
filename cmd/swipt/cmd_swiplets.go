@@ -16,9 +16,10 @@ import (
 
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
-	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
+	"github.com/swipt-automation/swipt/internal/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/spf13/cobra"
@@ -124,16 +125,16 @@ func readInput(value string) (*structpb.Value, error) {
 	return input, nil
 }
 
-func printResult(id string, result *swiptv1.ActionResult) error {
+func printResult(id string, result *proto.ActionResult) error {
 	switch outcome := result.GetOutcome().(type) {
-	case *swiptv1.ActionResult_Output:
+	case *proto.ActionResult_Output:
 		data, err := json.MarshalIndent(outcome.Output.AsInterface(), "", "  ")
 		if err != nil {
 			return err
 		}
 		_, err = os.Stdout.Write(append(data, '\n'))
 		return err
-	case *swiptv1.ActionResult_Error:
+	case *proto.ActionResult_Error:
 		return printScriptError(outcome.Error, sources.frame(id))
 	}
 	return E.New("the server sent no result")
@@ -149,7 +150,7 @@ func runSwiplets(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer end()
-	response, err := c.swiplets.ListSwiplets(ctx, &swiptv1.ListSwipletsRequest{})
+	response, err := c.swiplets.ListSwiplets(ctx, &emptypb.Empty{})
 	if err != nil {
 		return err
 	}
@@ -158,14 +159,14 @@ func runSwiplets(cmd *cobra.Command, args []string) error {
 		writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		fmt.Fprintln(writer, "ID\tTITLE\tVERSION\tACTIONS\tSERVICE\tSTATUS")
 		for _, swiplet := range swiplets {
-			names := common.Map(swiplet.Actions, func(action *swiptv1.SwipletAction) string { return action.Name })
+			names := common.Map(swiplet.Actions, func(action *proto.SwipletAction) string { return action.Name })
 			service, status := "", ""
 			if state := swiplet.Service; state != nil {
 				service, status = "disabled", "stopped"
 				if state.Enabled {
 					service = "enabled"
 				}
-				if state.Status != swiptv1.ServiceStatus_SERVICE_STATUS_UNSPECIFIED {
+				if state.Status != proto.ServiceStatus_SERVICE_STATUS_UNSPECIFIED {
 					status = enumText(state.Status, "SERVICE_STATUS_")
 				}
 				if state.Error != nil {
@@ -176,7 +177,7 @@ func runSwiplets(cmd *cobra.Command, args []string) error {
 		}
 		return writer.Flush()
 	}
-	swiplet := common.Find(swiplets, func(it *swiptv1.Swiplet) bool { return it.Id == args[0] })
+	swiplet := common.Find(swiplets, func(it *proto.Swiplet) bool { return it.Id == args[0] })
 	if swiplet == nil {
 		return notInstalled(args[0])
 	}
@@ -219,11 +220,11 @@ func runCall(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer end()
-	stream, err := c.swiplets.CallAction(ctx, &swiptv1.CallActionRequest{SwipletId: args[0], Action: args[1], Input: input})
+	stream, err := c.swiplets.CallAction(ctx, &proto.CallActionRequest{SwipletId: args[0], Action: args[1], Input: input})
 	if err != nil {
 		return err
 	}
-	var result *swiptv1.ActionResult
+	var result *proto.ActionResult
 	for {
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -233,9 +234,9 @@ func runCall(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		switch part := response.Part.(type) {
-		case *swiptv1.CallActionResponse_Log:
+		case *proto.CallActionResponse_Log:
 			printLog(part.Log, false)
-		case *swiptv1.CallActionResponse_Result:
+		case *proto.CallActionResponse_Result:
 			result = part.Result
 		}
 	}
@@ -246,7 +247,7 @@ func runCall(cmd *cobra.Command, args []string) error {
 }
 
 func watchServices(ctx context.Context, c *client, id string) error {
-	stream, err := c.swiplets.WatchServices(ctx, &swiptv1.WatchServicesRequest{SwipletId: id})
+	stream, err := c.swiplets.WatchServices(ctx, &proto.WatchServicesRequest{SwipletId: id})
 	if err != nil {
 		return err
 	}
@@ -268,7 +269,7 @@ func runSetService(cmd *cobra.Command, id string, enabled bool) error {
 		return err
 	}
 	defer end()
-	response, err := c.swiplets.SetServiceEnabled(ctx, &swiptv1.SetServiceEnabledRequest{SwipletId: id, Enabled: enabled})
+	response, err := c.swiplets.SetServiceEnabled(ctx, &proto.SetServiceEnabledRequest{SwipletId: id, Enabled: enabled})
 	if err != nil {
 		return err
 	}
@@ -285,7 +286,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer end()
-	if _, err = c.swiplets.RemoveSwiplet(ctx, &swiptv1.RemoveSwipletRequest{SwipletId: args[0]}); err != nil {
+	if _, err = c.swiplets.RemoveSwiplet(ctx, &proto.RemoveSwipletRequest{SwipletId: args[0]}); err != nil {
 		return err
 	}
 	fmt.Println("removed", args[0])
@@ -302,7 +303,7 @@ func runFilesList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer end()
-	response, err := c.swiplets.ListDataFiles(ctx, &swiptv1.ListDataFilesRequest{SwipletId: args[0], Path: directory, Recursive: filesRecursive})
+	response, err := c.swiplets.ListDataFiles(ctx, &proto.ListDataFilesRequest{SwipletId: args[0], Path: directory, Recursive: filesRecursive})
 	if err != nil {
 		return err
 	}
@@ -331,7 +332,7 @@ func (s *fileSink) target(name string) (string, error) {
 	return filepath.Join(s.root, filepath.FromSlash(name)), nil
 }
 
-func (s *fileSink) begin(info *swiptv1.FileInfo) error {
+func (s *fileSink) begin(info *proto.FileInfo) error {
 	name, err := s.target(info.Path)
 	if err != nil {
 		return err
@@ -354,7 +355,7 @@ func (s *fileSink) begin(info *swiptv1.FileInfo) error {
 	return nil
 }
 
-func (s *fileSink) write(chunk *swiptv1.FileChunk) error {
+func (s *fileSink) write(chunk *proto.FileChunk) error {
 	file := s.files[chunk.Path]
 	if file == nil {
 		return E.New("the server sent data for ", chunk.Path, " before announcing it")
@@ -389,12 +390,12 @@ func runFilesRead(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer end()
-	stream, err := c.swiplets.ReadDataFile(ctx, &swiptv1.ReadDataFileRequest{SwipletId: args[0], Path: args[1]})
+	stream, err := c.swiplets.ReadDataFile(ctx, &proto.ReadDataFileRequest{SwipletId: args[0], Path: args[1]})
 	if err != nil {
 		return err
 	}
 	var sink *fileSink
-	var single *swiptv1.FileInfo
+	var single *proto.FileInfo
 	var contents []byte
 	for {
 		response, err := stream.Recv()
@@ -405,7 +406,7 @@ func runFilesRead(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		switch part := response.Part.(type) {
-		case *swiptv1.ReadDataFileResponse_File:
+		case *proto.ReadDataFileResponse_File:
 			info := part.File
 			if info.Path == requested && !info.Directory {
 				single = info
@@ -418,10 +419,10 @@ func runFilesRead(cmd *cobra.Command, args []string) error {
 				sink = &fileSink{root: filesOutput, files: make(map[string]*os.File)}
 			}
 			relative := strings.TrimPrefix(strings.TrimPrefix(info.Path, requested), "/")
-			if err = sink.begin(&swiptv1.FileInfo{Path: relative, Directory: info.Directory}); err != nil {
+			if err = sink.begin(&proto.FileInfo{Path: relative, Directory: info.Directory}); err != nil {
 				return err
 			}
-		case *swiptv1.ReadDataFileResponse_Chunk:
+		case *proto.ReadDataFileResponse_Chunk:
 			chunk := part.Chunk
 			if single != nil && chunk.Path == single.Path {
 				contents = append(contents, chunk.Data...)
@@ -431,7 +432,7 @@ func runFilesRead(cmd *cobra.Command, args []string) error {
 				return E.New("the server sent data for ", chunk.Path, " before announcing it")
 			}
 			relative := strings.TrimPrefix(strings.TrimPrefix(chunk.Path, requested), "/")
-			if err = sink.write(&swiptv1.FileChunk{Path: relative, Offset: chunk.Offset, Data: chunk.Data}); err != nil {
+			if err = sink.write(&proto.FileChunk{Path: relative, Offset: chunk.Offset, Data: chunk.Data}); err != nil {
 				return err
 			}
 		}
@@ -486,9 +487,9 @@ func runFilesWrite(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	err = stream.Send(&swiptv1.WriteDataFileRequest{Part: &swiptv1.WriteDataFileRequest_Header{Header: &swiptv1.WriteDataFileHeader{SwipletId: args[0], Path: args[1]}}})
+	err = stream.Send(&proto.WriteDataFileRequest{Part: &proto.WriteDataFileRequest_Header{Header: &proto.WriteDataFileHeader{SwipletId: args[0], Path: args[1]}}})
 	for offset := 0; err == nil && offset < len(data); offset += uploadChunk {
-		err = stream.Send(&swiptv1.WriteDataFileRequest{Part: &swiptv1.WriteDataFileRequest_Data{Data: data[offset:min(offset+uploadChunk, len(data))]}})
+		err = stream.Send(&proto.WriteDataFileRequest{Part: &proto.WriteDataFileRequest_Data{Data: data[offset:min(offset+uploadChunk, len(data))]}})
 	}
 	_, err = stream.CloseAndRecv()
 	return err
@@ -500,7 +501,7 @@ func runFilesRemove(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer end()
-	request := &swiptv1.RemoveDataFileRequest{SwipletId: args[0], Path: args[1], Recursive: filesRemoveRecursive}
+	request := &proto.RemoveDataFileRequest{SwipletId: args[0], Path: args[1], Recursive: filesRemoveRecursive}
 	_, err = c.swiplets.RemoveDataFile(ctx, request)
 	return err
 }

@@ -16,10 +16,10 @@ import (
 	"github.com/nekohasekai/go-sdk/mcp"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
-	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
 	"github.com/swipt-automation/swipt/internal/automation"
 	"github.com/swipt-automation/swipt/internal/device"
 	"github.com/swipt-automation/swipt/internal/log"
+	"github.com/swipt-automation/swipt/internal/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
@@ -114,10 +114,10 @@ func New(options Options) *Server {
 		}),
 		grpc.KeepaliveParams(keepalive.ServerParameters{Time: keepaliveInterval}),
 	)
-	swiptv1.RegisterSystemServiceServer(s.grpc, &systemService{Server: s})
-	swiptv1.RegisterLogServiceServer(s.grpc, &logService{Server: s})
-	swiptv1.RegisterSwipletServiceServer(s.grpc, &swipletService{Server: s})
-	swiptv1.RegisterREPLServiceServer(s.grpc, &replService{Server: s})
+	proto.RegisterSystemServiceServer(s.grpc, &systemService{Server: s})
+	proto.RegisterLogServiceServer(s.grpc, &logService{Server: s})
+	proto.RegisterSwipletServiceServer(s.grpc, &swipletService{Server: s})
+	proto.RegisterREPLServiceServer(s.grpc, &replService{Server: s})
 	go func() {
 		_ = s.grpc.Serve(s.upgraded)
 	}()

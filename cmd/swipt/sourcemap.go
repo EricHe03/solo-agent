@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	E "github.com/sagernet/sing/common/exceptions"
-	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
+	"github.com/swipt-automation/swipt/internal/proto"
 )
 
 const (
@@ -148,8 +148,8 @@ func (s *sourceMaps) forget(id string) {
 	s.access.Unlock()
 }
 
-func (s *sourceMaps) frame(id string) func(*swiptv1.StackFrame) *swiptv1.StackFrame {
-	return func(frame *swiptv1.StackFrame) *swiptv1.StackFrame {
+func (s *sourceMaps) frame(id string) func(*proto.StackFrame) *proto.StackFrame {
+	return func(frame *proto.StackFrame) *proto.StackFrame {
 		found := s.forSwiplet(id)[frame.File]
 		if found == nil {
 			return frame
@@ -158,6 +158,6 @@ func (s *sourceMaps) frame(id string) func(*swiptv1.StackFrame) *swiptv1.StackFr
 		if !mapped {
 			return frame
 		}
-		return &swiptv1.StackFrame{Function: frame.Function, File: file, Line: uint32(line), Column: uint32(column)}
+		return &proto.StackFrame{Function: frame.Function, File: file, Line: uint32(line), Column: uint32(column)}
 	}
 }

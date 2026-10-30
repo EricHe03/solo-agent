@@ -9,7 +9,7 @@ import (
 
 	"github.com/coder/websocket"
 	E "github.com/sagernet/sing/common/exceptions"
-	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
+	"github.com/swipt-automation/swipt/internal/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -18,10 +18,10 @@ const largestMessage = 128 << 20
 
 type client struct {
 	conn     *grpc.ClientConn
-	system   swiptv1.SystemServiceClient
-	logs     swiptv1.LogServiceClient
-	swiplets swiptv1.SwipletServiceClient
-	repl     swiptv1.REPLServiceClient
+	system   proto.SystemServiceClient
+	logs     proto.LogServiceClient
+	swiplets proto.SwipletServiceClient
+	repl     proto.REPLServiceClient
 }
 
 type bearerToken string
@@ -84,10 +84,10 @@ func open() (*client, error) {
 	}
 	return &client{
 		conn:     conn,
-		system:   swiptv1.NewSystemServiceClient(conn),
-		logs:     swiptv1.NewLogServiceClient(conn),
-		swiplets: swiptv1.NewSwipletServiceClient(conn),
-		repl:     swiptv1.NewREPLServiceClient(conn),
+		system:   proto.NewSystemServiceClient(conn),
+		logs:     proto.NewLogServiceClient(conn),
+		swiplets: proto.NewSwipletServiceClient(conn),
+		repl:     proto.NewREPLServiceClient(conn),
 	}, nil
 }
 

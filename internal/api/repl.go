@@ -4,18 +4,19 @@ import (
 	"context"
 	"time"
 
-	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
 	"github.com/swipt-automation/swipt/internal/automation"
 	"github.com/swipt-automation/swipt/internal/automation/declarations"
+	"github.com/swipt-automation/swipt/internal/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type replService struct {
-	swiptv1.UnimplementedREPLServiceServer
+	proto.UnimplementedREPLServiceServer
 	*Server
 }
 
-func (s *replService) Execute(request *swiptv1.ExecuteRequest, stream grpc.ServerStreamingServer[swiptv1.ExecuteResponse]) error {
+func (s *replService) Execute(request *proto.ExecuteRequest, stream grpc.ServerStreamingServer[proto.ExecuteResponse]) error {
 	ctx := stream.Context()
 	session, err := s.cliSession()
 	if err != nil {
@@ -26,14 +27,14 @@ func (s *replService) Execute(request *swiptv1.ExecuteRequest, stream grpc.Serve
 		if sendErr != nil {
 			return
 		}
-		response := &swiptv1.ExecuteResponse{}
+		response := &proto.ExecuteResponse{}
 		switch output.Kind {
 		case automation.OutputImage:
-			response.Part = &swiptv1.ExecuteResponse_Image{Image: output.Image}
+			response.Part = &proto.ExecuteResponse_Image{Image: output.Image}
 		case automation.OutputValue:
-			response.Part = &swiptv1.ExecuteResponse_Value{Value: &swiptv1.ScriptValue{Json: string(output.JSON), Text: output.Text}}
+			response.Part = &proto.ExecuteResponse_Value{Value: &proto.ScriptValue{Json: string(output.JSON), Text: output.Text}}
 		default:
-			response.Part = &swiptv1.ExecuteResponse_Console{Console: &swiptv1.ConsoleOutput{Level: logLevel(output.Level), Text: output.Text}}
+			response.Part = &proto.ExecuteResponse_Console{Console: &proto.ConsoleOutput{Level: logLevel(output.Level), Text: output.Text}}
 		}
 		sendErr = stream.Send(response)
 	})
@@ -50,10 +51,10 @@ func (s *replService) Execute(request *swiptv1.ExecuteRequest, stream grpc.Serve
 	if !isFailure {
 		return apiError(err)
 	}
-	return stream.Send(&swiptv1.ExecuteResponse{Part: &swiptv1.ExecuteResponse_Error{Error: scriptError(failure)}})
+	return stream.Send(&proto.ExecuteResponse{Part: &proto.ExecuteResponse_Error{Error: scriptError(failure)}})
 }
 
-func (s *replService) Reset(ctx context.Context, _ *swiptv1.ResetRequest) (*swiptv1.ResetResponse, error) {
+func (s *replService) Reset(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
 	session, err := s.cliSession()
 	if err != nil {
 		return nil, err
@@ -61,9 +62,9 @@ func (s *replService) Reset(ctx context.Context, _ *swiptv1.ResetRequest) (*swip
 	if err = session.Reset(ctx); err != nil {
 		return nil, apiError(err)
 	}
-	return &swiptv1.ResetResponse{}, nil
+	return &emptypb.Empty{}, nil
 }
 
-func (s *replService) GetDeclarations(context.Context, *swiptv1.GetDeclarationsRequest) (*swiptv1.GetDeclarationsResponse, error) {
-	return &swiptv1.GetDeclarationsResponse{Typescript: declarations.TypeScript}, nil
+func (s *replService) GetDeclarations(context.Context, *emptypb.Empty) (*proto.GetDeclarationsResponse, error) {
+	return &proto.GetDeclarationsResponse{Typescript: declarations.TypeScript}, nil
 }

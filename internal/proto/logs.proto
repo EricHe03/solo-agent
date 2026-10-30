@@ -1,11 +1,10 @@
 syntax = "proto3";
 
-package swipt.v1;
+package swipt;
+option go_package = "github.com/swipt-automation/swipt/internal/proto";
 
 import "google/protobuf/timestamp.proto";
-import "swipt/v1/common.proto";
-
-option go_package = "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1;swiptv1";
+import "internal/proto/common.proto";
 
 service LogService {
   rpc ReadLogs(ReadLogsRequest) returns (stream ReadLogsResponse);

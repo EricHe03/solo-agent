@@ -1,15 +1,15 @@
 syntax = "proto3";
 
-package swipt.v1;
+package swipt;
+option go_package = "github.com/swipt-automation/swipt/internal/proto";
 
-import "swipt/v1/common.proto";
-
-option go_package = "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1;swiptv1";
+import "google/protobuf/empty.proto";
+import "internal/proto/common.proto";
 
 service REPLService {
   rpc Execute(ExecuteRequest) returns (stream ExecuteResponse);
-  rpc Reset(ResetRequest) returns (ResetResponse);
-  rpc GetDeclarations(GetDeclarationsRequest) returns (GetDeclarationsResponse);
+  rpc Reset(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc GetDeclarations(google.protobuf.Empty) returns (GetDeclarationsResponse);
 }
 
 message ExecuteRequest {
@@ -35,12 +35,6 @@ message ExecuteResponse {
     ScriptError error = 4;
   }
 }
-
-message ResetRequest {}
-
-message ResetResponse {}
-
-message GetDeclarationsRequest {}
 
 message GetDeclarationsResponse {
   string typescript = 1;

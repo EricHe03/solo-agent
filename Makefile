@@ -5,11 +5,13 @@ SHELL := /bin/bash
 lib:
 	go run ./cmd/internal/build_libswipt
 
-.PHONY: proto
 proto:
-	rm -rf internal/api/gen
-	mkdir -p internal/api/gen
-	protoc -I proto --go_out=internal/api/gen --go_opt=paths=source_relative --go-grpc_out=internal/api/gen --go-grpc_opt=paths=source_relative proto/swipt/v1/*.proto
+	go run ./cmd/internal/protogen
+	gofumpt -w internal/proto
+
+proto_install:
+	go install -v google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 RUNTIME := internal/automation/runtime
 RUNTIME_BUNDLE := build/runtime/main.jsbundle

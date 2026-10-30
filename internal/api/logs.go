@@ -3,8 +3,8 @@ package api
 import (
 	"context"
 
-	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
 	"github.com/swipt-automation/swipt/internal/log"
+	"github.com/swipt-automation/swipt/internal/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -12,30 +12,30 @@ import (
 const logBuffer = 1024
 
 type logService struct {
-	swiptv1.UnimplementedLogServiceServer
+	proto.UnimplementedLogServiceServer
 	*Server
 }
 
-func logLevel(level log.Level) swiptv1.LogLevel {
+func logLevel(level log.Level) proto.LogLevel {
 	switch {
 	case level <= log.LevelError:
-		return swiptv1.LogLevel_LOG_LEVEL_ERROR
+		return proto.LogLevel_LOG_LEVEL_ERROR
 	case level == log.LevelWarn:
-		return swiptv1.LogLevel_LOG_LEVEL_WARN
+		return proto.LogLevel_LOG_LEVEL_WARN
 	case level == log.LevelInfo:
-		return swiptv1.LogLevel_LOG_LEVEL_INFO
+		return proto.LogLevel_LOG_LEVEL_INFO
 	}
-	return swiptv1.LogLevel_LOG_LEVEL_DEBUG
+	return proto.LogLevel_LOG_LEVEL_DEBUG
 }
 
-func logEntry(entry log.Entry) *swiptv1.LogEntry {
-	return &swiptv1.LogEntry{Time: timestamppb.New(entry.Time), Level: logLevel(entry.Level), Tag: entry.Tag, Message: entry.Message}
+func logEntry(entry log.Entry) *proto.LogEntry {
+	return &proto.LogEntry{Time: timestamppb.New(entry.Time), Level: logLevel(entry.Level), Tag: entry.Tag, Message: entry.Message}
 }
 
-func (s *logService) ReadLogs(filter *swiptv1.ReadLogsRequest, stream grpc.ServerStreamingServer[swiptv1.ReadLogsResponse]) error {
+func (s *logService) ReadLogs(filter *proto.ReadLogsRequest, stream grpc.ServerStreamingServer[proto.ReadLogsResponse]) error {
 	ctx := stream.Context()
 	matches := func(entry log.Entry) bool {
-		if filter.Level != swiptv1.LogLevel_LOG_LEVEL_UNSPECIFIED && logLevel(entry.Level) > filter.Level {
+		if filter.Level != proto.LogLevel_LOG_LEVEL_UNSPECIFIED && logLevel(entry.Level) > filter.Level {
 			return false
 		}
 		if filter.SwipletId != "" && entry.Tag != "swiplet/"+filter.SwipletId {
@@ -62,7 +62,7 @@ func (s *logService) ReadLogs(filter *swiptv1.ReadLogsRequest, stream grpc.Serve
 	}
 	history = history[max(len(history)-int(filter.Tail), 0):]
 	for _, entry := range history {
-		if err := stream.Send(&swiptv1.ReadLogsResponse{Entry: logEntry(entry)}); err != nil {
+		if err := stream.Send(&proto.ReadLogsResponse{Entry: logEntry(entry)}); err != nil {
 			return err
 		}
 	}
@@ -72,7 +72,7 @@ func (s *logService) ReadLogs(filter *swiptv1.ReadLogsRequest, stream grpc.Serve
 	for {
 		select {
 		case entry := <-received:
-			if err := stream.Send(&swiptv1.ReadLogsResponse{Entry: logEntry(entry)}); err != nil {
+			if err := stream.Send(&proto.ReadLogsResponse{Entry: logEntry(entry)}); err != nil {
 				return err
 			}
 		case <-ctx.Done():

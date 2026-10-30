@@ -8,7 +8,7 @@ import (
 	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
-	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
+	"github.com/swipt-automation/swipt/internal/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/spf13/cobra"
@@ -34,13 +34,13 @@ func init() {
 }
 
 func runLogs(cmd *cobra.Command, _ []string) error {
-	request := &swiptv1.ReadLogsRequest{Follow: logsFollow, Tail: logsTail, SwipletId: logsSwiplet}
+	request := &proto.ReadLogsRequest{Follow: logsFollow, Tail: logsTail, SwipletId: logsSwiplet}
 	levels := []string{"error", "warn", "info", "debug"}
 	index := slices.Index(levels, logsLevel)
 	if index < 0 {
 		return usageError{E.New("--level is error, warn, info or debug")}
 	}
-	request.Level = swiptv1.LogLevel(index + 1)
+	request.Level = proto.LogLevel(index + 1)
 	if logsSince > 0 {
 		request.Since = timestamppb.New(time.Now().Add(-logsSince))
 		if !cmd.Flags().Changed("tail") {

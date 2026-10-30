@@ -3,28 +3,29 @@ package api
 import (
 	"context"
 
-	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
 	"github.com/swipt-automation/swipt/internal/device"
+	"github.com/swipt-automation/swipt/internal/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type systemService struct {
-	swiptv1.UnimplementedSystemServiceServer
+	proto.UnimplementedSystemServiceServer
 	*Server
 }
 
-func deviceConnection(state device.State, err error) *swiptv1.DeviceConnection {
-	out := &swiptv1.DeviceConnection{}
+func deviceConnection(state device.State, err error) *proto.DeviceConnection {
+	out := &proto.DeviceConnection{}
 	switch state {
 	case device.StateStopped:
-		out.State = swiptv1.DeviceConnectionState_DEVICE_CONNECTION_STATE_STOPPED
+		out.State = proto.DeviceConnectionState_DEVICE_CONNECTION_STATE_STOPPED
 	case device.StateConnecting:
-		out.State = swiptv1.DeviceConnectionState_DEVICE_CONNECTION_STATE_CONNECTING
+		out.State = proto.DeviceConnectionState_DEVICE_CONNECTION_STATE_CONNECTING
 	case device.StatePreparing:
-		out.State = swiptv1.DeviceConnectionState_DEVICE_CONNECTION_STATE_PREPARING
+		out.State = proto.DeviceConnectionState_DEVICE_CONNECTION_STATE_PREPARING
 	case device.StateRunning:
-		out.State = swiptv1.DeviceConnectionState_DEVICE_CONNECTION_STATE_RUNNING
+		out.State = proto.DeviceConnectionState_DEVICE_CONNECTION_STATE_RUNNING
 	case device.StateFailed:
-		out.State = swiptv1.DeviceConnectionState_DEVICE_CONNECTION_STATE_FAILED
+		out.State = proto.DeviceConnectionState_DEVICE_CONNECTION_STATE_FAILED
 	}
 	if err == nil {
 		return out
@@ -32,29 +33,29 @@ func deviceConnection(state device.State, err error) *swiptv1.DeviceConnection {
 	out.Message = err.Error()
 	switch device.ProblemOf(err) {
 	case device.ProblemNoTunnel:
-		out.Problem = swiptv1.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_UNREACHABLE
+		out.Problem = proto.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_UNREACHABLE
 	case device.ProblemPairingRejected:
-		out.Problem = swiptv1.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_PAIRING_REJECTED
+		out.Problem = proto.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_PAIRING_REJECTED
 	case device.ProblemDeveloperModeOff:
-		out.Problem = swiptv1.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_DEVELOPER_MODE_OFF
+		out.Problem = proto.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_DEVELOPER_MODE_OFF
 	case device.ProblemNoDiskImage:
-		out.Problem = swiptv1.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_DISK_IMAGE_MISSING
+		out.Problem = proto.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_DISK_IMAGE_MISSING
 	case device.ProblemDiskImage:
-		out.Problem = swiptv1.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_DISK_IMAGE_MOUNT_FAILED
+		out.Problem = proto.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_DISK_IMAGE_MOUNT_FAILED
 	case device.ProblemUnsupported:
-		out.Problem = swiptv1.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_DEVICE_UNSUPPORTED
+		out.Problem = proto.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_DEVICE_UNSUPPORTED
 	case device.ProblemScreenInUse:
-		out.Problem = swiptv1.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_SCREEN_IN_USE
+		out.Problem = proto.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_SCREEN_IN_USE
 	case device.ProblemLoopbackAddress:
-		out.Problem = swiptv1.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_VPN_PEER_ADDRESS_MISSING
+		out.Problem = proto.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_VPN_PEER_ADDRESS_MISSING
 	default:
-		out.Problem = swiptv1.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_OTHER
+		out.Problem = proto.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_OTHER
 	}
 	return out
 }
 
-func (s *systemService) GetInfo(context.Context, *swiptv1.GetInfoRequest) (*swiptv1.GetInfoResponse, error) {
-	return &swiptv1.GetInfoResponse{
+func (s *systemService) GetInfo(context.Context, *emptypb.Empty) (*proto.GetInfoResponse, error) {
+	return &proto.GetInfoResponse{
 		ServerVersion:    serverVersion(),
 		DeviceName:       s.options.Device.Name(),
 		Udid:             s.options.Device.DeviceInfo().UDID,

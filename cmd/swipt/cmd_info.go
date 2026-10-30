@@ -7,7 +7,8 @@ import (
 	runtimeDebug "runtime/debug"
 	"text/tabwriter"
 
-	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
+	"github.com/swipt-automation/swipt/internal/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/spf13/cobra"
 )
@@ -41,13 +42,13 @@ func runInfo(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 	defer end()
-	info, err := c.system.GetInfo(ctx, &swiptv1.GetInfoRequest{})
+	info, err := c.system.GetInfo(ctx, &emptypb.Empty{})
 	if err != nil {
 		return err
 	}
 	connection := info.DeviceConnection
 	state := enumText(connection.GetState(), "DEVICE_CONNECTION_STATE_")
-	if connection.GetProblem() != swiptv1.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_UNSPECIFIED {
+	if connection.GetProblem() != proto.DeviceConnectionProblem_DEVICE_CONNECTION_PROBLEM_UNSPECIFIED {
 		state += ", " + enumText(connection.GetProblem(), "DEVICE_CONNECTION_PROBLEM_")
 	}
 	if connection.GetMessage() != "" {

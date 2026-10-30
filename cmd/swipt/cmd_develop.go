@@ -20,7 +20,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
-	swiptv1 "github.com/swipt-automation/swipt/internal/api/gen/swipt/v1"
+	"github.com/swipt-automation/swipt/internal/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -108,7 +108,7 @@ func buildProject(ctx context.Context, p project) error {
 	return err
 }
 
-func deploy(ctx context.Context, c *client, archive string) (*swiptv1.DeploySwipletResponse, error) {
+func deploy(ctx context.Context, c *client, archive string) (*proto.DeploySwipletResponse, error) {
 	data, err := os.ReadFile(archive)
 	if err != nil {
 		return nil, err
@@ -118,14 +118,14 @@ func deploy(ctx context.Context, c *client, archive string) (*swiptv1.DeploySwip
 		return nil, err
 	}
 	for offset := 0; offset < len(data) || offset == 0; offset += uploadChunk {
-		if err = stream.Send(&swiptv1.DeploySwipletRequest{Chunk: data[offset:min(offset+uploadChunk, len(data))]}); err != nil {
+		if err = stream.Send(&proto.DeploySwipletRequest{Chunk: data[offset:min(offset+uploadChunk, len(data))]}); err != nil {
 			break
 		}
 	}
 	return stream.CloseAndRecv()
 }
 
-func printDeployed(deployed *swiptv1.DeploySwipletResponse, output io.Writer) {
+func printDeployed(deployed *proto.DeploySwipletResponse, output io.Writer) {
 	verb := "installed"
 	if deployed.Replaced {
 		verb = "replaced"
@@ -200,9 +200,9 @@ func unauthenticated(err error) bool {
 
 func followLogs(ctx context.Context, c *client, id string, fatal chan<- error) {
 	for ctx.Err() == nil {
-		stream, err := c.logs.ReadLogs(ctx, &swiptv1.ReadLogsRequest{SwipletId: id, Follow: true})
+		stream, err := c.logs.ReadLogs(ctx, &proto.ReadLogsRequest{SwipletId: id, Follow: true})
 		for err == nil {
-			var response *swiptv1.ReadLogsResponse
+			var response *proto.ReadLogsResponse
 			response, err = stream.Recv()
 			if err == nil {
 				printLog(response.Entry, false)
@@ -221,11 +221,11 @@ func followLogs(ctx context.Context, c *client, id string, fatal chan<- error) {
 
 func followFailures(ctx context.Context, c *client, id string, fatal chan<- error) {
 	for ctx.Err() == nil {
-		stream, err := c.swiplets.WatchServices(ctx, &swiptv1.WatchServicesRequest{})
+		stream, err := c.swiplets.WatchServices(ctx, &proto.WatchServicesRequest{})
 		for err == nil {
-			var response *swiptv1.WatchServicesResponse
+			var response *proto.WatchServicesResponse
 			response, err = stream.Recv()
-			if err == nil && response.SwipletId == id && response.Service.GetStatus() == swiptv1.ServiceStatus_SERVICE_STATUS_FAILED {
+			if err == nil && response.SwipletId == id && response.Service.GetStatus() == proto.ServiceStatus_SERVICE_STATUS_FAILED {
 				fmt.Fprintln(os.Stderr, id+": "+serviceText(id, response.Service))
 			}
 		}
