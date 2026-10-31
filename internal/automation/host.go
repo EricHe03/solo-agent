@@ -195,7 +195,7 @@ func (h *Host) Install(archive io.ReaderAt, size int64) (Swiplet, error) {
 	if err != nil {
 		return Swiplet{}, E.Cause(err, "open the archive")
 	}
-	contents, err := ReadArchive(reader, "")
+	contents, err := ReadArchive(reader)
 	if err != nil {
 		return Swiplet{}, err
 	}

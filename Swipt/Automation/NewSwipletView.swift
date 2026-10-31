@@ -70,7 +70,7 @@ struct NewSwipletView: View {
                 Button("Cancel") { dismiss() }
             }
         }
-        .fileImporter(isPresented: $isPickingFile, allowedContentTypes: [.swiplet, .zip]) { result in
+        .fileImporter(isPresented: $isPickingFile, allowedContentTypes: [.swiplet]) { result in
             switch result {
             case .success(let file):
                 importFile(file)
@@ -110,25 +110,13 @@ private struct ImportFromURLView: View {
 
     var body: some View {
         Form {
-            Section {
-                TextField("URL", text: $url)
-                    .keyboardType(.URL)
-                    .textContentType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel(.done)
-                    .onSubmit(importSwiplet)
-            } footer: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Supported formats:")
-                    VStack(alignment: .leading, spacing: 2) {
-                        BulletText("ZIP files")
-                        BulletText("ZIP files with a single top-level folder")
-                        BulletText("ZIP files with the !/ syntax to select a subfolder")
-                    }
-                    .padding(.leading, 8)
-                }
-            }
+            TextField("URL", text: $url)
+                .keyboardType(.URL)
+                .textContentType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+                .onSubmit(importSwiplet)
         }
         .disabled(isImporting)
         .navigationTitle("Import from URL")
@@ -156,21 +144,6 @@ private struct ImportFromURLView: View {
                 alert = AlertState(String(localized: "Can’t Import the Swiplet"), error: error)
             }
             isImporting = false
-        }
-    }
-}
-
-private struct BulletText: View {
-    let text: LocalizedStringKey
-
-    init(_ text: LocalizedStringKey) {
-        self.text = text
-    }
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(verbatim: "•")
-            Text(text)
         }
     }
 }

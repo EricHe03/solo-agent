@@ -80,18 +80,17 @@ struct AutomationView: View {
     private func swipletRow(_ name: String) -> some View {
         let service = swiplets.withServices.contains(name) ? swiplets.service(of: name) : nil
         let interface = swiplets.interfaces[name]
-        let hasInterface = interface != nil
         return Group {
             if let interface {
                 NavigationLink(value: InterfaceRoute(name: name, entry: interface)) {
-                    swipletLabel(name, service: service)
+                    swipletLabel(name)
                 }
             } else if let service {
                 Toggle(isOn: Binding(get: { service.enabled }, set: { setService(name, enabled: $0) })) {
-                    swipletLabel(name, service: service)
+                    swipletLabel(name)
                 }
             } else {
-                swipletLabel(name, service: service)
+                swipletLabel(name)
             }
         }
         .swipeActions(edge: .trailing) {
@@ -103,34 +102,21 @@ struct AutomationView: View {
             .tint(.red)
         }
         .contextMenu {
-            if let service, hasInterface {
-                Button {
-                    setService(name, enabled: !service.enabled)
-                } label: {
-                    if service.enabled {
-                        Label("Turn Off Service", systemImage: "stop.circle")
-                    } else {
-                        Label("Turn On Service", systemImage: "play.circle")
-                    }
-                }
+            ShareLink(item: SwipletFile(id: name), preview: SharePreview(swiplets.titles[name] ?? name)) {
+                Label("Share", systemImage: "square.and.arrow.up")
             }
-            Section {
-                ShareLink(item: SwipletFile(id: name), preview: SharePreview(swiplets.titles[name] ?? name)) {
-                    Label("Share", systemImage: "square.and.arrow.up")
+            if let update = swiplets.updates[name] {
+                Button {
+                    apply(update)
+                } label: {
+                    Label("Update", systemImage: "arrow.up")
                 }
-                if let update = swiplets.updates[name] {
-                    Button {
-                        apply(update)
-                    } label: {
-                        Label("Update", systemImage: "arrow.up")
-                    }
-                    .disabled(swiplets.updating.contains(name))
-                } else if swiplets.updatable.contains(name) {
-                    Button {
-                        checkForUpdate(name)
-                    } label: {
-                        Label("Check for Updates…", systemImage: "arrow.clockwise")
-                    }
+                .disabled(swiplets.updating.contains(name))
+            } else if swiplets.updatable.contains(name) {
+                Button {
+                    checkForUpdate(name)
+                } label: {
+                    Label("Check for Updates…", systemImage: "arrow.clockwise")
                 }
             }
             Button(role: .destructive) {
@@ -141,7 +127,7 @@ struct AutomationView: View {
         }
     }
 
-    private func swipletLabel(_ name: String, service: SwipletService?) -> some View {
+    private func swipletLabel(_ name: String) -> some View {
         HStack(spacing: 12) {
             SwipletIconImage(icon: swiplets.icons[name] ?? .default, size: 40)
             VStack(alignment: .leading, spacing: 2) {
@@ -155,16 +141,6 @@ struct AutomationView: View {
                     Text("Update Available")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                } else if let service {
-                    Group {
-                        switch service.status {
-                        case .starting: Text("Starting…")
-                        case .running: Text("Running")
-                        case .stopped, .failed: Text("Stopped")
-                        }
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
                 }
             }
         }

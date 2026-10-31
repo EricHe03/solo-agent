@@ -21779,22 +21779,6 @@
         }
       }
     },
-    "Running" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "运行中"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "執行中"
-          }
-        }
-      }
-    },
     "Runs an action of a swiplet with the input as JSON, and returns its output as JSON." : {
       "localizations" : {
         "zh-Hans" : {
@@ -23409,54 +23393,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "原始碼"
-          }
-        }
-      }
-    },
-    "Starting…" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在启动…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在啟動…"
-          }
-        }
-      }
-    },
-    "Stopped" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已停止"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已停止"
-          }
-        }
-      }
-    },
-    "Supported formats:" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "支持的格式："
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "支援的格式："
           }
         }
       }
@@ -26033,6 +25969,22 @@
         }
       }
     },
+    "The repository has no URL for the swiplet." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仓库没有提供该 Swiplet 的 URL。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存庫沒有提供該 Swiplet 的 URL。"
+          }
+        }
+      }
+    },
     "The repository is already added." : {
       "localizations" : {
         "zh-Hans" : {
@@ -27059,22 +27011,6 @@
         }
       }
     },
-    "Turn Off Service" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭服务"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "關閉服務"
-          }
-        }
-      }
-    },
     "Turn On" : {
       "localizations" : {
         "en" : {
@@ -27093,22 +27029,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟"
-          }
-        }
-      }
-    },
-    "Turn On Service" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "打开服务"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "開啟服務"
           }
         }
       }
@@ -29687,54 +29607,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已是最新版本"
-          }
-        }
-      }
-    },
-    "ZIP files" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ZIP 文件"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ZIP 檔案"
-          }
-        }
-      }
-    },
-    "ZIP files with a single top-level folder" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "带有单层文件夹的 ZIP 文件"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "帶有單層資料夾的 ZIP 檔案"
-          }
-        }
-      }
-    },
-    "ZIP files with the !/ syntax to select a subfolder" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用 !/ 语法选择子文件夹的 ZIP 文件"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用 !/ 語法選取子資料夾的 ZIP 檔案"
           }
         }
       }

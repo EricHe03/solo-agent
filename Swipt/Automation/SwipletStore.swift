@@ -207,7 +207,10 @@ final class SwipletStore {
             updating.remove(swiplet.id)
             reload()
         }
-        let download = try await Self.download(repository.url, id: swiplet.id)
+        guard let link = URL(string: swiplet.url, relativeTo: URL(string: repository.url))?.absoluteString else {
+            throw MessageError(String(localized: "The repository has no URL for the swiplet."))
+        }
+        let download = try await Self.download(link, sha256: swiplet.sha256)
         defer { Self.discard(download.file) }
         guard download.id == swiplet.id else { throw MessageError(String(localized: "The repository sent a different swiplet.")) }
         let id = try await Platform.shared.installSwiplet(download.file)
@@ -231,7 +234,7 @@ final class SwipletStore {
         checked[id] = .now
         guard let local = manifests[id], !local.version.isEmpty, !local.updateURL.isEmpty else { return false }
         let download = try await Self.download(
-            local.updateURL, etag: Platform.shared.attribute(LibSwiptSwipletAttributeETag, of: id), version: local.version, versionCode: local.versionCode, id: id)
+            local.updateURL, etag: Platform.shared.attribute(LibSwiptSwipletAttributeETag, of: id), version: local.version, versionCode: local.versionCode)
         guard Self.isNewer(download, than: local) else {
             Self.discard(download.file)
             if !download.etag.isEmpty {
@@ -300,13 +303,13 @@ final class SwipletStore {
         return !download.version.isEmpty && download.version != local.version
     }
 
-    nonisolated private static func download(_ link: String, etag: String = "", version: String = "", versionCode: Int64 = 0, id: String = "") async throws -> SwipletDownload {
+    nonisolated private static func download(_ link: String, etag: String = "", version: String = "", versionCode: Int64 = 0, sha256: String = "") async throws -> SwipletDownload {
         let file = try temporaryFile()
         let downloader = UncheckedSendable(value: LibSwiptNewSwipletDownloader()!)
         do {
             return try await withTaskCancellationHandler {
                 try await blocking {
-                    let download = downloader.value.download(link, destination: file.path, etag: etag, version: version, versionCode: versionCode, id_: id)!
+                    let download = downloader.value.download(link, destination: file.path, etag: etag, version: version, versionCode: versionCode, checksum: sha256)!
                     switch download.errorCode {
                     case LibSwiptSwipletErrorNone:
                         let declared = FileManager.default.fileExists(atPath: file.path) ? (try? manifest(of: file))?.updateURL ?? "" : ""
@@ -461,9 +464,11 @@ nonisolated struct RepositorySwiplet: Codable, Identifiable, Sendable {
     let version: String
     let versionCode: Int64
     let icon: Icon?
+    let url: String
+    let sha256: String
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, localizedNames, description, version, versionCode, icon
+        case id, name, localizedNames, description, version, versionCode, icon, url, sha256
     }
 
     var title: String {
@@ -483,6 +488,8 @@ nonisolated struct RepositorySwiplet: Codable, Identifiable, Sendable {
         version = try container.decodeIfPresent(String.self, forKey: .version) ?? ""
         versionCode = try container.decodeIfPresent(Int64.self, forKey: .versionCode) ?? 0
         icon = try? container.decodeIfPresent(Icon.self, forKey: .icon)
+        url = try container.decodeIfPresent(String.self, forKey: .url) ?? ""
+        sha256 = try container.decodeIfPresent(String.self, forKey: .sha256) ?? ""
     }
 }
 

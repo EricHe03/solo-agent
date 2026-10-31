@@ -85,7 +85,7 @@ func ReadSwipletManifest(file string) (*SwipletManifest, error) {
 	if err != nil {
 		return nil, E.Cause(err, "open the archive")
 	}
-	archive, err := automation.ReadArchive(reader, "")
+	archive, err := automation.ReadArchive(reader)
 	if err != nil {
 		return nil, err
 	}

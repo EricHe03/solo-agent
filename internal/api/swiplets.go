@@ -251,7 +251,7 @@ func (s *swipletService) DeploySwiplet(stream grpc.ClientStreamingServer[proto.D
 	if err != nil {
 		return apiError(E.Cause1(device.ErrInvalid, E.Cause(err, "open the archive")))
 	}
-	contents, err := automation.ReadArchive(reader, "")
+	contents, err := automation.ReadArchive(reader)
 	if err != nil {
 		if !errors.Is(err, device.ErrInvalid) {
 			err = E.Cause1(device.ErrInvalid, err)

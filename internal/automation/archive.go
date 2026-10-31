@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 )
 
@@ -26,25 +25,12 @@ type Archive struct {
 	Files    []ArchiveFile
 }
 
-func ReadArchive(reader *zip.Reader, folder string) (Archive, error) {
-	files := common.Filter(reader.File, func(file *zip.File) bool {
-		return !file.FileInfo().IsDir() && !strings.HasPrefix(file.Name, "__MACOSX/") && path.Base(file.Name) != ".DS_Store"
-	})
-	var prefix string
-	if len(files) > 0 {
-		top, _, _ := strings.Cut(files[0].Name, "/")
-		if common.All(files, func(file *zip.File) bool { return strings.HasPrefix(file.Name, top+"/") }) {
-			prefix = top + "/"
-		}
-	}
-	if folder != "" {
-		prefix += folder + "/"
-	}
+func ReadArchive(reader *zip.Reader) (Archive, error) {
 	var archive Archive
 	var manifestFile *zip.File
-	for _, file := range files {
-		name, found := strings.CutPrefix(file.Name, prefix)
-		if !found || name != ManifestFile && name != IconFile && !strings.HasPrefix(name, SourceFolder+"/") && !strings.HasPrefix(name, AssetsFolder+"/") {
+	for _, file := range reader.File {
+		name := file.Name
+		if file.FileInfo().IsDir() || name != ManifestFile && name != IconFile && !strings.HasPrefix(name, SourceFolder+"/") && !strings.HasPrefix(name, AssetsFolder+"/") {
 			continue
 		}
 		if !fs.ValidPath(name) || strings.Contains(name, `\`) {
@@ -56,7 +42,7 @@ func ReadArchive(reader *zip.Reader, folder string) (Archive, error) {
 		archive.Files = append(archive.Files, ArchiveFile{file, name})
 	}
 	if manifestFile == nil {
-		return Archive{}, E.New("the archive has no ", prefix+ManifestFile)
+		return Archive{}, E.New("the archive has no ", ManifestFile)
 	}
 	data, err := readZipFile(manifestFile)
 	if err != nil {
@@ -75,9 +61,9 @@ func ReadArchive(reader *zip.Reader, folder string) (Archive, error) {
 	extension := manifest.Service || len(manifest.Actions) > 0
 	switch {
 	case manifest.Interface && !has(InterfaceFile):
-		return Archive{}, E.New("the manifest declares an interface, but the archive has no ", prefix+path.Join(SourceFolder, InterfaceFile))
+		return Archive{}, E.New("the manifest declares an interface, but the archive has no ", path.Join(SourceFolder, InterfaceFile))
 	case extension && !has(ExtensionFile):
-		return Archive{}, E.New("the manifest declares a service or actions, but the archive has no ", prefix+path.Join(SourceFolder, ExtensionFile))
+		return Archive{}, E.New("the manifest declares a service or actions, but the archive has no ", path.Join(SourceFolder, ExtensionFile))
 	case !manifest.Interface && !extension:
 		return Archive{}, E.New("the manifest declares neither an interface nor a service or actions")
 	}
