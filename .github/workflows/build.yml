@@ -163,7 +163,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
-          fetch-depth: 1
+          fetch-depth: 0
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -176,9 +176,14 @@ jobs:
           CURRENT=$(npm view @swipt/api@nightly version 2> /dev/null || true)
           NUMBER=1
           if [[ "$CURRENT" == "$BASE-nightly."* ]]; then
-            NUMBER=$(( ${CURRENT##*.} + 1 ))
-            if [ "$(npm view "@swipt/api@$CURRENT" gitHead 2> /dev/null)" = "$GITHUB_SHA" ]; then
+            PUBLISHED=$(npm view "@swipt/api@$CURRENT" gitHead 2> /dev/null || true)
+            if [ "$PUBLISHED" = "$GITHUB_SHA" ]; then
               NUMBER=${CURRENT##*.}
+            elif [ -n "$PUBLISHED" ] && git cat-file -e "$PUBLISHED^{commit}" 2> /dev/null && git diff --quiet "$PUBLISHED" HEAD -- api; then
+              echo "api is unchanged since $CURRENT"
+              exit 0
+            else
+              NUMBER=$(( ${CURRENT##*.} + 1 ))
             fi
           fi
           VERSION="$BASE-nightly.$NUMBER"
