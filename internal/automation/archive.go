@@ -44,7 +44,7 @@ func ReadArchive(reader *zip.Reader, folder string) (Archive, error) {
 	var manifestFile *zip.File
 	for _, file := range files {
 		name, found := strings.CutPrefix(file.Name, prefix)
-		if !found || name != ManifestFile && name != IconFile && !strings.HasPrefix(name, SourceFolder+"/") {
+		if !found || name != ManifestFile && name != IconFile && !strings.HasPrefix(name, SourceFolder+"/") && !strings.HasPrefix(name, AssetsFolder+"/") {
 			continue
 		}
 		if !fs.ValidPath(name) || strings.Contains(name, `\`) {

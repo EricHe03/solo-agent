@@ -4,7 +4,10 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -17,12 +20,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/automation"
 )
 
 const (
 	swipletHeadSize    = 64 << 10
+	sourceLimit        = 4 << 20
 	swipletIdleTimeout = 15 * time.Second
 	remoteWindowSize   = 64 << 10
 	remoteWindowLimit  = 4 << 20
@@ -61,11 +66,12 @@ func (c *idleConn) Write(p []byte) (int, error) {
 }
 
 type SwipletDownload struct {
-	URL       string
-	EntityTag string
-	Name      string
-	ID        string
-	Version   string
+	URL         string
+	EntityTag   string
+	Name        string
+	ID          string
+	Version     string
+	VersionCode int64
 
 	ErrorCode    int32
 	ErrorMessage string
@@ -91,8 +97,8 @@ func (d *SwipletDownloader) Cancel() {
 	d.cancel()
 }
 
-func (d *SwipletDownloader) Download(link string, destination string, etag string, version string) *SwipletDownload {
-	download, err := d.download(link, destination, etag, version)
+func (d *SwipletDownloader) Download(link string, destination string, etag string, version string, versionCode int64, id string) *SwipletDownload {
+	download, err := d.download(link, destination, etag, version, versionCode, id)
 	switch {
 	case err == nil:
 		return download
@@ -103,7 +109,7 @@ func (d *SwipletDownloader) Download(link string, destination string, etag strin
 	}
 }
 
-func (d *SwipletDownloader) download(link string, destination string, etag string, version string) (*SwipletDownload, error) {
+func (d *SwipletDownloader) download(link string, destination string, etag string, version string, versionCode int64, id string) (*SwipletDownload, error) {
 	location, folder, _ := strings.Cut(link, "!/")
 	if unescaped, err := url.PathUnescape(folder); err == nil {
 		folder = unescaped
@@ -150,6 +156,12 @@ func (d *SwipletDownloader) download(link string, destination string, etag strin
 	if err != nil {
 		return nil, err
 	}
+	if !bytes.HasPrefix(head, archiveMagic) {
+		if bytes.HasPrefix(bytes.TrimLeft(head, " \t\r\n"), []byte("{")) {
+			return d.fromSource(download, response, head, destination, version, versionCode, id, link)
+		}
+		return nil, E.New("the file is neither a swiplet nor a source")
+	}
 	var remote *remoteFile
 	content := io.MultiReader(bytes.NewReader(head), response.Body)
 	if response.StatusCode == http.StatusPartialContent {
@@ -157,9 +169,6 @@ func (d *SwipletDownloader) download(link string, destination string, etag strin
 			return nil, err
 		}
 		content = io.NewSectionReader(remote, 0, remote.size)
-	}
-	if !bytes.HasPrefix(head, archiveMagic) {
-		return nil, E.New("the file is not a ZIP archive")
 	}
 	var archive io.ReaderAt
 	var size int64
@@ -186,6 +195,115 @@ func (d *SwipletDownloader) download(link string, destination string, etag strin
 		}
 		archive = file
 	}
+	return finish(download, archive, size, folder, link, destination, version, versionCode)
+}
+
+type sourceEntry struct {
+	ID          string `json:"id"`
+	Version     string `json:"version"`
+	VersionCode int64  `json:"versionCode"`
+	URL         string `json:"url"`
+	SHA256      string `json:"sha256"`
+}
+
+type source struct {
+	Swiplets []sourceEntry `json:"swiplets"`
+}
+
+func (d *SwipletDownloader) get(location string) (*http.Response, error) {
+	request, err := http.NewRequestWithContext(d.ctx, http.MethodGet, location, nil)
+	if err != nil {
+		return nil, err
+	}
+	response, err := swipletClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode != http.StatusOK {
+		response.Body.Close()
+		return nil, E.New(response.Status)
+	}
+	return response, nil
+}
+
+func (d *SwipletDownloader) fromSource(download *SwipletDownload, response *http.Response, head []byte, destination string, version string, versionCode int64, id string, link string) (*SwipletDownload, error) {
+	var body io.Reader = io.MultiReader(bytes.NewReader(head), response.Body)
+	if response.StatusCode == http.StatusPartialContent {
+		full, err := d.get(response.Request.URL.String())
+		if err != nil {
+			return nil, err
+		}
+		defer full.Body.Close()
+		body = full.Body
+	}
+	data, err := io.ReadAll(io.LimitReader(body, sourceLimit+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > sourceLimit {
+		return nil, E.New("the source is larger than ", sourceLimit>>20, " MB")
+	}
+	var listed source
+	if err = json.Unmarshal(data, &listed); err != nil {
+		return nil, E.Cause(err, "read the source")
+	}
+	var entry sourceEntry
+	switch {
+	case id != "":
+		entry = common.Find(listed.Swiplets, func(it sourceEntry) bool { return it.ID == id })
+		if entry.ID == "" {
+			return nil, E.New("the source no longer lists ", strconv.Quote(id))
+		}
+	case len(listed.Swiplets) == 1:
+		entry = listed.Swiplets[0]
+	case len(listed.Swiplets) == 0:
+		return nil, E.New("the source lists no swiplets")
+	default:
+		return nil, E.New("the source lists ", len(listed.Swiplets), " swiplets; import one of them by its own URL")
+	}
+	download.ID, download.Version, download.VersionCode = entry.ID, entry.Version, entry.VersionCode
+	if (version != "" || versionCode > 0) && !automation.IsNewer(automation.Manifest{Version: entry.Version, VersionCode: entry.VersionCode}, version, versionCode) {
+		return download, nil
+	}
+	target, err := url.Parse(entry.URL)
+	if err != nil {
+		return nil, E.Cause(err, "read the URL of ", entry.ID)
+	}
+	target = response.Request.URL.ResolveReference(target)
+	if target.Scheme != "http" && target.Scheme != "https" {
+		return nil, E.New("unsupported URL ", strconv.Quote(target.String()))
+	}
+	download.Name = strings.TrimSuffix(path.Base(target.Path), path.Ext(target.Path))
+	archive, err := d.get(target.String())
+	if err != nil {
+		return nil, err
+	}
+	defer archive.Body.Close()
+	file, err := os.Create(destination + ".download")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(file.Name())
+	defer file.Close()
+	hash := sha256.New()
+	size, err := io.Copy(io.MultiWriter(file, hash), archive.Body)
+	if err != nil {
+		return nil, err
+	}
+	if entry.SHA256 != "" && !strings.EqualFold(hex.EncodeToString(hash.Sum(nil)), entry.SHA256) {
+		return nil, E.New("the download of ", entry.ID, " doesn't match the checksum in the source")
+	}
+	finished, err := finish(download, file, size, "", link, destination, version, versionCode)
+	if err != nil {
+		return nil, err
+	}
+	if finished.ID != entry.ID {
+		return nil, E.New("the source points ", strconv.Quote(entry.ID), " at the swiplet ", strconv.Quote(finished.ID))
+	}
+	return finished, nil
+}
+
+func finish(download *SwipletDownload, archive io.ReaderAt, size int64, folder string, link string, destination string, version string, versionCode int64) (*SwipletDownload, error) {
 	reader, err := zip.NewReader(archive, size)
 	if err != nil {
 		return nil, E.Cause(err, "open the archive")
@@ -194,8 +312,8 @@ func (d *SwipletDownloader) download(link string, destination string, etag strin
 	if err != nil {
 		return nil, err
 	}
-	download.ID = contents.Manifest.ID
-	if download.Version = contents.Manifest.Version; version != "" && (download.Version == "" || download.Version == version) {
+	download.ID, download.Version, download.VersionCode = contents.Manifest.ID, contents.Manifest.Version, contents.Manifest.VersionCode
+	if (version != "" || versionCode > 0) && !automation.IsNewer(contents.Manifest, version, versionCode) {
 		return download, nil
 	}
 	file, err := os.Create(destination)

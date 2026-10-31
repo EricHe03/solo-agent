@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
@@ -19,6 +20,11 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
       - name: Release
         run: |-
           gh release download nightly -D build -p Swipt.ipa -p Swipt-iOS.dSYMs.zip -p metadata.json -p icon.png
@@ -39,5 +45,15 @@ jobs:
           go run ./cmd/internal/build_altstore_source -tag "$TAG"
           gh release create "$TAG" --draft --target "$(git rev-parse 'nightly^{commit}')" --notes "$NOTES" \
             build/Swipt.ipa build/Swipt-iOS.dSYMs.zip build/metadata.json build/icon.png build/altstore/altstore.json
+          git archive 'nightly^{commit}' api | tar -x -C build
+          npm install -g npm@latest
+          for package in api api/cli; do
+            PACKAGE=$(node -p "const p = require('./build/$package/package.json'); p.name + '@' + p.version")
+            if npm view "$PACKAGE" version > /dev/null 2>&1; then
+              echo "$PACKAGE is already published"
+            else
+              npm publish "./build/$package"
+            fi
+          done
         env:
           GH_TOKEN: ${{ github.token }}

@@ -707,6 +707,22 @@
         }
       }
     },
+    "Add" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入"
+          }
+        }
+      }
+    },
     "Add Swiplet" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3591,6 +3607,22 @@
         }
       }
     },
+    "Can’t Add the Swiplet" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法添加 Swiplet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法加入 Swiplet"
+          }
+        }
+      }
+    },
     "Can’t Delete the Swiplet" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3663,6 +3695,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法打開檔案"
+          }
+        }
+      }
+    },
+    "Can’t Open the Swiplet" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开 Swiplet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法開啟 Swiplet"
           }
         }
       }
@@ -15287,6 +15335,22 @@
         }
       }
     },
+    "No Official Swiplets" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有官方 Swiplet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有官方 Swiplet"
+          }
+        }
+      }
+    },
     "No Swiplets" : {
       "localizations" : {
         "zh-Hans" : {
@@ -16227,6 +16291,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "好"
+          }
+        }
+      }
+    },
+    "Official Swiplets" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "官方 Swiplet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "官方 Swiplet"
+          }
+        }
+      }
+    },
+    "Official swiplets are made by the Swipt team and update automatically." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "官方 Swiplet 由 Swipt 团队制作，并会自动更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "官方 Swiplet 由 Swipt 團隊製作，並會自動更新。"
           }
         }
       }
@@ -25617,6 +25713,70 @@
         }
       }
     },
+    "The download doesn’t match the official source." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载内容与官方源不一致。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載內容與官方來源不一致。"
+          }
+        }
+      }
+    },
+    "The download is a different swiplet." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载的是另一个 Swiplet。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載的是另一個 Swiplet。"
+          }
+        }
+      }
+    },
+    "The file is not a swiplet." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该文件不是 Swiplet。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該檔案不是 Swiplet。"
+          }
+        }
+      }
+    },
+    "The installed copy will be replaced." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装的副本将被替换。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安裝的副本將被取代。"
+          }
+        }
+      }
+    },
     "The new language takes effect after you restart the app." : {
       "localizations" : {
         "ar" : {
@@ -25917,6 +26077,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新啟動 App 後才會套用新語言。"
+          }
+        }
+      }
+    },
+    "The official source lists an invalid address." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "官方源列出的地址无效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "官方來源列出的位址無效。"
+          }
+        }
+      }
+    },
+    "The official source sent an unexpected response." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "官方源返回了异常响应。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "官方來源傳回了異常回應。"
+          }
+        }
+      }
+    },
+    "The update is a different swiplet." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新的是另一个 Swiplet。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新的是另一個 Swiplet。"
           }
         }
       }
@@ -26873,6 +27081,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "權杖"
+          }
+        }
+      }
+    },
+    "Try Again" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試一次"
           }
         }
       }
@@ -28201,6 +28425,22 @@
         }
       }
     },
+    "Update Swiplet" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新 Swiplet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新 Swiplet"
+          }
+        }
+      }
+    },
     "Updating…" : {
       "localizations" : {
         "zh-Hans" : {
@@ -28887,6 +29127,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "值"
+          }
+        }
+      }
+    },
+    "Version %@ is installed and will be replaced." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装版本 %@，将被替换。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安裝版本 %@，將被取代。"
           }
         }
       }

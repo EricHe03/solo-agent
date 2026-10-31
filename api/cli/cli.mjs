@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import vm from "node:vm";
 
 import { build } from "esbuild";
 
-const { version, peerDependencies } = JSON.parse(fs.readFileSync(new URL("package.json", import.meta.url), "utf8"));
+const { version } = JSON.parse(fs.readFileSync(new URL("package.json", import.meta.url), "utf8"));
+const { peerDependencies } = createRequire(import.meta.url)("@swipt/api/package.json");
 
 const appModules = [
   "react",
@@ -17,21 +20,25 @@ const appModules = [
   "expo-localization",
   "@expo/ui",
   "@expo/ui/*",
-  "swiplet/interface",
-  "swiplet/file-system",
+  "@swipt/api",
+  "@swipt/api/swiplet",
+  "@swipt/api/file-system",
 ];
 const extensionModules = [
-  "swiplet/extension",
-  "swiplet/file-system",
-  "swiplet/accessibility",
-  "swiplet/input",
-  "swiplet/device",
-  "swiplet/screen",
-  "swiplet/image",
+  "@swipt/api",
+  "@swipt/api/swiplet",
+  "@swipt/api/file-system",
+  "@swipt/api/accessibility",
+  "@swipt/api/input",
+  "@swipt/api/device",
+  "@swipt/api/screen",
+  "@swipt/api/image",
   "expo-localization",
 ];
 
 const idPattern = /^[a-z0-9][a-z0-9._-]{0,127}$/;
+
+const storedSuffixes = [".webp", ".jxl", ".avif", ".heic", ".heif", ".jpg", ".jpeg", ".png", ".gif", ".mp4", ".mov", ".m4a", ".mp3", ".aac", ".zip", ".gz", ".br", ".zst", ".xz"].join(":");
 
 function loadProject(root) {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
@@ -50,6 +57,9 @@ function loadProject(root) {
     if (config[field] !== undefined && typeof config[field] !== "string") {
       throw new Error(`"swiplet.${field}" in package.json must be a string`);
     }
+  }
+  if (config.versionCode !== undefined && (!Number.isInteger(config.versionCode) || config.versionCode < 1)) {
+    throw new Error('"swiplet.versionCode" in package.json must be a positive integer');
   }
   const entry = name => (config[name] === undefined ? undefined : path.resolve(root, config[name]));
   return { root, manifest, config, localizedNames, app: entry("app"), extension: entry("extension") };
@@ -126,21 +136,26 @@ function describeExtension(source) {
     return new Proxy(fail, { get, apply: fail, construct: fail });
   };
   const modules = {
-    "swiplet/extension": {
+    "@swipt/api": {},
+    "@swipt/api/swiplet": {
       defineExtension: definition => ({ [definitionKey]: definition }),
       defineAction: definition => definition,
-      sleep: loading("sleep"),
+      actions: loading("actions"),
+      useService: loading("useService"),
     },
-    "swiplet/file-system": {
+    "@swipt/api/file-system": {
       get dataDirectory() {
         throw new Error("dataDirectory is used while extension.js loads; use it inside run or an action");
       },
+      get assets() {
+        throw new Error("assets is used while extension.js loads; use it inside run or an action");
+      },
     },
-    "swiplet/accessibility": loading("accessibility"),
-    "swiplet/input": loading("input"),
-    "swiplet/device": loading("device"),
-    "swiplet/screen": loading("screen"),
-    "swiplet/image": loading("image"),
+    "@swipt/api/accessibility": loading("accessibility"),
+    "@swipt/api/input": loading("input"),
+    "@swipt/api/device": loading("device"),
+    "@swipt/api/screen": loading("screen"),
+    "@swipt/api/image": loading("image"),
     "expo-localization": { getLocales: () => [{ languageTag: "en", languageCode: "en" }], getCalendars: () => [] },
   };
   const ignored = () => 0;
@@ -206,6 +221,7 @@ function swipletManifest(project, output) {
     ...(Object.keys(localizedNames).length > 0 ? { localizedNames } : {}),
     ...(config.description ? { description: config.description } : {}),
     ...(project.manifest.version ? { version: project.manifest.version } : {}),
+    ...(config.versionCode ? { versionCode: config.versionCode } : {}),
     ...(config.icon ? { icon: config.icon } : {}),
     ...(config.updateURL ? { updateURL: config.updateURL } : {}),
     ...(output.app ? { interface: true } : {}),
@@ -237,10 +253,53 @@ async function buildCommand(root) {
   if (fs.existsSync(path.join(root, "icon.png"))) {
     fs.copyFileSync(path.join(root, "icon.png"), path.join(folder, "icon.png"));
   }
-  const archive = path.join(dist, `${manifest.id}.zip`);
+  if (fs.existsSync(path.join(root, "assets"))) {
+    fs.cpSync(path.join(root, "assets"), path.join(folder, "assets"), { recursive: true, filter: source => !path.basename(source).startsWith(".") });
+  }
+  const archive = path.join(dist, `${manifest.id}.swiplet`);
   fs.rmSync(archive, { force: true });
-  execFileSync("zip", ["-qr", archive, manifest.id, "-x", "*.map"], { cwd: dist });
+  fs.rmSync(path.join(dist, `${manifest.id}.zip`), { force: true });
+  execFileSync("zip", ["-qr", "-n", storedSuffixes, archive, manifest.id, "-x", "*.map"], { cwd: dist });
   console.log(path.relative(process.cwd(), archive));
+}
+
+const manifestEntry = /^(?:[^/]+\/)?manifest\.json$/;
+
+function sourceCommand(files, base, output) {
+  if (!base) {
+    throw new UsageError("source needs --url, the address the swiplets are published under");
+  }
+  let prefix;
+  try {
+    prefix = new URL(base.endsWith("/") ? base : `${base}/`);
+  } catch {
+    throw new UsageError(`--url ${JSON.stringify(base)} is not an absolute URL`);
+  }
+  const swiplets = new Map();
+  for (const file of files) {
+    const entry = execFileSync("unzip", ["-Z1", file], { encoding: "utf8" }).split("\n").filter(name => manifestEntry.test(name)).sort((a, b) => a.length - b.length)[0];
+    if (entry === undefined) {
+      throw new Error(`${file} has no manifest.json`);
+    }
+    const manifest = JSON.parse(execFileSync("unzip", ["-p", file, entry], { encoding: "utf8" }));
+    if (typeof manifest.id !== "string" || !idPattern.test(manifest.id)) {
+      throw new Error(`${file} has no valid swiplet id in its manifest`);
+    }
+    if (swiplets.has(manifest.id)) {
+      throw new Error(`${manifest.id} is both ${swiplets.get(manifest.id).file} and ${file}`);
+    }
+    const data = fs.readFileSync(file);
+    swiplets.set(manifest.id, {
+      file,
+      entry: { ...manifest, url: new URL(path.basename(file), prefix).href, size: data.length, sha256: createHash("sha256").update(data).digest("hex") },
+    });
+  }
+  const listed = `${JSON.stringify({ swiplets: [...swiplets.keys()].sort().map(id => swiplets.get(id).entry) }, null, 2)}\n`;
+  if (output) {
+    fs.writeFileSync(output, listed);
+  } else {
+    process.stdout.write(listed);
+  }
 }
 
 const idOf = name => name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^[._-]+/, "").slice(0, 128).replace(/[._-]+$/, "") || "swiplet";
@@ -255,6 +314,7 @@ const templates = {
         swiplet: {
           id: idOf(name),
           name,
+          versionCode: 1,
           icon: { color: "blue", symbol: "sparkles" },
           app: "./src/App.tsx",
           extension: "./src/extension.ts",
@@ -262,7 +322,8 @@ const templates = {
         scripts: { build: "swiplet build", check: "tsc" },
         dependencies: { zod: "^4.6.7" },
         devDependencies: {
-          swiplet: `^${version}`,
+          "@swipt/api": version,
+          "@swipt/cli": version,
           typescript: "^7.0.2",
           ...Object.fromEntries(["@expo/ui", "@types/react", "react"].map(name => [name, peerDependencies[name]])),
         },
@@ -282,8 +343,8 @@ const templates = {
       2,
     )}\n`,
   ".gitignore": () => "node_modules/\ndist/\n",
-  "src/extension.ts": () => `import * as device from "swiplet/device";
-import { defineAction, defineExtension } from "swiplet/extension";
+  "src/extension.ts": () => `import * as device from "@swipt/api/device";
+import { defineAction, defineExtension } from "@swipt/api/swiplet";
 
 export default defineExtension({
   actions: {
@@ -296,7 +357,7 @@ export default defineExtension({
 `,
   "src/App.tsx": () => `import { Button, Form, Host, Section, Text } from "@expo/ui/swift-ui";
 import { useState } from "react";
-import { actions } from "swiplet/interface";
+import { actions } from "@swipt/api/swiplet";
 
 import type extension from "./extension";
 
@@ -335,20 +396,22 @@ function createCommand(directory) {
 
 const usage = `usage: swiplet create <directory>
        swiplet build
+       swiplet source --url <address> [--output <file>] <swiplet>...
 
   create   make a swiplet project in a new or empty directory
-  build    bundle the project in this directory into dist/<swiplet.id>.zip
+  build    bundle the project in this directory into dist/<swiplet.id>.swiplet
+  source   list built swiplets in a source that Swipt installs and updates from
 
 Type-check a project with its "check" script.`;
 
-const commands = { create: 1, build: 0 };
+const commands = { create: 1, build: 0, source: -1 };
 
 class UsageError extends Error {}
 
 try {
   let parsed;
   try {
-    parsed = parseArgs({ allowPositionals: true, options: { help: { type: "boolean", short: "h" } } });
+    parsed = parseArgs({ allowPositionals: true, options: { help: { type: "boolean", short: "h" }, url: { type: "string" }, output: { type: "string" } } });
   } catch (error) {
     throw new UsageError(error.message);
   }
@@ -359,10 +422,14 @@ try {
     throw new UsageError("a command is missing");
   } else if (!Object.hasOwn(commands, command)) {
     throw new UsageError(`unknown command ${JSON.stringify(command)}`);
-  } else if (rest.length !== commands[command]) {
-    throw new UsageError(commands[command] === 0 ? `${command} takes no arguments` : `${command} takes one ${command === "create" ? "directory" : "argument"}`);
+  } else if (commands[command] < 0 ? rest.length === 0 : rest.length !== commands[command]) {
+    throw new UsageError(
+      commands[command] === 0 ? `${command} takes no arguments` : commands[command] < 0 ? `${command} takes one or more swiplets` : `${command} takes one directory`,
+    );
   } else if (command === "create") {
     createCommand(rest[0]);
+  } else if (command === "source") {
+    sourceCommand(rest, parsed.values.url, parsed.values.output);
   } else {
     await buildCommand(process.cwd());
   }

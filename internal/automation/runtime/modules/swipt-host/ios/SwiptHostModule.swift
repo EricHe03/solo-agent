@@ -31,14 +31,14 @@ public protocol SwiptHostDelegate: AnyObject {
   func call(swiplet: String, action: String, input: String) async throws -> String
   func setServiceEnabled(swiplet: String, enabled: Bool) async throws
   func surfaceDidMount(_ surface: String)
-  func statFile(swiplet: String, path: String) async throws -> SwiptHostFileInfo
-  func listFiles(swiplet: String, path: String) async throws -> [SwiptHostFileEntry]
-  func readFile(swiplet: String, path: String) async throws -> Data
-  func writeFile(swiplet: String, path: String, data: Data) async throws
-  func makeDirectory(swiplet: String, path: String) async throws
-  func removeFile(swiplet: String, path: String) async throws
-  func copyFile(swiplet: String, from: String, to: String) async throws
-  func moveFile(swiplet: String, from: String, to: String) async throws
+  func statFile(swiplet: String, root: String, path: String) async throws -> SwiptHostFileInfo
+  func listFiles(swiplet: String, root: String, path: String) async throws -> [SwiptHostFileEntry]
+  func readFile(swiplet: String, root: String, path: String) async throws -> Data
+  func writeFile(swiplet: String, root: String, path: String, data: Data) async throws
+  func makeDirectory(swiplet: String, root: String, path: String) async throws
+  func removeFile(swiplet: String, root: String, path: String) async throws
+  func copyFile(swiplet: String, root: String, from: String, toRoot: String, to: String) async throws
+  func moveFile(swiplet: String, root: String, from: String, toRoot: String, to: String) async throws
 }
 
 public final class SwiptHostModule: Module {
@@ -95,48 +95,48 @@ public final class SwiptHostModule: Module {
       }
     }
 
-    AsyncFunction("fileStat") { @MainActor (swiplet: String, path: String) async throws -> [String: Any] in
-      let info = try await Self.host().statFile(swiplet: swiplet, path: path)
+    AsyncFunction("fileStat") { @MainActor (swiplet: String, root: String, path: String) async throws -> [String: Any] in
+      let info = try await Self.host().statFile(swiplet: swiplet, root: root, path: path)
       return ["exists": info.exists, "directory": info.directory, "size": info.size, "modified": info.modified]
     }
 
-    AsyncFunction("fileList") { @MainActor (swiplet: String, path: String) async throws -> [[String: Any]] in
-      try await Self.host().listFiles(swiplet: swiplet, path: path).map { ["name": $0.name, "directory": $0.directory] }
+    AsyncFunction("fileList") { @MainActor (swiplet: String, root: String, path: String) async throws -> [[String: Any]] in
+      try await Self.host().listFiles(swiplet: swiplet, root: root, path: path).map { ["name": $0.name, "directory": $0.directory] }
     }
 
-    AsyncFunction("fileRead") { @MainActor (swiplet: String, path: String) async throws -> String in
-      try await Self.host().readFile(swiplet: swiplet, path: path).base64EncodedString()
+    AsyncFunction("fileRead") { @MainActor (swiplet: String, root: String, path: String) async throws -> String in
+      try await Self.host().readFile(swiplet: swiplet, root: root, path: path).base64EncodedString()
     }
 
-    AsyncFunction("fileReadText") { @MainActor (swiplet: String, path: String) async throws -> String in
-      String(decoding: try await Self.host().readFile(swiplet: swiplet, path: path), as: UTF8.self)
+    AsyncFunction("fileReadText") { @MainActor (swiplet: String, root: String, path: String) async throws -> String in
+      String(decoding: try await Self.host().readFile(swiplet: swiplet, root: root, path: path), as: UTF8.self)
     }
 
-    AsyncFunction("fileWrite") { @MainActor (swiplet: String, path: String, base64: String) async throws in
+    AsyncFunction("fileWrite") { @MainActor (swiplet: String, root: String, path: String, base64: String) async throws in
       guard let data = Data(base64Encoded: base64) else {
         throw Exception(name: "SwiptHostInvalidData", description: "the data is not base64")
       }
-      try await Self.host().writeFile(swiplet: swiplet, path: path, data: data)
+      try await Self.host().writeFile(swiplet: swiplet, root: root, path: path, data: data)
     }
 
-    AsyncFunction("fileWriteText") { @MainActor (swiplet: String, path: String, text: String) async throws in
-      try await Self.host().writeFile(swiplet: swiplet, path: path, data: Data(text.utf8))
+    AsyncFunction("fileWriteText") { @MainActor (swiplet: String, root: String, path: String, text: String) async throws in
+      try await Self.host().writeFile(swiplet: swiplet, root: root, path: path, data: Data(text.utf8))
     }
 
-    AsyncFunction("fileMkdir") { @MainActor (swiplet: String, path: String) async throws in
-      try await Self.host().makeDirectory(swiplet: swiplet, path: path)
+    AsyncFunction("fileMkdir") { @MainActor (swiplet: String, root: String, path: String) async throws in
+      try await Self.host().makeDirectory(swiplet: swiplet, root: root, path: path)
     }
 
-    AsyncFunction("fileRemove") { @MainActor (swiplet: String, path: String) async throws in
-      try await Self.host().removeFile(swiplet: swiplet, path: path)
+    AsyncFunction("fileRemove") { @MainActor (swiplet: String, root: String, path: String) async throws in
+      try await Self.host().removeFile(swiplet: swiplet, root: root, path: path)
     }
 
-    AsyncFunction("fileCopy") { @MainActor (swiplet: String, from: String, to: String) async throws in
-      try await Self.host().copyFile(swiplet: swiplet, from: from, to: to)
+    AsyncFunction("fileCopy") { @MainActor (swiplet: String, root: String, from: String, toRoot: String, to: String) async throws in
+      try await Self.host().copyFile(swiplet: swiplet, root: root, from: from, toRoot: toRoot, to: to)
     }
 
-    AsyncFunction("fileMove") { @MainActor (swiplet: String, from: String, to: String) async throws in
-      try await Self.host().moveFile(swiplet: swiplet, from: from, to: to)
+    AsyncFunction("fileMove") { @MainActor (swiplet: String, root: String, from: String, toRoot: String, to: String) async throws in
+      try await Self.host().moveFile(swiplet: swiplet, root: root, from: from, toRoot: toRoot, to: to)
     }
   }
 }

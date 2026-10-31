@@ -152,6 +152,39 @@ jobs:
             build/metadata.json
             build/altstore
           if-no-files-found: error
+  publish_packages:
+    name: Publish packages
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    needs:
+      - calculate_version
+      - build_ios_ipa
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 1
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Publish
+        run: |-
+          npm install -g npm@latest
+          VERSION="$(node -p "require('./api/package.json').version")-nightly.$BUILD_NUMBER"
+          for package in api api/cli; do
+            npm version "$VERSION" --no-git-tag-version --prefix "$package"
+          done
+          npm pkg set "peerDependencies.@swipt/api=$VERSION" --prefix api/cli
+          for package in api api/cli; do
+            npm publish "./$package" --tag nightly
+          done
+        env:
+          BUILD_NUMBER: ${{ needs.calculate_version.outputs.build_number }}
   publish_nightly:
     name: Publish nightly
     if: github.ref == 'refs/heads/main' && !cancelled() && !failure()

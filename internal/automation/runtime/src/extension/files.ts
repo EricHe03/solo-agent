@@ -4,7 +4,7 @@ import { TextDecoder, TextEncoder } from "./encoding";
 import { Blob } from "./fetch";
 import { native } from "./native";
 
-type Root = "data" | "cache";
+type Root = "data" | "assets" | "cache";
 
 interface Location {
   readonly root: Root;
@@ -20,7 +20,9 @@ interface Stat {
 const token = Symbol("location");
 const locations = new WeakMap<FileHandle | DirectoryHandle, Location>();
 
-const rootPath = (root: Root): string => (root === "data" ? native.dataDirectory : native.cacheDirectory).replace(/\/+$/, "");
+const rootPaths: Record<Root, () => string> = { data: () => native.dataDirectory, assets: () => native.assetsDirectory, cache: () => native.cacheDirectory };
+
+const rootPath = (root: Root): string => rootPaths[root]().replace(/\/+$/, "");
 
 const at = (handle: FileHandle | DirectoryHandle): Location => locations.get(handle)!;
 
@@ -50,7 +52,7 @@ const bytesOf = async (data: unknown): Promise<Uint8Array> => {
 
 const guard = (key: symbol) => {
   if (key !== token) {
-    throw new TypeError("file handles come from dataDirectory or from Swipt");
+    throw new TypeError("file handles come from dataDirectory, assets or from Swipt");
   }
 };
 
@@ -168,8 +170,11 @@ const handleOf = (value: unknown, name: string): FileHandle => {
 };
 
 let data: DirectoryHandle | undefined;
+let assetsRoot: DirectoryHandle | undefined;
 
 export const dataDirectory = (): DirectoryHandle => data ??= new DirectoryHandle(token, { root: "data", path: "" });
+
+export const assets = (): DirectoryHandle => assetsRoot ??= new DirectoryHandle(token, { root: "assets", path: "" });
 
 export const cacheFile = (path: string): FileHandle => new FileHandle(token, { root: "cache", path: joinRelative("", path) });
 
@@ -185,7 +190,7 @@ export const fileOf = (value: unknown, name: string): FileHandle => {
 
 export const handleOfPath = (value: string): FileHandle => {
   const absolute = value.startsWith("file://") ? decodeURIComponent(value.slice("file://".length)) : value;
-  for (const root of ["data", "cache"] as const) {
+  for (const root of ["data", "assets", "cache"] as const) {
     const prefix = `${rootPath(root)}/`;
     if (absolute.startsWith(prefix)) {
       return new FileHandle(token, { root, path: absolute.slice(prefix.length).replace(/\/+$/, "") });

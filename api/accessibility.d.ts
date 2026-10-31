@@ -1,4 +1,4 @@
-import type { CallOptions, Point, Rect } from "./extension";
+import type { CallOptions, Point, Rect } from "./index";
 import type { TapOptions } from "./input";
 
 export type AccessibilityTrait = "button" | "link" | "image" | "playsSound" | "keyboardKey" | "staticText" | "summaryElement"

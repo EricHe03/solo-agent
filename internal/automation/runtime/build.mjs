@@ -6,8 +6,8 @@ const shared = { bundle: true, format: "iife", target: "es2022", platform: "neut
 await build({ ...shared, entryPoints: ["src/extension/index.ts"], inject: ["src/extension/encoding.ts"], globalName: "__swiptRuntime", outfile: "../runtime.js" });
 await build({ ...shared, entryPoints: ["src/extension/rewrite.ts"], globalName: "__swiptRewrite", outfile: "../rewrite.js" });
 
-const read = name => fs.readFileSync(new URL(`../../../sdk/${name}.d.ts`, import.meta.url), "utf8");
-const globalModules = ["extension", "file-system"];
+const read = name => fs.readFileSync(new URL(`../../../api/${name}.d.ts`, import.meta.url), "utf8");
+const globalModules = ["index", "file-system", "swiplet"];
 const namespaces = ["accessibility", "input", "device", "screen", "image"];
 
 const imports = text => {
@@ -23,7 +23,10 @@ const imports = text => {
   return { aliases, body: body.replace(/^\n+/, "") };
 };
 
-const replOnly = text => text.replace(/\nexport type JSONValue[\s\S]*?\n\}\): Extension<Actions, false>;\n/, "\n");
+const replOnly = text => {
+  const packaging = text.indexOf("export type ActionCaller");
+  return packaging < 0 ? text : text.slice(0, packaging);
+};
 const globals = globalModules.map(name => replOnly(imports(read(name)).body).replace(/^export (declare )?/gm, (_, declared) => declared ? "declare " : ""));
 const namespaced = namespaces.map(name => {
   const { aliases, body } = imports(read(name));
@@ -34,5 +37,5 @@ const repl = read("repl");
 const extras = repl.slice(repl.indexOf("declare global {") + "declare global {".length, repl.lastIndexOf("\n}\n\nexport"))
   .split("\n")
   .filter(line => /^\s*(const dialog|function show)/.test(line))
-  .map(line => line.replace(/^  /, "declare ").replace(/import\("swiplet\/extension"\)\./g, "").replace(/import\("swiplet\/image"\)\./g, "image."));
+  .map(line => line.replace(/^  /, "declare ").replace(/import\("@swipt\/api\/swiplet"\)\./g, "").replace(/import\("@swipt\/api\/image"\)\./g, "image."));
 fs.writeFileSync(new URL("../declarations/api.d.ts", import.meta.url), `${[...globals, ...namespaced, extras.join("\n")].join("\n\n").trimEnd()}\n`);

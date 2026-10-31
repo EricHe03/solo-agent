@@ -1,4 +1,4 @@
-import type { CallOptions, Point, Quad, Rect } from "./extension";
+import type { CallOptions, Point, Quad, Rect } from "./index";
 import type { FileHandle } from "./file-system";
 
 export type Color = `#${string}` | readonly [red: number, green: number, blue: number];

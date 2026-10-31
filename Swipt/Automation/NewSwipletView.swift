@@ -12,6 +12,13 @@ struct NewSwipletView: View {
     var body: some View {
         Form {
             Section {
+                NavigationLink {
+                    OfficialSwipletsView(isImported: $isImported)
+                } label: {
+                    Label("Official Swiplets", systemImage: "checkmark.seal")
+                }
+            }
+            Section {
                 Button {
                     isPickingFile = true
                 } label: {
@@ -37,7 +44,7 @@ struct NewSwipletView: View {
                 Button("Cancel") { dismiss() }
             }
         }
-        .fileImporter(isPresented: $isPickingFile, allowedContentTypes: [.zip]) { result in
+        .fileImporter(isPresented: $isPickingFile, allowedContentTypes: [.swiplet, .zip]) { result in
             switch result {
             case .success(let file):
                 importFile(file)

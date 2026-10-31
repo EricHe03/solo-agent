@@ -10,6 +10,21 @@
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Swiplet</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>io.nekohasekai.swipt.swiplet</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_remotepairing._tcp</string>
@@ -28,5 +43,29 @@
 	</array>
 	<key>UIFileSharingEnabled</key>
 	<true/>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>com.pkware.zip-archive</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Swiplet</string>
+			<key>UTTypeIdentifier</key>
+			<string>io.nekohasekai.swipt.swiplet</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>swiplet</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/vnd.swipt.swiplet+zip</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>

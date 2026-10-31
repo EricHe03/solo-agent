@@ -276,7 +276,7 @@ func (h *Host) newEngine(swiplet Swiplet, dialog Dialog, logger log.ContextLogge
 	defer native.Release()
 	properties := map[string]string{
 		"swiplet": swiplet.ID, "dataDirectory": filepath.Join(swiplet.Directory, DataFolder), "languages": strings.Join(h.options.Languages, "\n"),
-		"cacheDirectory": h.options.Caches, "extensionHead": extensionHead,
+		"assetsDirectory": filepath.Join(swiplet.Directory, AssetsFolder), "cacheDirectory": h.options.Caches, "extensionHead": extensionHead,
 	}
 	for name, text := range properties {
 		value := e.context.NewString(text)

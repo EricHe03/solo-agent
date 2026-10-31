@@ -29,6 +29,9 @@ struct HomeView: View {
     var body: some View {
         layout
             .modifier(ErrorAlertPresenter())
+            #if os(iOS)
+            .modifier(SwipletOpener())
+            #endif
             .onChangeCompat(of: homeRequest.pending, initial: true) { pending in
                 guard let pending else { return }
                 homeRequest.pending = nil

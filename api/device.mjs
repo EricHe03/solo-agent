@@ -1,5 +1,5 @@
 const outside = () => {
-  throw new Error("swiplet/device runs inside Swipt; build the swiplet with `swiplet build`");
+  throw new Error("@swipt/api/device runs inside Swipt; build the swiplet with `swiplet build`");
 };
 
 export const info = outside;

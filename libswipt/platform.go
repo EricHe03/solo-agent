@@ -13,6 +13,7 @@ import (
 
 const (
 	SwipletSourceFolder  = automation.SourceFolder
+	SwipletAssetsFolder  = automation.AssetsFolder
 	SwipletDataFolder    = automation.DataFolder
 	SwipletInterfaceFile = automation.InterfaceFile
 	SwipletExtensionFile = automation.ExtensionFile

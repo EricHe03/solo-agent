@@ -11,6 +11,7 @@ import (
 
 const (
 	SourceFolder  = "src"
+	AssetsFolder  = "assets"
 	DataFolder    = "data"
 	InterfaceFile = "app.js"
 	ExtensionFile = "extension.js"

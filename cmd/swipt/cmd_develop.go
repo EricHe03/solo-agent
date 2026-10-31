@@ -81,7 +81,7 @@ func loadProject(directory string) (project, error) {
 }
 
 func (p project) archive() string {
-	return filepath.Join(p.root, "dist", p.id+".zip")
+	return filepath.Join(p.root, "dist", p.id+".swiplet")
 }
 
 type buildError struct {
@@ -135,7 +135,7 @@ func printDeployed(deployed *proto.DeploySwipletResponse, output io.Writer) {
 
 func runDeploy(cmd *cobra.Command, args []string) error {
 	archive := ""
-	if len(args) > 0 && strings.HasSuffix(args[0], ".zip") {
+	if len(args) > 0 && (strings.HasSuffix(args[0], ".swiplet") || strings.HasSuffix(args[0], ".zip")) {
 		archive = args[0]
 		if _, err := os.Stat(archive); errors.Is(err, fs.ErrNotExist) {
 			return E.New("there is no archive at ", archive)

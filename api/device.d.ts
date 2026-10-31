@@ -1,4 +1,4 @@
-import type { CallOptions, ObservableState } from "./extension";
+import type { CallOptions, ObservableState } from "./index";
 import type { FileHandle } from "./file-system";
 
 export type DisplayState = "off" | "dimmed" | "inactiveOn" | "activeOn";

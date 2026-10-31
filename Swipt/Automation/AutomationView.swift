@@ -115,8 +115,10 @@ struct AutomationView: View {
                 }
             }
             Section {
-                ShareLink(item: SwipletFile(id: name), preview: SharePreview(swiplets.titles[name] ?? name)) {
-                    Label("Share", systemImage: "square.and.arrow.up")
+                if !swiplets.official.contains(name) {
+                    ShareLink(item: SwipletFile(id: name), preview: SharePreview(swiplets.titles[name] ?? name)) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
                 }
                 if let update = swiplets.updates[name] {
                     Button {
@@ -125,7 +127,7 @@ struct AutomationView: View {
                         Label("Update", systemImage: "arrow.up")
                     }
                     .disabled(swiplets.updating.contains(name))
-                } else if swiplets.updatable.contains(name) {
+                } else if swiplets.updatable.contains(name) || swiplets.official.contains(name) {
                     Button {
                         checkForUpdate(name)
                     } label: {
@@ -194,8 +196,8 @@ struct AutomationView: View {
     private func checkForUpdate(_ name: String) {
         Task {
             do {
-                try await swiplets.checkForUpdate(of: name)
-                if swiplets.updates[name] == nil {
+                let found = try await swiplets.checkForUpdate(of: name)
+                if !found {
                     alert = AlertState(title: String(localized: "You’re Up to Date"))
                 }
             } catch {

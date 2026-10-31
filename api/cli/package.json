@@ -1,0 +1,26 @@
+{
+  "name": "@swipt/cli",
+  "version": "0.1.0",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/swipt-automation/swipt.git",
+    "directory": "api/cli"
+  },
+  "type": "module",
+  "bin": {
+    "swiplet": "cli.mjs"
+  },
+  "files": [
+    "cli.mjs"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "peerDependencies": {
+    "@swipt/api": "0.1.0"
+  }
+}

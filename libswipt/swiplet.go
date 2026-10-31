@@ -30,15 +30,16 @@ func LoadSwipletIcon(directory string) *SwipletIcon {
 }
 
 type SwipletManifest struct {
-	ID        string
-	Color     string
-	Symbol    string
-	Version   string
-	UpdateURL string
-	Service   bool
-	languages []string
-	names     []string
-	actions   []automation.ActionInfo
+	ID          string
+	Color       string
+	Symbol      string
+	Version     string
+	VersionCode int64
+	UpdateURL   string
+	Service     bool
+	languages   []string
+	names       []string
+	actions     []automation.ActionInfo
 }
 
 func (m *SwipletManifest) Len() int32 { return int32(len(m.languages)) }
@@ -61,8 +62,9 @@ func (m *SwipletManifest) ActionExposed(index int32, caller string) bool {
 
 func newSwipletManifest(manifest automation.Manifest) *SwipletManifest {
 	out := &SwipletManifest{
-		ID: manifest.ID, Color: manifest.Icon.Color, Symbol: manifest.Icon.Symbol, Version: manifest.Version, UpdateURL: manifest.UpdateURL,
-		Service: manifest.Service, languages: []string{""}, names: []string{manifest.Name}, actions: manifest.Actions,
+		ID: manifest.ID, Color: manifest.Icon.Color, Symbol: manifest.Icon.Symbol, Version: manifest.Version,
+		VersionCode: manifest.VersionCode, UpdateURL: manifest.UpdateURL, Service: manifest.Service,
+		languages: []string{""}, names: []string{manifest.Name}, actions: manifest.Actions,
 	}
 	for _, language := range slices.Sorted(maps.Keys(manifest.LocalizedNames)) {
 		out.languages = append(out.languages, language)
@@ -130,40 +132,46 @@ func (p *Platform) RemoveSwiplet(swiplet string) error {
 	return p.host.Remove(swiplet)
 }
 
-const etagAttribute = "io.nekohasekai.swipt.etag"
+const (
+	SwipletAttributeETag   = "etag"
+	SwipletAttributeOrigin = "origin"
+	SwipletOriginOfficial  = "official"
 
-func (p *Platform) SwipletETag(swiplet string) string {
+	attributePrefix = "io.nekohasekai.swipt."
+)
+
+func (p *Platform) SwipletAttribute(swiplet string, name string) string {
 	installed, err := p.host.Swiplet(swiplet)
 	if err != nil {
 		return ""
 	}
 	manifest := filepath.Join(installed.Directory, automation.ManifestFile)
-	size, err := unix.Getxattr(manifest, etagAttribute, nil)
+	size, err := unix.Getxattr(manifest, attributePrefix+name, nil)
 	if err != nil || size <= 0 {
 		return ""
 	}
 	value := make([]byte, size)
-	size, err = unix.Getxattr(manifest, etagAttribute, value)
+	size, err = unix.Getxattr(manifest, attributePrefix+name, value)
 	if err != nil {
 		return ""
 	}
 	return string(value[:size])
 }
 
-func (p *Platform) SetSwipletETag(swiplet string, etag string) error {
+func (p *Platform) SetSwipletAttribute(swiplet string, name string, value string) error {
 	installed, err := p.host.Swiplet(swiplet)
 	if err != nil {
 		return err
 	}
 	manifest := filepath.Join(installed.Directory, automation.ManifestFile)
-	if etag == "" {
-		err = unix.Removexattr(manifest, etagAttribute)
+	if value == "" {
+		err = unix.Removexattr(manifest, attributePrefix+name)
 		if errors.Is(err, unix.ENOATTR) {
 			return nil
 		}
 		return err
 	}
-	return unix.Setxattr(manifest, etagAttribute, []byte(etag), 0)
+	return unix.Setxattr(manifest, attributePrefix+name, []byte(value), 0)
 }
 
 func (p *Platform) ExportSwiplet(swiplet string, destination string) error {
@@ -175,14 +183,19 @@ func (p *Platform) ExportSwiplet(swiplet string, destination string) error {
 	if _, err = os.Stat(filepath.Join(installed.Directory, automation.IconFile)); err == nil {
 		names = append(names, automation.IconFile)
 	}
-	err = fs.WalkDir(os.DirFS(installed.Directory), automation.SourceFolder, func(name string, item fs.DirEntry, err error) error {
-		if err == nil && item.Type().IsRegular() {
-			names = append(names, name)
+	for _, folder := range []string{automation.SourceFolder, automation.AssetsFolder} {
+		if _, err = os.Stat(filepath.Join(installed.Directory, folder)); errors.Is(err, fs.ErrNotExist) {
+			continue
 		}
-		return err
-	})
-	if err != nil {
-		return err
+		err = fs.WalkDir(os.DirFS(installed.Directory), folder, func(name string, item fs.DirEntry, err error) error {
+			if err == nil && item.Type().IsRegular() {
+				names = append(names, name)
+			}
+			return err
+		})
+		if err != nil {
+			return err
+		}
 	}
 	file, err := os.Create(destination)
 	if err != nil {
@@ -245,8 +258,8 @@ func swipletFileInfo(info automation.FileInfo) *SwipletFileInfo {
 	return &SwipletFileInfo{Exists: true, Name: info.Name, Directory: info.Directory, Size: info.Size, Modified: info.Modified.UnixMilli()}
 }
 
-func (p *Platform) StatSwipletFile(swiplet, path string) (*SwipletFileInfo, error) {
-	info, found, err := p.host.StatFile(swiplet, path)
+func (p *Platform) StatSwipletFile(swiplet, root, path string) (*SwipletFileInfo, error) {
+	info, found, err := p.host.StatFile(swiplet, root, path)
 	if err != nil {
 		return nil, err
 	}
@@ -256,16 +269,16 @@ func (p *Platform) StatSwipletFile(swiplet, path string) (*SwipletFileInfo, erro
 	return swipletFileInfo(info), nil
 }
 
-func (p *Platform) ListSwipletFiles(swiplet, path string) (*SwipletFileList, error) {
-	files, err := p.host.ListFiles(swiplet, path)
+func (p *Platform) ListSwipletFiles(swiplet, root, path string) (*SwipletFileList, error) {
+	files, err := p.host.ListFiles(swiplet, root, path)
 	if err != nil {
 		return nil, err
 	}
 	return &SwipletFileList{items: common.Map(files, swipletFileInfo)}, nil
 }
 
-func (p *Platform) ReadSwipletFile(swiplet, path string) ([]byte, error) {
-	data, err := p.host.ReadFile(swiplet, path)
+func (p *Platform) ReadSwipletFile(swiplet, root, path string) ([]byte, error) {
+	data, err := p.host.ReadFile(swiplet, root, path)
 	if err != nil {
 		return nil, err
 	}
@@ -275,22 +288,22 @@ func (p *Platform) ReadSwipletFile(swiplet, path string) ([]byte, error) {
 	return data, nil
 }
 
-func (p *Platform) WriteSwipletFile(swiplet, path string, data []byte) error {
-	return p.host.WriteFile(swiplet, path, data)
+func (p *Platform) WriteSwipletFile(swiplet, root, path string, data []byte) error {
+	return p.host.WriteFile(swiplet, root, path, data)
 }
 
-func (p *Platform) MakeSwipletDirectory(swiplet, path string) error {
-	return p.host.MakeDirectory(swiplet, path)
+func (p *Platform) MakeSwipletDirectory(swiplet, root, path string) error {
+	return p.host.MakeDirectory(swiplet, root, path)
 }
 
-func (p *Platform) RemoveSwipletFile(swiplet, path string) error {
-	return p.host.RemoveFile(swiplet, path)
+func (p *Platform) RemoveSwipletFile(swiplet, root, path string) error {
+	return p.host.RemoveFile(swiplet, root, path)
 }
 
-func (p *Platform) CopySwipletFile(swiplet, from, to string) error {
-	return p.host.CopyFile(swiplet, from, to)
+func (p *Platform) CopySwipletFile(swiplet, root, from, toRoot, to string) error {
+	return p.host.TransferFile(swiplet, root, from, toRoot, to, false)
 }
 
-func (p *Platform) MoveSwipletFile(swiplet, from, to string) error {
-	return p.host.MoveFile(swiplet, from, to)
+func (p *Platform) MoveSwipletFile(swiplet, root, from, toRoot, to string) error {
+	return p.host.TransferFile(swiplet, root, from, toRoot, to, true)
 }

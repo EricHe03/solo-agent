@@ -13,7 +13,46 @@ type Quad = [topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Po
 
 type ErrorName = "AbortError" | "TimeoutError" | "NotFoundError" | "UnavailableError";
 
-declare function sleep(ms: number, options?: CallOptions): Promise<void>;
+type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue };
+
+type Jsonify<T> = T extends string | number | boolean | null ? T
+  : T extends undefined | symbol | ((...args: any[]) => unknown) ? never
+  : T extends { toJSON(): infer J } ? Jsonify<J>
+  : T extends readonly (infer U)[] ? Jsonify<U>[]
+  : T extends object ? { [K in keyof T]: Jsonify<Exclude<T[K], undefined>> }
+  : never;
+
+
+declare const dataDirectory: DirectoryHandle;
+declare const assets: DirectoryHandle;
+
+interface FileStat {
+  readonly size: number;
+  readonly modified: number;
+}
+
+interface DirectoryHandle {
+  readonly uri: string;
+  readonly name: string;
+  file(path: string): FileHandle;
+  directory(path: string): DirectoryHandle;
+  exists(): Promise<boolean>;
+  create(): Promise<void>;
+  list(): Promise<(FileHandle | DirectoryHandle)[]>;
+  delete(): Promise<void>;
+}
+
+interface FileHandle {
+  readonly uri: string;
+  readonly name: string;
+  stat(): Promise<FileStat | null>;
+  text(): Promise<string>;
+  bytes(): Promise<Uint8Array>;
+  write(data: string | Uint8Array | Blob): Promise<void>;
+  copy(to: FileHandle): Promise<void>;
+  move(to: FileHandle): Promise<void>;
+  delete(): Promise<void>;
+}
 
 
 type IntentChoiceStyle = "default" | "destructive" | "cancel";
@@ -48,36 +87,6 @@ interface IntentDialog {
   continueInForeground(prompt?: string, options?: CallOptions & { alwaysConfirm?: boolean }): Promise<void>;
 }
 
-
-declare const dataDirectory: DirectoryHandle;
-
-interface FileStat {
-  readonly size: number;
-  readonly modified: number;
-}
-
-interface DirectoryHandle {
-  readonly uri: string;
-  readonly name: string;
-  file(path: string): FileHandle;
-  directory(path: string): DirectoryHandle;
-  exists(): Promise<boolean>;
-  create(): Promise<void>;
-  list(): Promise<(FileHandle | DirectoryHandle)[]>;
-  delete(): Promise<void>;
-}
-
-interface FileHandle {
-  readonly uri: string;
-  readonly name: string;
-  stat(): Promise<FileStat | null>;
-  text(): Promise<string>;
-  bytes(): Promise<Uint8Array>;
-  write(data: string | Uint8Array | Blob): Promise<void>;
-  copy(to: FileHandle): Promise<void>;
-  move(to: FileHandle): Promise<void>;
-  delete(): Promise<void>;
-}
 
 
 declare namespace accessibility {

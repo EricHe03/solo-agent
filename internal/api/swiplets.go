@@ -301,7 +301,7 @@ func (s *swipletService) statFile(id, name string) (*proto.FileInfo, error) {
 	if parent == "." {
 		parent = ""
 	}
-	files, err := s.options.Swiplets.ListFiles(id, parent)
+	files, err := s.options.Swiplets.ListFiles(id, automation.DataFolder, parent)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +313,7 @@ func (s *swipletService) statFile(id, name string) (*proto.FileInfo, error) {
 }
 
 func (s *swipletService) walkFiles(id, directory string, visit func(*proto.FileInfo) error) error {
-	files, err := s.options.Swiplets.ListFiles(id, directory)
+	files, err := s.options.Swiplets.ListFiles(id, automation.DataFolder, directory)
 	if err != nil {
 		return err
 	}
@@ -344,7 +344,7 @@ func (s *swipletService) ListDataFiles(_ context.Context, request *proto.ListDat
 		})
 	} else {
 		var files []automation.FileInfo
-		files, err = s.options.Swiplets.ListFiles(request.SwipletId, directory)
+		files, err = s.options.Swiplets.ListFiles(request.SwipletId, automation.DataFolder, directory)
 		out = common.Map(files, func(file automation.FileInfo) *proto.FileInfo { return fileInfoOf(directory, file) })
 	}
 	if err != nil {
@@ -383,7 +383,7 @@ func (s *swipletService) ReadDataFile(request *proto.ReadDataFileRequest, stream
 		return apiError(err)
 	}
 	if !info.Directory {
-		data, err := s.options.Swiplets.ReadFile(id, name)
+		data, err := s.options.Swiplets.ReadFile(id, automation.DataFolder, name)
 		if err != nil {
 			return apiError(err)
 		}
@@ -393,7 +393,7 @@ func (s *swipletService) ReadDataFile(request *proto.ReadDataFileRequest, stream
 		if info.Directory {
 			return send(info, nil)
 		}
-		data, err := s.options.Swiplets.ReadFile(id, info.Path)
+		data, err := s.options.Swiplets.ReadFile(id, automation.DataFolder, info.Path)
 		if err != nil {
 			return err
 		}
@@ -436,7 +436,7 @@ func (s *swipletService) WriteDataFile(stream grpc.ClientStreamingServer[proto.W
 		err = E.Extend(device.ErrInvalid, "the path names the data directory")
 	}
 	if err == nil {
-		err = s.options.Swiplets.WriteFile(header.SwipletId, name, data.Bytes())
+		err = s.options.Swiplets.WriteFile(header.SwipletId, automation.DataFolder, name, data.Bytes())
 	}
 	if err != nil {
 		return apiError(err)
@@ -460,12 +460,12 @@ func (s *swipletService) RemoveDataFile(_ context.Context, request *proto.Remove
 	}
 	if err == nil && info.Directory && !request.Recursive {
 		var files []automation.FileInfo
-		if files, err = s.options.Swiplets.ListFiles(id, name); err == nil && len(files) > 0 {
+		if files, err = s.options.Swiplets.ListFiles(id, automation.DataFolder, name); err == nil && len(files) > 0 {
 			err = status.Error(codes.FailedPrecondition, name+" is a directory that holds files; remove it recursively")
 		}
 	}
 	if err == nil {
-		err = s.options.Swiplets.RemoveFile(id, name)
+		err = s.options.Swiplets.RemoveFile(id, automation.DataFolder, name)
 	}
 	if err != nil {
 		return nil, apiError(err)

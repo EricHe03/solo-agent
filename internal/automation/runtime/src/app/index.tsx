@@ -3,7 +3,7 @@ import { registerRootComponent, requireNativeModule, type EventSubscription } fr
 import { Component, useEffect, useMemo, useSyncExternalStore, useState, type ComponentType, type ReactNode } from "react";
 import { ScrollView, Text } from "react-native";
 
-import { dataDirectoryOf, type FileHost } from "./files";
+import { directoryOf, type FileHost } from "./files";
 
 type ServiceStatus = "starting" | "running" | "stopped" | "failed";
 
@@ -27,6 +27,7 @@ interface Props {
   file: string;
   source: string;
   dataDirectory: string;
+  assetsDirectory: string;
   service: ServiceEvent;
 }
 
@@ -133,8 +134,13 @@ const modules: Record<string, () => unknown> = {
 
 function load(props: Props): ComponentType {
   const own: Record<string, () => unknown> = {
-    "swiplet/interface": () => interfaceModule(props),
-    "swiplet/file-system": () => ({ __esModule: true, dataDirectory: dataDirectoryOf(host, props.name, props.dataDirectory) }),
+    "@swipt/api": () => ({ __esModule: true }),
+    "@swipt/api/swiplet": () => interfaceModule(props),
+    "@swipt/api/file-system": () => ({
+      __esModule: true,
+      dataDirectory: directoryOf(host, props.name, "data", props.dataDirectory),
+      assets: directoryOf(host, props.name, "assets", props.assetsDirectory),
+    }),
   };
   const resolve = (specifier: string) => {
     const module = own[specifier] ?? modules[specifier];

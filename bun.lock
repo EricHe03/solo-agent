@@ -8,6 +8,42 @@
         "swipt-runtime": "workspace:*",
       },
     },
+    "api": {
+      "name": "@swipt/api",
+      "version": "0.1.0",
+      "dependencies": {
+        "@standard-schema/spec": "^1.1.0",
+      },
+      "peerDependencies": {
+        "@expo/ui": "~58.0.25",
+        "@types/react": "~19.3.0",
+        "expo": "~58.0.21",
+        "expo-localization": "~58.0.5",
+        "react": "19.3.0",
+        "react-native": "0.88.1",
+      },
+      "optionalPeers": [
+        "@expo/ui",
+        "@types/react",
+        "expo",
+        "expo-localization",
+        "react",
+        "react-native",
+      ],
+    },
+    "api/cli": {
+      "name": "@swipt/cli",
+      "version": "0.1.0",
+      "bin": {
+        "swiplet": "cli.mjs",
+      },
+      "dependencies": {
+        "esbuild": "^0.28.2",
+      },
+      "peerDependencies": {
+        "@swipt/api": "0.1.0",
+      },
+    },
     "internal/automation/runtime": {
       "name": "swipt-runtime",
       "dependencies": {
@@ -358,6 +394,10 @@
     "@sinclair/typebox": ["@sinclair/typebox@0.27.12", "", {}, "sha512-hhyNJ+nbR6ZR7pToHvllEFun9TL0sbL+tk/ON75lo+Xas054uez98qRbsuNt7MBCyZKK4+8Yli/OAGZhmfBZ/g=="],
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
+
+    "@swipt/api": ["@swipt/api@workspace:api"],
+
+    "@swipt/cli": ["@swipt/cli@workspace:api/cli"],
 
     "@types/istanbul-lib-coverage": ["@types/istanbul-lib-coverage@2.0.6", "", {}, "sha512-2QF/t/auWm0lsy8XtKVPG19v3sSOQlJe/YHZgfjb/KBBHOGSV+J2q/S671rcq9uTBrLAXmZpqJiaQbMT+zNU1w=="],
 

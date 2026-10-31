@@ -1,4 +1,5 @@
 export declare const dataDirectory: DirectoryHandle;
+export declare const assets: DirectoryHandle;
 
 export interface FileStat {
   readonly size: number;

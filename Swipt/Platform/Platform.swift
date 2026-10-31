@@ -183,47 +183,47 @@ final class Platform {
         try await blocking { try box.value.setServiceEnabled(swiplet, enabled: enabled) }
     }
 
-    func statSwipletFile(_ swiplet: String, path: String) async throws -> SwipletFileInfo {
+    func statSwipletFile(_ swiplet: String, root: String, path: String) async throws -> SwipletFileInfo {
         let box = UncheckedSendable(value: core)
-        return try await blocking { SwipletFileInfo(try box.value.statSwipletFile(swiplet, path: path)) }
+        return try await blocking { SwipletFileInfo(try box.value.statSwipletFile(swiplet, root: root, path: path)) }
     }
 
-    func listSwipletFiles(_ swiplet: String, path: String) async throws -> [SwipletFileInfo] {
+    func listSwipletFiles(_ swiplet: String, root: String, path: String) async throws -> [SwipletFileInfo] {
         let box = UncheckedSendable(value: core)
         return try await blocking {
-            let list = try box.value.listSwipletFiles(swiplet, path: path)
+            let list = try box.value.listSwipletFiles(swiplet, root: root, path: path)
             return (0..<list.len()).compactMap { list.get($0) }.map(SwipletFileInfo.init)
         }
     }
 
-    func readSwipletFile(_ swiplet: String, path: String) async throws -> Data {
+    func readSwipletFile(_ swiplet: String, root: String, path: String) async throws -> Data {
         let box = UncheckedSendable(value: core)
-        return try await blocking { try box.value.readSwipletFile(swiplet, path: path) }
+        return try await blocking { try box.value.readSwipletFile(swiplet, root: root, path: path) }
     }
 
-    func writeSwipletFile(_ swiplet: String, path: String, data: Data) async throws {
+    func writeSwipletFile(_ swiplet: String, root: String, path: String, data: Data) async throws {
         let box = UncheckedSendable(value: core)
-        try await blocking { try box.value.writeSwipletFile(swiplet, path: path, data: data) }
+        try await blocking { try box.value.writeSwipletFile(swiplet, root: root, path: path, data: data) }
     }
 
-    func makeSwipletDirectory(_ swiplet: String, path: String) async throws {
+    func makeSwipletDirectory(_ swiplet: String, root: String, path: String) async throws {
         let box = UncheckedSendable(value: core)
-        try await blocking { try box.value.makeSwipletDirectory(swiplet, path: path) }
+        try await blocking { try box.value.makeSwipletDirectory(swiplet, root: root, path: path) }
     }
 
-    func removeSwipletFile(_ swiplet: String, path: String) async throws {
+    func removeSwipletFile(_ swiplet: String, root: String, path: String) async throws {
         let box = UncheckedSendable(value: core)
-        try await blocking { try box.value.removeSwipletFile(swiplet, path: path) }
+        try await blocking { try box.value.removeSwipletFile(swiplet, root: root, path: path) }
     }
 
-    func copySwipletFile(_ swiplet: String, from: String, to: String) async throws {
+    func copySwipletFile(_ swiplet: String, root: String, from: String, toRoot: String, to: String) async throws {
         let box = UncheckedSendable(value: core)
-        try await blocking { try box.value.copySwipletFile(swiplet, from: from, to: to) }
+        try await blocking { try box.value.copySwipletFile(swiplet, root: root, from: from, toRoot: toRoot, to: to) }
     }
 
-    func moveSwipletFile(_ swiplet: String, from: String, to: String) async throws {
+    func moveSwipletFile(_ swiplet: String, root: String, from: String, toRoot: String, to: String) async throws {
         let box = UncheckedSendable(value: core)
-        try await blocking { try box.value.moveSwipletFile(swiplet, from: from, to: to) }
+        try await blocking { try box.value.moveSwipletFile(swiplet, root: root, from: from, toRoot: toRoot, to: to) }
     }
 
     func swiplets() -> [LibSwiptSwipletInfo] {
@@ -258,13 +258,14 @@ final class Platform {
         try await blocking { try box.value.exportSwiplet(swiplet, destination: file.path) }
     }
 
-    func etag(of swiplet: String) -> String {
-        core.swipletETag(swiplet)
+    func attribute(_ name: String, of swiplet: String) -> String {
+        core.swipletAttribute(swiplet, name: name)
     }
 
-    func setETag(_ etag: String, of swiplet: String) throws {
-        try core.setSwipletETag(swiplet, etag: etag)
+    func setAttribute(_ name: String, _ value: String, of swiplet: String) throws {
+        try core.setSwipletAttribute(swiplet, name: name, value: value)
     }
+
 
     private func handle(_ event: PlatformEvent) {
         switch event {

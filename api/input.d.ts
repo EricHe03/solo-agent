@@ -1,4 +1,4 @@
-import type { CallOptions, Point } from "./extension";
+import type { CallOptions, Point } from "./index";
 
 export interface TapOptions extends CallOptions {
   readonly count?: number;

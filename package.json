@@ -2,6 +2,8 @@
   "name": "swipt",
   "private": true,
   "workspaces": [
+    "api",
+    "api/cli",
     "internal/automation/runtime",
     "internal/automation/runtime/modules/*"
   ],

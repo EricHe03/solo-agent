@@ -4,6 +4,7 @@ export interface Native {
   readonly swiplet: string;
   readonly languages: string;
   readonly dataDirectory: string;
+  readonly assetsDirectory: string;
   readonly cacheDirectory: string;
   readonly extensionHead: string;
   start(id: string, name: string, args: string): void;

@@ -4,21 +4,15 @@ package automation
 
 import (
 	"context"
-	"path/filepath"
-	"strconv"
 
 	"github.com/sagernet/sing/common"
-	E "github.com/sagernet/sing/common/exceptions"
 )
 
 func (e *engine) fileRoot(kind string) (*fileRoot, error) {
-	switch kind {
-	case "data":
-		return openFileRoot(filepath.Join(e.swiplet.Directory, DataFolder), "the data directory of "+e.swiplet.ID)
-	case "cache":
+	if kind == "cache" {
 		return openFileRoot(e.host.options.Caches, "the cache directory")
 	}
-	return nil, E.Cause1(ErrInvalid, E.New("unknown file root ", strconv.Quote(kind)))
+	return swipletRoot(e.swiplet, kind)
 }
 
 type fileLocation struct {

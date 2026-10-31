@@ -36,7 +36,7 @@ var (
 	errRemoved = E.New("the swiplet was removed")
 )
 
-var packageFiles = []string{SourceFolder, ManifestFile, IconFile}
+var packageFiles = []string{SourceFolder, AssetsFolder, ManifestFile, IconFile}
 
 type Options struct {
 	Device            *device.Phone

@@ -25,6 +25,7 @@ type Manifest struct {
 	LocalizedNames map[string]string
 	Description    string
 	Version        string
+	VersionCode    int64
 	Icon           Icon
 	UpdateURL      string
 	Interface      bool
@@ -39,6 +40,7 @@ type manifestFields struct {
 	LocalizedNames map[string]string `json:"localizedNames"`
 	Description    string            `json:"description"`
 	Version        string            `json:"version"`
+	VersionCode    int64             `json:"versionCode"`
 	Icon           Icon              `json:"icon"`
 	UpdateURL      string            `json:"updateURL"`
 	Interface      bool              `json:"interface"`
@@ -60,8 +62,16 @@ func ParseManifest(data []byte) (Manifest, error) {
 	}
 	return Manifest{
 		ID: known.ID, Name: known.Name, LocalizedNames: known.LocalizedNames, Description: known.Description, Version: known.Version,
-		Icon: known.Icon, UpdateURL: known.UpdateURL, Interface: known.Interface, Service: known.Service, Actions: known.Actions, fields: fields,
+		VersionCode: known.VersionCode, Icon: known.Icon, UpdateURL: known.UpdateURL, Interface: known.Interface, Service: known.Service,
+		Actions: known.Actions, fields: fields,
 	}, nil
+}
+
+func IsNewer(remote Manifest, version string, versionCode int64) bool {
+	if remote.VersionCode > 0 && versionCode > 0 {
+		return remote.VersionCode > versionCode
+	}
+	return remote.Version != "" && remote.Version != version
 }
 
 func EncodeManifest(manifest Manifest) ([]byte, error) {
@@ -81,6 +91,7 @@ func EncodeManifest(manifest Manifest) ([]byte, error) {
 	} {
 		set(key, value, value != "")
 	}
+	set("versionCode", manifest.VersionCode, manifest.VersionCode > 0)
 	set("localizedNames", manifest.LocalizedNames, len(manifest.LocalizedNames) > 0)
 	set("icon", manifest.Icon, manifest.Icon != DefaultIcon)
 	set("interface", true, manifest.Interface)

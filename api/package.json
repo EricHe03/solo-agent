@@ -1,18 +1,21 @@
 {
-  "name": "swiplet",
-  "version": "58.0.0",
-  "type": "module",
-  "bin": {
-    "swiplet": "cli.mjs"
+  "name": "@swipt/api",
+  "version": "0.1.0",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/swipt-automation/swipt.git",
+    "directory": "api"
   },
+  "type": "module",
   "exports": {
-    "./extension": {
-      "types": "./extension.d.ts",
-      "default": "./extension.mjs"
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
     },
-    "./interface": {
-      "types": "./interface.d.ts",
-      "default": "./interface.mjs"
+    "./swiplet": {
+      "types": "./swiplet.d.ts",
+      "default": "./swiplet.mjs"
     },
     "./file-system": {
       "types": "./file-system.d.ts",
@@ -41,13 +44,14 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "cli.mjs",
     "*.d.ts",
     "*.mjs"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@standard-schema/spec": "^1.1.0",
-    "esbuild": "^0.28.2"
+    "@standard-schema/spec": "^1.1.0"
   },
   "peerDependencies": {
     "@expo/ui": "~58.0.25",

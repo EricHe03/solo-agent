@@ -1,4 +1,4 @@
-import type { CallOptions, ObservableState, Rect } from "./extension";
+import type { CallOptions, ObservableState, Rect } from "./index";
 import type { FileHandle } from "./file-system";
 import type { ImageDifference, RasterImage } from "./image";
 

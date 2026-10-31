@@ -26,8 +26,9 @@ type FileInfo struct {
 }
 
 type fileRoot struct {
-	root  *os.Root
-	where string
+	root     *os.Root
+	where    string
+	readOnly bool
 }
 
 func openFileRoot(directory, where string) (*fileRoot, error) {
@@ -41,8 +42,26 @@ func openFileRoot(directory, where string) (*fileRoot, error) {
 	return &fileRoot{root: root, where: where}, nil
 }
 
+func openPackageRoot(directory, where string) (*fileRoot, error) {
+	root, err := os.OpenRoot(directory)
+	if errors.Is(err, fs.ErrNotExist) {
+		return &fileRoot{where: where, readOnly: true}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &fileRoot{root: root, where: where, readOnly: true}, nil
+}
+
 func (r *fileRoot) Close() error {
+	if r.root == nil {
+		return nil
+	}
 	return r.root.Close()
+}
+
+func (r *fileRoot) readOnlyError() error {
+	return E.Cause1(ErrNotAllowed, E.New(r.where, " is read-only"))
 }
 
 func cleanName(name string) (string, error) {
@@ -90,6 +109,9 @@ func (r *fileRoot) notRoot(name string) error {
 }
 
 func (r *fileRoot) stat(name string) (FileInfo, bool, error) {
+	if r.root == nil {
+		return FileInfo{}, false, nil
+	}
 	info, err := r.root.Stat(name)
 	if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
 		return FileInfo{}, false, nil
@@ -101,6 +123,9 @@ func (r *fileRoot) stat(name string) (FileInfo, bool, error) {
 }
 
 func (r *fileRoot) list(name string) ([]FileInfo, error) {
+	if r.root == nil {
+		return nil, FileNotFound(r.where, name)
+	}
 	directory, err := r.root.Open(name)
 	if err != nil {
 		return nil, r.error(name, err)
@@ -122,6 +147,9 @@ func (r *fileRoot) list(name string) ([]FileInfo, error) {
 }
 
 func (r *fileRoot) read(name string) ([]byte, error) {
+	if r.root == nil {
+		return nil, FileNotFound(r.where, name)
+	}
 	data, err := r.root.ReadFile(name)
 	if err != nil {
 		return nil, r.error(name, err)
@@ -130,6 +158,9 @@ func (r *fileRoot) read(name string) ([]byte, error) {
 }
 
 func (r *fileRoot) write(name string, data []byte) error {
+	if r.readOnly {
+		return r.readOnlyError()
+	}
 	if err := r.notRoot(name); err != nil {
 		return err
 	}
@@ -154,6 +185,9 @@ func (r *fileRoot) write(name string, data []byte) error {
 }
 
 func (r *fileRoot) mkdir(name string) error {
+	if r.readOnly {
+		return r.readOnlyError()
+	}
 	if err := r.root.MkdirAll(name, 0o755); err != nil {
 		return r.error(name, err)
 	}
@@ -161,6 +195,9 @@ func (r *fileRoot) mkdir(name string) error {
 }
 
 func (r *fileRoot) remove(name string) error {
+	if r.readOnly {
+		return r.readOnlyError()
+	}
 	if err := r.notRoot(name); err != nil {
 		return err
 	}
@@ -171,8 +208,14 @@ func (r *fileRoot) remove(name string) error {
 }
 
 func (r *fileRoot) copyTo(name string, destination *fileRoot, target string) error {
+	if destination.readOnly {
+		return destination.readOnlyError()
+	}
 	if err := destination.notRoot(target); err != nil {
 		return err
+	}
+	if r.root == nil {
+		return FileNotFound(r.where, name)
 	}
 	return fs.WalkDir(r.root.FS(), filepath.ToSlash(name), func(current string, entry fs.DirEntry, err error) error {
 		if err != nil {
@@ -204,6 +247,12 @@ func (r *fileRoot) copyTo(name string, destination *fileRoot, target string) err
 }
 
 func (r *fileRoot) moveTo(name string, destination *fileRoot, target string) error {
+	if r.readOnly {
+		return r.readOnlyError()
+	}
+	if destination.readOnly {
+		return destination.readOnlyError()
+	}
 	if err := E.Errors(r.notRoot(name), destination.notRoot(target)); err != nil {
 		return err
 	}
@@ -222,20 +271,30 @@ func (r *fileRoot) moveTo(name string, destination *fileRoot, target string) err
 	return r.remove(name)
 }
 
-func (h *Host) dataRoot(id string) (*fileRoot, error) {
+func swipletRoot(swiplet Swiplet, kind string) (*fileRoot, error) {
+	switch kind {
+	case DataFolder:
+		return openFileRoot(filepath.Join(swiplet.Directory, DataFolder), "the data directory of "+swiplet.ID)
+	case AssetsFolder:
+		return openPackageRoot(filepath.Join(swiplet.Directory, AssetsFolder), "the assets of "+swiplet.ID)
+	}
+	return nil, E.Cause1(ErrInvalid, E.New("unknown file root ", strconv.Quote(kind)))
+}
+
+func (h *Host) swipletRoot(id, kind string) (*fileRoot, error) {
 	swiplet, err := h.Swiplet(id)
 	if err != nil {
 		return nil, err
 	}
-	return openFileRoot(filepath.Join(swiplet.Directory, DataFolder), "the data directory of "+id)
+	return swipletRoot(swiplet, kind)
 }
 
-func (h *Host) withData(id, name string, work func(root *fileRoot, name string) error) error {
+func (h *Host) withRoot(id, kind, name string, work func(root *fileRoot, name string) error) error {
 	name, err := cleanName(name)
 	if err != nil {
 		return err
 	}
-	root, err := h.dataRoot(id)
+	root, err := h.swipletRoot(id, kind)
 	if err != nil {
 		return err
 	}
@@ -243,54 +302,58 @@ func (h *Host) withData(id, name string, work func(root *fileRoot, name string) 
 	return work(root, name)
 }
 
-func (h *Host) StatFile(id, name string) (info FileInfo, found bool, err error) {
-	err = h.withData(id, name, func(root *fileRoot, name string) error {
+func (h *Host) StatFile(id, kind, name string) (info FileInfo, found bool, err error) {
+	err = h.withRoot(id, kind, name, func(root *fileRoot, name string) error {
 		info, found, err = root.stat(name)
 		return err
 	})
 	return
 }
 
-func (h *Host) ListFiles(id, name string) (files []FileInfo, err error) {
-	err = h.withData(id, name, func(root *fileRoot, name string) error {
+func (h *Host) ListFiles(id, kind, name string) (files []FileInfo, err error) {
+	err = h.withRoot(id, kind, name, func(root *fileRoot, name string) error {
 		files, err = root.list(name)
 		return err
 	})
 	return
 }
 
-func (h *Host) ReadFile(id, name string) (data []byte, err error) {
-	err = h.withData(id, name, func(root *fileRoot, name string) error {
+func (h *Host) ReadFile(id, kind, name string) (data []byte, err error) {
+	err = h.withRoot(id, kind, name, func(root *fileRoot, name string) error {
 		data, err = root.read(name)
 		return err
 	})
 	return
 }
 
-func (h *Host) WriteFile(id, name string, data []byte) error {
-	return h.withData(id, name, func(root *fileRoot, name string) error { return root.write(name, data) })
+func (h *Host) WriteFile(id, kind, name string, data []byte) error {
+	return h.withRoot(id, kind, name, func(root *fileRoot, name string) error { return root.write(name, data) })
 }
 
-func (h *Host) MakeDirectory(id, name string) error {
-	return h.withData(id, name, func(root *fileRoot, name string) error { return root.mkdir(name) })
+func (h *Host) MakeDirectory(id, kind, name string) error {
+	return h.withRoot(id, kind, name, func(root *fileRoot, name string) error { return root.mkdir(name) })
 }
 
-func (h *Host) RemoveFile(id, name string) error {
-	return h.withData(id, name, func(root *fileRoot, name string) error { return root.remove(name) })
+func (h *Host) RemoveFile(id, kind, name string) error {
+	return h.withRoot(id, kind, name, func(root *fileRoot, name string) error { return root.remove(name) })
 }
 
-func (h *Host) CopyFile(id, name, target string) error {
+func (h *Host) TransferFile(id, kind, name, targetKind, target string, move bool) error {
 	target, err := cleanName(target)
 	if err != nil {
 		return err
 	}
-	return h.withData(id, name, func(root *fileRoot, name string) error { return root.copyTo(name, root, target) })
-}
-
-func (h *Host) MoveFile(id, name, target string) error {
-	target, err := cleanName(target)
-	if err != nil {
-		return err
-	}
-	return h.withData(id, name, func(root *fileRoot, name string) error { return root.moveTo(name, root, target) })
+	return h.withRoot(id, kind, name, func(root *fileRoot, name string) error {
+		destination := root
+		if targetKind != kind {
+			if destination, err = h.swipletRoot(id, targetKind); err != nil {
+				return err
+			}
+			defer destination.Close()
+		}
+		if move {
+			return root.moveTo(name, destination, target)
+		}
+		return root.copyTo(name, destination, target)
+	})
 }
