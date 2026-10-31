@@ -46,7 +46,7 @@ archive_ios_ipa: runtime_bundle
 	cd build && zip -qry Swipt.ipa Payload
 	rm -rf build/Payload
 
-altstore_source:
+altstore_icon:
 	rm -rf build/altstore
 	mkdir -p build/altstore
 	"$$(xcode-select -p)/../Applications/Icon Composer.app/Contents/Executables/ictool" Swipt/Resources/AppIcon.icon \
@@ -55,6 +55,8 @@ altstore_source:
 	# (AltStore fafd76e, AltStore/Components/AppIconImageView.swift:46-65), so the transparent
 	# corners and edge highlight of the exported squircle show up as a white border.
 	sips --cropToHeightWidth 512 512 build/altstore/icon.png > /dev/null
+
+altstore_source: altstore_icon
 	go run ./internal/cmd/build_altstore_source
 
 build_macos:
