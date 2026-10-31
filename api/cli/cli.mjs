@@ -265,15 +265,14 @@ async function buildCommand(root) {
 
 const manifestEntry = /^(?:[^/]+\/)?manifest\.json$/;
 
-function sourceCommand(files, base, output) {
-  if (!base) {
-    throw new UsageError("source needs --url, the address the swiplets are published under");
-  }
+function sourceCommand(files, base, output, name) {
   let prefix;
-  try {
-    prefix = new URL(base.endsWith("/") ? base : `${base}/`);
-  } catch {
-    throw new UsageError(`--url ${JSON.stringify(base)} is not an absolute URL`);
+  if (base !== undefined) {
+    try {
+      prefix = new URL(base.endsWith("/") ? base : `${base}/`);
+    } catch {
+      throw new UsageError(`--url ${JSON.stringify(base)} is not an absolute URL`);
+    }
   }
   const swiplets = new Map();
   for (const file of files) {
@@ -291,10 +290,15 @@ function sourceCommand(files, base, output) {
     const data = fs.readFileSync(file);
     swiplets.set(manifest.id, {
       file,
-      entry: { ...manifest, url: new URL(path.basename(file), prefix).href, size: data.length, sha256: createHash("sha256").update(data).digest("hex") },
+      entry: {
+        ...manifest,
+        ...(prefix ? { url: new URL(path.basename(file), prefix).href } : {}),
+        size: data.length,
+        sha256: createHash("sha256").update(data).digest("hex"),
+      },
     });
   }
-  const listed = `${JSON.stringify({ swiplets: [...swiplets.keys()].sort().map(id => swiplets.get(id).entry) }, null, 2)}\n`;
+  const listed = `${JSON.stringify({ ...(name ? { name } : {}), swiplets: [...swiplets.keys()].sort().map(id => swiplets.get(id).entry) }, null, 2)}\n`;
   if (output) {
     fs.writeFileSync(output, listed);
   } else {
@@ -396,11 +400,11 @@ function createCommand(directory) {
 
 const usage = `usage: swiplet create <directory>
        swiplet build
-       swiplet source --url <address> [--output <file>] <swiplet>...
+       swiplet source [--name <name>] [--url <address>] [--output <file>] <swiplet>...
 
   create   make a swiplet project in a new or empty directory
   build    bundle the project in this directory into dist/<swiplet.id>.swiplet
-  source   list built swiplets in a source that Swipt installs and updates from
+  source   list built swiplets in a source; --url is where they are published
 
 Type-check a project with its "check" script.`;
 
@@ -411,7 +415,7 @@ class UsageError extends Error {}
 try {
   let parsed;
   try {
-    parsed = parseArgs({ allowPositionals: true, options: { help: { type: "boolean", short: "h" }, url: { type: "string" }, output: { type: "string" } } });
+    parsed = parseArgs({ allowPositionals: true, options: { help: { type: "boolean", short: "h" }, name: { type: "string" }, url: { type: "string" }, output: { type: "string" } } });
   } catch (error) {
     throw new UsageError(error.message);
   }
@@ -429,7 +433,7 @@ try {
   } else if (command === "create") {
     createCommand(rest[0]);
   } else if (command === "source") {
-    sourceCommand(rest, parsed.values.url, parsed.values.output);
+    sourceCommand(rest, parsed.values.url, parsed.values.output, parsed.values.name);
   } else {
     await buildCommand(process.cwd());
   }

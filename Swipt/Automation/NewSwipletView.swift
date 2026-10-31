@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -9,16 +10,36 @@ struct NewSwipletView: View {
     @State private var isImported = false
     @State private var alert: AlertState?
 
+    private let swiplets = SwipletStore.shared
+
     var body: some View {
+        WithPerceptionTracking {
+            form
+        }
+    }
+
+    private var form: some View {
         Form {
-            Section {
+            Section("Repository") {
+                ForEach(swiplets.repositories) { repository in
+                    NavigationLink {
+                        RepositoryView(url: repository.url, isImported: $isImported)
+                    } label: {
+                        Text(verbatim: repository.name)
+                    }
+                }
+                .onDelete { offsets in
+                    for offset in offsets {
+                        swiplets.removeRepository(swiplets.repositories[offset].url)
+                    }
+                }
                 NavigationLink {
-                    OfficialSwipletsView(isImported: $isImported)
+                    AddRepositoryView()
                 } label: {
-                    Label("Official Swiplets", systemImage: "checkmark.seal")
+                    Label("Add Repository", systemImage: "plus")
                 }
             }
-            Section {
+            Section("Manual") {
                 Button {
                     isPickingFile = true
                 } label: {

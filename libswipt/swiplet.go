@@ -133,9 +133,7 @@ func (p *Platform) RemoveSwiplet(swiplet string) error {
 }
 
 const (
-	SwipletAttributeETag   = "etag"
-	SwipletAttributeOrigin = "origin"
-	SwipletOriginOfficial  = "official"
+	SwipletAttributeETag = "etag"
 
 	attributePrefix = "io.nekohasekai.swipt."
 )

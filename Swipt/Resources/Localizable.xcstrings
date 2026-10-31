@@ -723,6 +723,22 @@
         }
       }
     },
+    "Add Repository" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加仓库"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入儲存庫"
+          }
+        }
+      }
+    },
     "Add Swiplet" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3607,6 +3623,22 @@
         }
       }
     },
+    "Can’t Add the Repository" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法添加仓库"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法加入儲存庫"
+          }
+        }
+      }
+    },
     "Can’t Add the Swiplet" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5013,22 +5045,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "設定"
-          }
-        }
-      }
-    },
-    "Connected" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已连接"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已連線"
           }
         }
       }
@@ -7525,6 +7541,22 @@
         }
       }
     },
+    "Couldn’t Refresh the Repository" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新仓库"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法重新整理儲存庫"
+          }
+        }
+      }
+    },
     "Couldn’t Restart the App" : {
       "localizations" : {
         "ar" : {
@@ -9805,18 +9837,18 @@
         }
       }
     },
-    "Enable automatic unlock so scripts can unlock your device automatically when it’s locked." : {
+    "Enable automatic unlock so Swipt can unlock your device automatically when it’s locked." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启用自动解锁，以便脚本可以在锁定时自动解锁您的设备。"
+            "value" : "启用自动解锁，以便 Swipt 可以在锁定时自动解锁您的设备。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "啟用自動解鎖，以便腳本可以在鎖定時自動解鎖您的裝置。"
+            "value" : "啟用自動解鎖，以便 Swipt 可以在鎖定時自動解鎖您的裝置。"
           }
         }
       }
@@ -10209,6 +10241,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請輸入不大於 %@ 的數字。"
+          }
+        }
+      }
+    },
+    "Enter the address of a swiplets.json index." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入 swiplets.json 索引的地址。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輸入 swiplets.json 索引的位址。"
           }
         }
       }
@@ -14705,6 +14753,22 @@
         }
       }
     },
+    "Manual" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手動"
+          }
+        }
+      }
+    },
     "Mode" : {
       "localizations" : {
         "en" : {
@@ -15335,22 +15399,6 @@
         }
       }
     },
-    "No Official Swiplets" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有官方 Swiplet"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "沒有官方 Swiplet"
-          }
-        }
-      }
-    },
     "No Swiplets" : {
       "localizations" : {
         "zh-Hans" : {
@@ -15363,6 +15411,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無 Swiplet"
+          }
+        }
+      }
+    },
+    "No Swiplets in This Repository" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此仓库中没有 Swiplet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此儲存庫中沒有 Swiplet"
           }
         }
       }
@@ -15975,22 +16039,6 @@
         }
       }
     },
-    "Not Connected" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未连接"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未連線"
-          }
-        }
-      }
-    },
     "OK" : {
       "localizations" : {
         "ar" : {
@@ -16291,38 +16339,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "好"
-          }
-        }
-      }
-    },
-    "Official Swiplets" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "官方 Swiplet"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "官方 Swiplet"
-          }
-        }
-      }
-    },
-    "Official swiplets are made by the Swipt team and update automatically." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "官方 Swiplet 由 Swipt 团队制作，并会自动更新。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "官方 Swiplet 由 Swipt 團隊製作，並會自動更新。"
           }
         }
       }
@@ -19797,22 +19813,6 @@
         }
       }
     },
-    "Preparing…" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在准备…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在準備…"
-          }
-        }
-      }
-    },
     "Privacy & Security › Developer Mode" : {
       "localizations" : {
         "ar" : {
@@ -20831,6 +20831,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "隨機權杖"
+          }
+        }
+      }
+    },
+    "Repository" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仓库"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存庫"
           }
         }
       }
@@ -23429,22 +23445,6 @@
         }
       }
     },
-    "Status" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "状态"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "狀態"
-          }
-        }
-      }
-    },
     "Stopped" : {
       "localizations" : {
         "zh-Hans" : {
@@ -25713,38 +25713,6 @@
         }
       }
     },
-    "The download doesn’t match the official source." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "下载内容与官方源不一致。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "下載內容與官方來源不一致。"
-          }
-        }
-      }
-    },
-    "The download is a different swiplet." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "下载的是另一个 Swiplet。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "下載的是另一個 Swiplet。"
-          }
-        }
-      }
-    },
     "The file is not a swiplet." : {
       "localizations" : {
         "zh-Hans" : {
@@ -26081,34 +26049,34 @@
         }
       }
     },
-    "The official source lists an invalid address." : {
+    "The repository is already added." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "官方源列出的地址无效。"
+            "value" : "该仓库已添加。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "官方來源列出的位址無效。"
+            "value" : "該儲存庫已加入。"
           }
         }
       }
     },
-    "The official source sent an unexpected response." : {
+    "The repository sent a different swiplet." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "官方源返回了异常响应。"
+            "value" : "仓库返回了另一个 Swiplet。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "官方來源傳回了異常回應。"
+            "value" : "儲存庫傳回了另一個 Swiplet。"
           }
         }
       }
@@ -27081,22 +27049,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "權杖"
-          }
-        }
-      }
-    },
-    "Try Again" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重试"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "再試一次"
           }
         }
       }

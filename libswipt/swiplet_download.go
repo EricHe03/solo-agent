@@ -195,7 +195,75 @@ func (d *SwipletDownloader) download(link string, destination string, etag strin
 		}
 		archive = file
 	}
-	return finish(download, archive, size, folder, link, destination, version, versionCode)
+	return finish(download, archive, size, folder, link, false, destination, version, versionCode)
+}
+
+type SourceFetch struct {
+	EntityTag   string
+	NotModified bool
+	Data        []byte
+
+	ErrorCode    int32
+	ErrorMessage string
+}
+
+func (d *SwipletDownloader) FetchSource(link string, etag string) *SourceFetch {
+	fetch, err := d.fetchSource(link, etag)
+	switch {
+	case err == nil:
+		return fetch
+	case E.IsTimeout(err):
+		return &SourceFetch{ErrorCode: SwipletErrorTimeout, ErrorMessage: err.Error()}
+	default:
+		return &SourceFetch{ErrorCode: SwipletErrorFailed, ErrorMessage: err.Error()}
+	}
+}
+
+func (d *SwipletDownloader) fetchSource(link string, etag string) (*SourceFetch, error) {
+	target, err := url.Parse(link)
+	if err != nil {
+		return nil, err
+	}
+	if target.Scheme != "http" && target.Scheme != "https" {
+		return nil, E.New("unsupported URL ", strconv.Quote(link))
+	}
+	request, err := http.NewRequestWithContext(d.ctx, http.MethodGet, target.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	if etag != "" {
+		request.Header.Set("If-None-Match", etag)
+	}
+	response, err := swipletClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	fetch := &SourceFetch{EntityTag: response.Header.Get("ETag")}
+	switch response.StatusCode {
+	case http.StatusNotModified:
+		fetch.NotModified = true
+		return fetch, nil
+	case http.StatusOK:
+	default:
+		return nil, E.New(response.Status)
+	}
+	data, err := io.ReadAll(io.LimitReader(response.Body, sourceLimit+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > sourceLimit {
+		return nil, E.New("the source is larger than ", sourceLimit>>20, " MB")
+	}
+	var listed source
+	if err = json.Unmarshal(data, &listed); err != nil {
+		return nil, E.Cause(err, "read the source")
+	}
+	if listed.Swiplets == nil {
+		return nil, E.New("the file is not a source")
+	}
+	fetch.Data = data
+	return fetch, nil
 }
 
 type sourceEntry struct {
@@ -293,7 +361,7 @@ func (d *SwipletDownloader) fromSource(download *SwipletDownload, response *http
 	if entry.SHA256 != "" && !strings.EqualFold(hex.EncodeToString(hash.Sum(nil)), entry.SHA256) {
 		return nil, E.New("the download of ", entry.ID, " doesn't match the checksum in the source")
 	}
-	finished, err := finish(download, file, size, "", link, destination, version, versionCode)
+	finished, err := finish(download, file, size, "", link, true, destination, version, versionCode)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +371,7 @@ func (d *SwipletDownloader) fromSource(download *SwipletDownload, response *http
 	return finished, nil
 }
 
-func finish(download *SwipletDownload, archive io.ReaderAt, size int64, folder string, link string, destination string, version string, versionCode int64) (*SwipletDownload, error) {
+func finish(download *SwipletDownload, archive io.ReaderAt, size int64, folder string, link string, fromSource bool, destination string, version string, versionCode int64) (*SwipletDownload, error) {
 	reader, err := zip.NewReader(archive, size)
 	if err != nil {
 		return nil, E.Cause(err, "open the archive")
@@ -321,16 +389,16 @@ func finish(download *SwipletDownload, archive io.ReaderAt, size int64, folder s
 		return nil, err
 	}
 	writer := zip.NewWriter(file)
-	err = copyArchive(writer, contents, link)
+	err = copyArchive(writer, contents, link, fromSource)
 	if err = E.Errors(err, writer.Close(), file.Close()); err != nil {
 		return nil, err
 	}
 	return download, nil
 }
 
-func copyArchive(writer *zip.Writer, contents automation.Archive, link string) error {
+func copyArchive(writer *zip.Writer, contents automation.Archive, link string, fromSource bool) error {
 	for _, source := range contents.Files {
-		if source.Name == automation.ManifestFile && contents.Manifest.UpdateURL == "" {
+		if source.Name == automation.ManifestFile && (fromSource || contents.Manifest.UpdateURL == "") {
 			manifest := contents.Manifest
 			manifest.UpdateURL = link
 			data, err := automation.EncodeManifest(manifest)

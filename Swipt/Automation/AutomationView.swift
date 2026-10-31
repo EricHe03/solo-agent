@@ -115,10 +115,8 @@ struct AutomationView: View {
                 }
             }
             Section {
-                if !swiplets.official.contains(name) {
-                    ShareLink(item: SwipletFile(id: name), preview: SharePreview(swiplets.titles[name] ?? name)) {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                    }
+                ShareLink(item: SwipletFile(id: name), preview: SharePreview(swiplets.titles[name] ?? name)) {
+                    Label("Share", systemImage: "square.and.arrow.up")
                 }
                 if let update = swiplets.updates[name] {
                     Button {
@@ -127,7 +125,7 @@ struct AutomationView: View {
                         Label("Update", systemImage: "arrow.up")
                     }
                     .disabled(swiplets.updating.contains(name))
-                } else if swiplets.updatable.contains(name) || swiplets.official.contains(name) {
+                } else if swiplets.updatable.contains(name) {
                     Button {
                         checkForUpdate(name)
                     } label: {
