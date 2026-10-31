@@ -14,7 +14,7 @@ struct AutoUnlockView: View {
                     Toggle("Enabled", isOn: $settings.isEnabled)
                         .disabled(!settings.isEnabled && problem != nil)
                 } footer: {
-                    Text("Enable automatic unlock so scripts can unlock your device automatically when it’s locked.")
+                    Text("Enable automatic unlock so Swipt can unlock your device automatically when it’s locked.")
                 }
                 Section {
                     Picker("Passcode Type", selection: $settings.passcodeType) {

@@ -5,43 +5,6 @@ import (
 	"sync"
 )
 
-type connListener struct {
-	conns chan net.Conn
-	done  chan struct{}
-	once  sync.Once
-}
-
-func newConnListener() *connListener {
-	return &connListener{conns: make(chan net.Conn), done: make(chan struct{})}
-}
-
-func (l *connListener) push(conn net.Conn) bool {
-	select {
-	case l.conns <- conn:
-		return true
-	case <-l.done:
-		return false
-	}
-}
-
-func (l *connListener) Accept() (net.Conn, error) {
-	select {
-	case conn := <-l.conns:
-		return conn, nil
-	case <-l.done:
-		return nil, net.ErrClosed
-	}
-}
-
-func (l *connListener) Close() error {
-	l.once.Do(func() { close(l.done) })
-	return nil
-}
-
-func (l *connListener) Addr() net.Addr {
-	return &net.TCPAddr{}
-}
-
 type trackedListener struct {
 	net.Listener
 	access sync.Mutex

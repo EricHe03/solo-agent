@@ -195,5 +195,5 @@ var REPLService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "internal/proto/repl.proto",
+	Metadata: "repl.proto",
 }

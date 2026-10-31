@@ -4,7 +4,7 @@ go 1.26.8
 
 require (
 	github.com/coder/websocket v1.8.15
-	github.com/fsnotify/fsnotify v1.9.0
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/google/uuid v1.6.0
 	// TODO: switch back to github.com/modelcontextprotocol/go-sdk once it supports the tasks extension
 	github.com/nekohasekai/go-sdk v1.8.1-0.20261024082711-45d20edf2bb5
@@ -12,8 +12,6 @@ require (
 	github.com/sagernet/sing v0.9.7-0.20261023115510-03a6cce64bf7
 	github.com/sagernet/sing-cloudflared v0.1.4-0.20261029113827-d98994744c34
 	github.com/sagernet/sing-tun v0.9.7-0.20261028024126-5b0a1a7a394e
-	github.com/spf13/cobra v1.10.2
-	github.com/spf13/pflag v1.0.9
 	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.47.0
 	golang.org/x/net v0.62.0
@@ -33,7 +31,6 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
-	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mdlayher/netlink v1.11.2 // indirect
 	github.com/mdlayher/socket v0.6.0 // indirect
 	github.com/philhofer/fwd v1.2.1 // indirect

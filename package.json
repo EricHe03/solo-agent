@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": [
     "api",
-    "api/cli",
+    "cli",
     "internal/automation/runtime",
     "internal/automation/runtime/modules/*"
   ],

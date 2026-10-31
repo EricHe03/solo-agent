@@ -1,5 +1,5 @@
 const outside = () => {
-  throw new Error("@swipt/api/swiplet runs inside Swipt; build the swiplet with `swiplet build`");
+  throw new Error("@swipt/api/swiplet runs inside Swipt; build the swiplet with `swipt build`");
 };
 
 export const defineExtension = outside;

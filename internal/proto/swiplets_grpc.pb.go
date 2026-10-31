@@ -460,5 +460,5 @@ var SwipletService_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "internal/proto/swiplets.proto",
+	Metadata: "swiplets.proto",
 }

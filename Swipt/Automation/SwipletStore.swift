@@ -450,7 +450,7 @@ nonisolated struct Repository: Codable, Identifiable, Sendable {
 
 nonisolated struct RepositorySwiplet: Codable, Identifiable, Sendable {
     struct Icon: Codable, Sendable {
-        let color: String
+        let color: String?
         let symbol: String
     }
 

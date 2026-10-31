@@ -27,7 +27,7 @@ type ExecuteRequest struct {
 
 func (x *ExecuteRequest) Reset() {
 	*x = ExecuteRequest{}
-	mi := &file_internal_proto_repl_proto_msgTypes[0]
+	mi := &file_repl_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -39,7 +39,7 @@ func (x *ExecuteRequest) String() string {
 func (*ExecuteRequest) ProtoMessage() {}
 
 func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_repl_proto_msgTypes[0]
+	mi := &file_repl_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -52,7 +52,7 @@ func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteRequest.ProtoReflect.Descriptor instead.
 func (*ExecuteRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_repl_proto_rawDescGZIP(), []int{0}
+	return file_repl_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ExecuteRequest) GetCode() string {
@@ -79,7 +79,7 @@ type ConsoleOutput struct {
 
 func (x *ConsoleOutput) Reset() {
 	*x = ConsoleOutput{}
-	mi := &file_internal_proto_repl_proto_msgTypes[1]
+	mi := &file_repl_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -91,7 +91,7 @@ func (x *ConsoleOutput) String() string {
 func (*ConsoleOutput) ProtoMessage() {}
 
 func (x *ConsoleOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_repl_proto_msgTypes[1]
+	mi := &file_repl_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -104,7 +104,7 @@ func (x *ConsoleOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsoleOutput.ProtoReflect.Descriptor instead.
 func (*ConsoleOutput) Descriptor() ([]byte, []int) {
-	return file_internal_proto_repl_proto_rawDescGZIP(), []int{1}
+	return file_repl_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ConsoleOutput) GetLevel() LogLevel {
@@ -131,7 +131,7 @@ type ScriptValue struct {
 
 func (x *ScriptValue) Reset() {
 	*x = ScriptValue{}
-	mi := &file_internal_proto_repl_proto_msgTypes[2]
+	mi := &file_repl_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -143,7 +143,7 @@ func (x *ScriptValue) String() string {
 func (*ScriptValue) ProtoMessage() {}
 
 func (x *ScriptValue) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_repl_proto_msgTypes[2]
+	mi := &file_repl_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -156,7 +156,7 @@ func (x *ScriptValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScriptValue.ProtoReflect.Descriptor instead.
 func (*ScriptValue) Descriptor() ([]byte, []int) {
-	return file_internal_proto_repl_proto_rawDescGZIP(), []int{2}
+	return file_repl_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ScriptValue) GetJson() string {
@@ -188,7 +188,7 @@ type ExecuteResponse struct {
 
 func (x *ExecuteResponse) Reset() {
 	*x = ExecuteResponse{}
-	mi := &file_internal_proto_repl_proto_msgTypes[3]
+	mi := &file_repl_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -200,7 +200,7 @@ func (x *ExecuteResponse) String() string {
 func (*ExecuteResponse) ProtoMessage() {}
 
 func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_repl_proto_msgTypes[3]
+	mi := &file_repl_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -213,7 +213,7 @@ func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteResponse.ProtoReflect.Descriptor instead.
 func (*ExecuteResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_repl_proto_rawDescGZIP(), []int{3}
+	return file_repl_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ExecuteResponse) GetPart() isExecuteResponse_Part {
@@ -296,7 +296,7 @@ type GetDeclarationsResponse struct {
 
 func (x *GetDeclarationsResponse) Reset() {
 	*x = GetDeclarationsResponse{}
-	mi := &file_internal_proto_repl_proto_msgTypes[4]
+	mi := &file_repl_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -308,7 +308,7 @@ func (x *GetDeclarationsResponse) String() string {
 func (*GetDeclarationsResponse) ProtoMessage() {}
 
 func (x *GetDeclarationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_repl_proto_msgTypes[4]
+	mi := &file_repl_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -321,7 +321,7 @@ func (x *GetDeclarationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeclarationsResponse.ProtoReflect.Descriptor instead.
 func (*GetDeclarationsResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_repl_proto_rawDescGZIP(), []int{4}
+	return file_repl_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetDeclarationsResponse) GetTypescript() string {
@@ -331,11 +331,12 @@ func (x *GetDeclarationsResponse) GetTypescript() string {
 	return ""
 }
 
-var File_internal_proto_repl_proto protoreflect.FileDescriptor
+var File_repl_proto protoreflect.FileDescriptor
 
-const file_internal_proto_repl_proto_rawDesc = "" +
+const file_repl_proto_rawDesc = "" +
 	"\n" +
-	"\x19internal/proto/repl.proto\x12\x05swipt\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1binternal/proto/common.proto\"C\n" +
+	"\n" +
+	"repl.proto\x12\x05swipt\x1a\x1bgoogle/protobuf/empty.proto\x1a\fcommon.proto\"C\n" +
 	"\x0eExecuteRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x1d\n" +
 	"\n" +
@@ -362,20 +363,20 @@ const file_internal_proto_repl_proto_rawDesc = "" +
 	"\x0fGetDeclarations\x12\x16.google.protobuf.Empty\x1a\x1e.swipt.GetDeclarationsResponseB2Z0github.com/swipt-automation/swipt/internal/protob\x06proto3"
 
 var (
-	file_internal_proto_repl_proto_rawDescOnce sync.Once
-	file_internal_proto_repl_proto_rawDescData []byte
+	file_repl_proto_rawDescOnce sync.Once
+	file_repl_proto_rawDescData []byte
 )
 
-func file_internal_proto_repl_proto_rawDescGZIP() []byte {
-	file_internal_proto_repl_proto_rawDescOnce.Do(func() {
-		file_internal_proto_repl_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_proto_repl_proto_rawDesc), len(file_internal_proto_repl_proto_rawDesc)))
+func file_repl_proto_rawDescGZIP() []byte {
+	file_repl_proto_rawDescOnce.Do(func() {
+		file_repl_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_repl_proto_rawDesc), len(file_repl_proto_rawDesc)))
 	})
-	return file_internal_proto_repl_proto_rawDescData
+	return file_repl_proto_rawDescData
 }
 
 var (
-	file_internal_proto_repl_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-	file_internal_proto_repl_proto_goTypes  = []any{
+	file_repl_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+	file_repl_proto_goTypes  = []any{
 		(*ExecuteRequest)(nil),          // 0: swipt.ExecuteRequest
 		(*ConsoleOutput)(nil),           // 1: swipt.ConsoleOutput
 		(*ScriptValue)(nil),             // 2: swipt.ScriptValue
@@ -387,7 +388,7 @@ var (
 	}
 )
 
-var file_internal_proto_repl_proto_depIdxs = []int32{
+var file_repl_proto_depIdxs = []int32{
 	5, // 0: swipt.ConsoleOutput.level:type_name -> swipt.LogLevel
 	1, // 1: swipt.ExecuteResponse.console:type_name -> swipt.ConsoleOutput
 	2, // 2: swipt.ExecuteResponse.value:type_name -> swipt.ScriptValue
@@ -405,13 +406,13 @@ var file_internal_proto_repl_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_internal_proto_repl_proto_init() }
-func file_internal_proto_repl_proto_init() {
-	if File_internal_proto_repl_proto != nil {
+func init() { file_repl_proto_init() }
+func file_repl_proto_init() {
+	if File_repl_proto != nil {
 		return
 	}
-	file_internal_proto_common_proto_init()
-	file_internal_proto_repl_proto_msgTypes[3].OneofWrappers = []any{
+	file_common_proto_init()
+	file_repl_proto_msgTypes[3].OneofWrappers = []any{
 		(*ExecuteResponse_Console)(nil),
 		(*ExecuteResponse_Value)(nil),
 		(*ExecuteResponse_Image)(nil),
@@ -421,17 +422,17 @@ func file_internal_proto_repl_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_proto_repl_proto_rawDesc), len(file_internal_proto_repl_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_repl_proto_rawDesc), len(file_repl_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_internal_proto_repl_proto_goTypes,
-		DependencyIndexes: file_internal_proto_repl_proto_depIdxs,
-		MessageInfos:      file_internal_proto_repl_proto_msgTypes,
+		GoTypes:           file_repl_proto_goTypes,
+		DependencyIndexes: file_repl_proto_depIdxs,
+		MessageInfos:      file_repl_proto_msgTypes,
 	}.Build()
-	File_internal_proto_repl_proto = out.File
-	file_internal_proto_repl_proto_goTypes = nil
-	file_internal_proto_repl_proto_depIdxs = nil
+	File_repl_proto = out.File
+	file_repl_proto_goTypes = nil
+	file_repl_proto_depIdxs = nil
 }

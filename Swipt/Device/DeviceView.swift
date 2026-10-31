@@ -17,7 +17,6 @@ struct DeviceView: View {
     var body: some View {
         WithPerceptionTracking {
             Form {
-                connectionSection
                 setupSection
             }
             .navigationTitle("Device")
@@ -30,33 +29,6 @@ struct DeviceView: View {
             .onChangeCompat(of: pairing.revision) {
                 device.remotePairing.refresh()
                 device.clearFailure()
-            }
-        }
-    }
-
-    private var status: String {
-        switch device.phase {
-        case .idle: String(localized: "Not Connected")
-        case .connecting: device.problem?.title ?? String(localized: "Connecting…")
-        case .preparing: String(localized: "Preparing…")
-        case .running: device.problem?.title ?? String(localized: "Connected")
-        case .failed: device.problem?.title ?? DeviceProblem(kind: .other, message: "").title
-        }
-    }
-
-    private var connectionSection: some View {
-        Section {
-            LabeledContentCompat("Status") {
-                Text(verbatim: status)
-            }
-        } footer: {
-            VStack(alignment: .leading, spacing: 4) {
-                if let message = device.problem?.message, !message.isEmpty {
-                    Text(verbatim: message)
-                }
-                if let reason = device.unavailableReason {
-                    Text(reason)
-                }
             }
         }
     }

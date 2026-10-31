@@ -30,7 +30,7 @@ type ReadLogsRequest struct {
 
 func (x *ReadLogsRequest) Reset() {
 	*x = ReadLogsRequest{}
-	mi := &file_internal_proto_logs_proto_msgTypes[0]
+	mi := &file_logs_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +42,7 @@ func (x *ReadLogsRequest) String() string {
 func (*ReadLogsRequest) ProtoMessage() {}
 
 func (x *ReadLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_logs_proto_msgTypes[0]
+	mi := &file_logs_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +55,7 @@ func (x *ReadLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadLogsRequest.ProtoReflect.Descriptor instead.
 func (*ReadLogsRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_logs_proto_rawDescGZIP(), []int{0}
+	return file_logs_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ReadLogsRequest) GetLevel() LogLevel {
@@ -102,7 +102,7 @@ type ReadLogsResponse struct {
 
 func (x *ReadLogsResponse) Reset() {
 	*x = ReadLogsResponse{}
-	mi := &file_internal_proto_logs_proto_msgTypes[1]
+	mi := &file_logs_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -114,7 +114,7 @@ func (x *ReadLogsResponse) String() string {
 func (*ReadLogsResponse) ProtoMessage() {}
 
 func (x *ReadLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_logs_proto_msgTypes[1]
+	mi := &file_logs_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -127,7 +127,7 @@ func (x *ReadLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadLogsResponse.ProtoReflect.Descriptor instead.
 func (*ReadLogsResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_logs_proto_rawDescGZIP(), []int{1}
+	return file_logs_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ReadLogsResponse) GetEntry() *LogEntry {
@@ -137,11 +137,12 @@ func (x *ReadLogsResponse) GetEntry() *LogEntry {
 	return nil
 }
 
-var File_internal_proto_logs_proto protoreflect.FileDescriptor
+var File_logs_proto protoreflect.FileDescriptor
 
-const file_internal_proto_logs_proto_rawDesc = "" +
+const file_logs_proto_rawDesc = "" +
 	"\n" +
-	"\x19internal/proto/logs.proto\x12\x05swipt\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1binternal/proto/common.proto\"\xb5\x01\n" +
+	"\n" +
+	"logs.proto\x12\x05swipt\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\fcommon.proto\"\xb5\x01\n" +
 	"\x0fReadLogsRequest\x12%\n" +
 	"\x05level\x18\x01 \x01(\x0e2\x0f.swipt.LogLevelR\x05level\x12\x1d\n" +
 	"\n" +
@@ -156,20 +157,20 @@ const file_internal_proto_logs_proto_rawDesc = "" +
 	"\bReadLogs\x12\x16.swipt.ReadLogsRequest\x1a\x17.swipt.ReadLogsResponse0\x01B2Z0github.com/swipt-automation/swipt/internal/protob\x06proto3"
 
 var (
-	file_internal_proto_logs_proto_rawDescOnce sync.Once
-	file_internal_proto_logs_proto_rawDescData []byte
+	file_logs_proto_rawDescOnce sync.Once
+	file_logs_proto_rawDescData []byte
 )
 
-func file_internal_proto_logs_proto_rawDescGZIP() []byte {
-	file_internal_proto_logs_proto_rawDescOnce.Do(func() {
-		file_internal_proto_logs_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_proto_logs_proto_rawDesc), len(file_internal_proto_logs_proto_rawDesc)))
+func file_logs_proto_rawDescGZIP() []byte {
+	file_logs_proto_rawDescOnce.Do(func() {
+		file_logs_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_logs_proto_rawDesc), len(file_logs_proto_rawDesc)))
 	})
-	return file_internal_proto_logs_proto_rawDescData
+	return file_logs_proto_rawDescData
 }
 
 var (
-	file_internal_proto_logs_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-	file_internal_proto_logs_proto_goTypes  = []any{
+	file_logs_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+	file_logs_proto_goTypes  = []any{
 		(*ReadLogsRequest)(nil),       // 0: swipt.ReadLogsRequest
 		(*ReadLogsResponse)(nil),      // 1: swipt.ReadLogsResponse
 		LogLevel(0),                   // 2: swipt.LogLevel
@@ -178,7 +179,7 @@ var (
 	}
 )
 
-var file_internal_proto_logs_proto_depIdxs = []int32{
+var file_logs_proto_depIdxs = []int32{
 	2, // 0: swipt.ReadLogsRequest.level:type_name -> swipt.LogLevel
 	3, // 1: swipt.ReadLogsRequest.since:type_name -> google.protobuf.Timestamp
 	4, // 2: swipt.ReadLogsResponse.entry:type_name -> swipt.LogEntry
@@ -191,27 +192,27 @@ var file_internal_proto_logs_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_internal_proto_logs_proto_init() }
-func file_internal_proto_logs_proto_init() {
-	if File_internal_proto_logs_proto != nil {
+func init() { file_logs_proto_init() }
+func file_logs_proto_init() {
+	if File_logs_proto != nil {
 		return
 	}
-	file_internal_proto_common_proto_init()
+	file_common_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_proto_logs_proto_rawDesc), len(file_internal_proto_logs_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_logs_proto_rawDesc), len(file_logs_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_internal_proto_logs_proto_goTypes,
-		DependencyIndexes: file_internal_proto_logs_proto_depIdxs,
-		MessageInfos:      file_internal_proto_logs_proto_msgTypes,
+		GoTypes:           file_logs_proto_goTypes,
+		DependencyIndexes: file_logs_proto_depIdxs,
+		MessageInfos:      file_logs_proto_msgTypes,
 	}.Build()
-	File_internal_proto_logs_proto = out.File
-	file_internal_proto_logs_proto_goTypes = nil
-	file_internal_proto_logs_proto_depIdxs = nil
+	File_logs_proto = out.File
+	file_logs_proto_goTypes = nil
+	file_logs_proto_depIdxs = nil
 }

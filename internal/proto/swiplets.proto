@@ -6,7 +6,7 @@ option go_package = "github.com/swipt-automation/swipt/internal/proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
-import "internal/proto/common.proto";
+import "common.proto";
 
 service SwipletService {
   rpc ListSwiplets(google.protobuf.Empty) returns (ListSwipletsResponse);

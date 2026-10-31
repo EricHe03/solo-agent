@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/coder/websocket"
 	"github.com/nekohasekai/go-sdk/mcp"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
@@ -24,7 +23,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
@@ -45,18 +43,6 @@ var (
 
 type anonymousKey struct{}
 
-type anonymousAddr struct {
-	net.Addr
-}
-
-type anonymousConn struct {
-	net.Conn
-}
-
-func (c anonymousConn) RemoteAddr() net.Addr {
-	return anonymousAddr{c.Conn.RemoteAddr()}
-}
-
 type Options struct {
 	Device   *device.Connection
 	Swiplets *automation.Host
@@ -66,14 +52,13 @@ type Options struct {
 }
 
 type Server struct {
-	options  Options
-	ctx      context.Context
-	cancel   context.CancelFunc
-	grpc     *grpc.Server
-	upgraded *connListener
-	servers  []*http.Server
-	mcp      *mcp.Server
-	mcpHTTP  http.Handler
+	options Options
+	ctx     context.Context
+	cancel  context.CancelFunc
+	grpc    *grpc.Server
+	servers []*http.Server
+	mcp     *mcp.Server
+	mcpHTTP http.Handler
 
 	access   sync.Mutex
 	token    string
@@ -90,7 +75,6 @@ func New(options Options) *Server {
 	}
 	s := &Server{
 		options:  options,
-		upgraded: newConnListener(),
 		sessions: make(map[*mcp.ServerSession]*automation.REPL),
 		requests: make(map[uint64]context.CancelCauseFunc),
 	}
@@ -118,25 +102,27 @@ func New(options Options) *Server {
 	proto.RegisterLogServiceServer(s.grpc, &logService{Server: s})
 	proto.RegisterSwipletServiceServer(s.grpc, &swipletService{Server: s})
 	proto.RegisterREPLServiceServer(s.grpc, &replService{Server: s})
-	go func() {
-		_ = s.grpc.Serve(s.upgraded)
-	}()
 	s.mcp, s.mcpHTTP = s.newMCP()
 	return s
 }
 
 func (s *Server) handler(prefix string, authenticates bool) http.Handler {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.URL.Path == "/" && strings.EqualFold(r.Header.Get("Upgrade"), "websocket"):
-			s.serveWebSocket(w, r, authenticates)
-		case r.ProtoMajor == 2 && strings.HasPrefix(r.Header.Get("Content-Type"), "application/grpc"):
-			if !authenticates {
-				r = r.WithContext(context.WithValue(r.Context(), anonymousKey{}, true))
-			}
-			s.grpc.ServeHTTP(w, r)
-		case r.URL.Path == MCPPath:
+		if r.URL.Path == MCPPath {
 			s.serveMCP(w, r, authenticates)
+			return
+		}
+		if !authenticates {
+			r = r.WithContext(context.WithValue(r.Context(), anonymousKey{}, true))
+		}
+		contentType := r.Header.Get("Content-Type")
+		switch {
+		case isWebSocketGRPCRequest(r):
+			s.serveWebSocket(w, r)
+		case r.Method == http.MethodPost && strings.HasPrefix(contentType, contentTypeGRPCWeb):
+			s.serveWeb(w, r)
+		case r.ProtoMajor == 2 && strings.HasPrefix(contentType, contentTypeGRPC):
+			s.grpc.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -155,22 +141,6 @@ func (s *Server) handler(prefix string, authenticates bool) http.Handler {
 		}
 		handler(w, r)
 	}))
-}
-
-func (s *Server) serveWebSocket(w http.ResponseWriter, r *http.Request, authenticates bool) {
-	conn, err := websocket.Accept(w, r, nil)
-	if err != nil {
-		s.options.Logger.Debug("accept a websocket: ", err)
-		return
-	}
-	conn.SetReadLimit(-1)
-	upgraded := websocket.NetConn(s.ctx, conn, websocket.MessageBinary)
-	if !authenticates {
-		upgraded = anonymousConn{upgraded}
-	}
-	if !s.upgraded.push(upgraded) {
-		conn.CloseNow()
-	}
 }
 
 func (s *Server) Serve(listener net.Listener, prefix string, authenticates bool) error {
@@ -226,14 +196,8 @@ func (s *Server) authorized(token string) bool {
 }
 
 func anonymous(ctx context.Context) bool {
-	if allowed, _ := ctx.Value(anonymousKey{}).(bool); allowed {
-		return true
-	}
-	if connection, loaded := peer.FromContext(ctx); loaded {
-		_, allowed := connection.Addr.(anonymousAddr)
-		return allowed
-	}
-	return false
+	allowed, _ := ctx.Value(anonymousKey{}).(bool)
+	return allowed
 }
 
 func (s *Server) authorize(ctx context.Context) (context.Context, func(), error) {
@@ -316,7 +280,6 @@ func (s *Server) Close() error {
 		err = E.Errors(err, server.Close())
 	}
 	s.grpc.Stop()
-	_ = s.upgraded.Close()
 	s.cancel()
 	ended()
 	return err

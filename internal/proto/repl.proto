@@ -4,7 +4,7 @@ package swipt;
 option go_package = "github.com/swipt-automation/swipt/internal/proto";
 
 import "google/protobuf/empty.proto";
-import "internal/proto/common.proto";
+import "common.proto";
 
 service REPLService {
   rpc Execute(ExecuteRequest) returns (stream ExecuteResponse);

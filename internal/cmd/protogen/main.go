@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -10,6 +9,11 @@ import (
 	"strings"
 
 	E "github.com/sagernet/sing/common/exceptions"
+)
+
+const (
+	protoDirectory = "internal/proto"
+	esDirectory    = "cli/proto"
 )
 
 func main() {
@@ -22,33 +26,26 @@ func main() {
 	if binDirectory == "" {
 		binDirectory = filepath.Join(filepath.SplitList(environment[1])[0], "bin")
 	}
-	var protoFiles []string
-	err = filepath.WalkDir(".", func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if entry.IsDir() {
-			if path != "." && (strings.HasPrefix(entry.Name(), ".") || entry.Name() == "node_modules" || path == "build") {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if strings.HasSuffix(path, ".proto") {
-			protoFiles = append(protoFiles, path)
-		}
-		return nil
-	})
+	protoFiles, err := filepath.Glob(filepath.Join(protoDirectory, "*.proto"))
 	if err != nil {
 		log.Fatal(err)
 	}
+	if err = os.RemoveAll(esDirectory); err != nil {
+		log.Fatal(err)
+	}
+	if err = os.MkdirAll(esDirectory, 0o755); err != nil {
+		log.Fatal(err)
+	}
 	command := exec.Command("protoc", append([]string{
-		"-I", ".",
-		"--go_out", ".",
+		"-I", protoDirectory,
+		"--go_out", protoDirectory,
 		"--go_opt", "paths=source_relative",
-		"--go-grpc_out", ".",
+		"--go-grpc_out", protoDirectory,
 		"--go-grpc_opt", "paths=source_relative",
+		"--es_out", esDirectory,
+		"--es_opt", "target=js,import_extension=.js",
 	}, protoFiles...)...)
-	command.Env = append(os.Environ(), "PATH="+binDirectory+string(os.PathListSeparator)+os.Getenv("PATH"))
+	command.Env = append(os.Environ(), "PATH="+strings.Join([]string{binDirectory, filepath.Join("node_modules", ".bin"), os.Getenv("PATH")}, string(os.PathListSeparator)))
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 	err = command.Run()

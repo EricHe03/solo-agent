@@ -31,7 +31,7 @@ jobs:
           fi
           echo "build_number=$((PREVIOUS + 1))"
           echo "build_number=$((PREVIOUS + 1))" >> "$GITHUB_OUTPUT"
-          echo "library_hash=${{ hashFiles('go.mod', 'go.sum', 'libswipt/**', 'internal/**', 'cmd/internal/build_libswipt/**') }}" >> "$GITHUB_OUTPUT"
+          echo "library_hash=${{ hashFiles('go.mod', 'go.sum', 'libswipt/**', 'internal/**') }}" >> "$GITHUB_OUTPUT"
   build_apple_library:
     name: Build Apple library
     runs-on: xcode-27
@@ -75,7 +75,7 @@ jobs:
           restore-keys: go-build-libswipt-ios-arm64-
       - name: Build library
         if: steps.library.outputs.cache-hit != 'true'
-        run: go run ./cmd/internal/build_libswipt -target ios/arm64
+        run: go run ./internal/cmd/build_libswipt -target ios/arm64
   build_ios_ipa:
     name: Build iOS (IPA)
     runs-on: xcode-27
@@ -187,11 +187,11 @@ jobs:
             fi
           fi
           VERSION="$BASE-nightly.$NUMBER"
-          for package in api api/cli; do
+          for package in api cli; do
             npm version "$VERSION" --no-git-tag-version --prefix "$package"
           done
-          npm pkg set "peerDependencies.@swipt/api=$VERSION" --prefix api/cli
-          for package in api api/cli; do
+          npm pkg set "peerDependencies.@swipt/api=$VERSION" --prefix cli
+          for package in api cli; do
             cp LICENSE "$package/"
             PACKAGE=$(node -p "require('./$package/package.json').name")
             if npm view "$PACKAGE@$VERSION" version > /dev/null 2>&1; then
@@ -200,7 +200,7 @@ jobs:
               npm publish "./$package" --tag nightly
             fi
           done
-          for package in api api/cli; do
+          for package in api cli; do
             PACKAGE=$(node -p "require('./$package/package.json').name")
             case "$(npm view "$PACKAGE@latest" version 2> /dev/null)" in
               *-*) npm dist-tag add "$PACKAGE@$VERSION" latest ;;

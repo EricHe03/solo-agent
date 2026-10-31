@@ -3,10 +3,10 @@ SHELL := /bin/bash
 .SILENT:
 
 lib:
-	go run ./cmd/internal/build_libswipt
+	go run ./internal/cmd/build_libswipt
 
 proto:
-	go run ./cmd/internal/protogen
+	go run ./internal/cmd/protogen
 	gofumpt -w internal/proto
 
 proto_install:
@@ -55,11 +55,11 @@ altstore_source:
 	# (AltStore fafd76e, AltStore/Components/AppIconImageView.swift:46-65), so the transparent
 	# corners and edge highlight of the exported squircle show up as a white border.
 	sips --cropToHeightWidth 512 512 build/altstore/icon.png > /dev/null
-	go run ./cmd/internal/build_altstore_source
+	go run ./internal/cmd/build_altstore_source
 
 build_macos:
 	xcodebuild build -skipMacroValidation -scheme 'Swipt macOS' -configuration Debug -destination 'generic/platform=macOS' | xcbeautify | grep -A 10 -e "Build Succeeded" -e "BUILD FAILED" -e "❌"
 
 fmt:
-	gofumpt -l -w cmd libswipt internal
-	go run ./cmd/internal/format_xcstrings $$(find Swipt -name '*.xcstrings')
+	gofumpt -l -w libswipt internal
+	go run ./internal/cmd/format_xcstrings $$(find Swipt -name '*.xcstrings')

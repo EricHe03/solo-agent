@@ -40,7 +40,7 @@ const idPattern = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 
 const storedSuffixes = [".webp", ".jxl", ".avif", ".heic", ".heif", ".jpg", ".jpeg", ".png", ".gif", ".mp4", ".mov", ".m4a", ".mp3", ".aac", ".zip", ".gz", ".br", ".zst", ".xz"].join(":");
 
-function loadProject(root) {
+export function loadProject(root) {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
   const config = manifest.swiplet ?? {};
   if (typeof config.id !== "string" || !idPattern.test(config.id)) {
@@ -235,7 +235,7 @@ const sourceFiles = output => ({
   ...(output.extension ? { "extension.js": output.extension } : {}),
 });
 
-async function buildCommand(root) {
+export async function buildProject(root) {
   const project = loadProject(root);
   const output = await bundle(project);
   const manifest = swipletManifest(project, output);
@@ -260,7 +260,25 @@ async function buildCommand(root) {
   fs.rmSync(archive, { force: true });
   fs.rmSync(path.join(dist, `${manifest.id}.zip`), { force: true });
   execFileSync("zip", ["-qr", "-n", storedSuffixes, archive, manifest.id, "-x", "*.map"], { cwd: dist });
-  console.log(path.relative(process.cwd(), archive));
+  return { id: manifest.id, archive, digest: folderDigest(folder) };
+}
+
+function folderDigest(folder) {
+  const hash = createHash("sha256");
+  const walk = directory => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      const name = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        walk(name);
+      } else if (!entry.name.endsWith(".map")) {
+        hash.update(`${path.relative(folder, name)}\0`);
+        hash.update(fs.readFileSync(name));
+        hash.update("\0");
+      }
+    }
+  };
+  walk(folder);
+  return hash.digest("hex");
 }
 
 const manifestEntry = /^(?:[^/]+\/)?manifest\.json$/;
@@ -277,8 +295,8 @@ function loadSource(root) {
   if (localizedNames === null || typeof localizedNames !== "object" || !Object.values(localizedNames).every(name => typeof name === "string")) {
     throw new Error('"source.localizedNames" in package.json must map languages to names');
   }
-  if (config.icon !== undefined && (typeof config.icon?.color !== "string" || typeof config.icon?.symbol !== "string")) {
-    throw new Error('"source.icon" in package.json must have a color and a symbol');
+  if (config.icon !== undefined && (typeof config.icon?.symbol !== "string" || (config.icon.color !== undefined && typeof config.icon.color !== "string"))) {
+    throw new Error('"source.icon" in package.json must have a symbol and may have a color');
   }
   let prefix;
   if (config.url !== undefined) {
@@ -326,7 +344,7 @@ function readSwiplet(file) {
   return { file, manifest, data: fs.readFileSync(file) };
 }
 
-function sourceCommand(root, given) {
+export function sourceCommand(root, given) {
   const source = loadSource(root);
   const files = given.length > 0 ? given.map(file => path.resolve(file)) : workspaceSwiplets(source);
   if (files.length === 0) {
@@ -357,7 +375,7 @@ function sourceCommand(root, given) {
   const index = {
     ...(source.config.name ? { name: source.config.name } : {}),
     ...(Object.keys(source.localizedNames).length > 0 ? { localizedNames: source.localizedNames } : {}),
-    ...(source.config.icon ? { icon: { color: source.config.icon.color, symbol: source.config.icon.symbol } } : {}),
+    ...(source.config.icon ? { icon: { symbol: source.config.icon.symbol, ...(source.config.icon.color ? { color: source.config.icon.color } : {}) } } : {}),
     ...(image ? { image: located(image.name) } : {}),
     swiplets: entries,
   };
@@ -382,7 +400,7 @@ const templates = {
           app: "./src/App.tsx",
           extension: "./src/extension.ts",
         },
-        scripts: { build: "swiplet build", check: "tsc" },
+        scripts: { build: "swipt build", check: "tsc" },
         dependencies: { zod: "^4.6.7" },
         devDependencies: {
           "@swipt/api": version,
@@ -444,7 +462,7 @@ export default function App() {
 
 const quote = value => (/^[\w@%+=:,./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`);
 
-function createCommand(directory) {
+export function createCommand(directory) {
   const root = path.resolve(directory);
   if (fs.existsSync(root) && fs.readdirSync(root).length > 0) {
     throw new Error(`${directory} is not empty`);
@@ -455,52 +473,4 @@ function createCommand(directory) {
   }
   const manager = process.env.npm_config_user_agent?.split("/")[0] ?? "npm";
   console.log(`cd ${quote(directory)} && ${manager} install && ${manager} run build`);
-}
-
-const usage = `usage: swiplet create <directory>
-       swiplet build
-       swiplet source [<swiplet>...]
-
-  create   make a swiplet project in a new or empty directory
-  build    bundle the project in this directory into dist/<swiplet.id>.swiplet
-  source   gather the built swiplets of this directory's workspaces, or the given ones, into dist/
-           with a swiplets.json described by "source" in package.json
-
-Type-check a project with its "check" script.`;
-
-const commands = { create: 1, build: 0, source: null };
-
-class UsageError extends Error {}
-
-try {
-  let parsed;
-  try {
-    parsed = parseArgs({ allowPositionals: true, options: { help: { type: "boolean", short: "h" } } });
-  } catch (error) {
-    throw new UsageError(error.message);
-  }
-  const [command, ...rest] = parsed.positionals;
-  if (parsed.values.help) {
-    console.log(usage);
-  } else if (command === undefined) {
-    throw new UsageError("a command is missing");
-  } else if (!Object.hasOwn(commands, command)) {
-    throw new UsageError(`unknown command ${JSON.stringify(command)}`);
-  } else if (commands[command] !== null && rest.length !== commands[command]) {
-    throw new UsageError(commands[command] === 0 ? `${command} takes no arguments` : `${command} takes one directory`);
-  } else if (command === "create") {
-    createCommand(rest[0]);
-  } else if (command === "source") {
-    sourceCommand(process.cwd(), rest);
-  } else {
-    await buildCommand(process.cwd());
-  }
-} catch (error) {
-  if (error instanceof UsageError) {
-    console.error(`error: ${error.message}\n\n${usage}`);
-    process.exitCode = 2;
-  } else {
-    console.error(error.message);
-    process.exitCode = 1;
-  }
 }

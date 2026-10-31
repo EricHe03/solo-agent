@@ -57,11 +57,11 @@ func (x LogLevel) String() string {
 }
 
 func (LogLevel) Descriptor() protoreflect.EnumDescriptor {
-	return file_internal_proto_common_proto_enumTypes[0].Descriptor()
+	return file_common_proto_enumTypes[0].Descriptor()
 }
 
 func (LogLevel) Type() protoreflect.EnumType {
-	return &file_internal_proto_common_proto_enumTypes[0]
+	return &file_common_proto_enumTypes[0]
 }
 
 func (x LogLevel) Number() protoreflect.EnumNumber {
@@ -70,7 +70,7 @@ func (x LogLevel) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LogLevel.Descriptor instead.
 func (LogLevel) EnumDescriptor() ([]byte, []int) {
-	return file_internal_proto_common_proto_rawDescGZIP(), []int{0}
+	return file_common_proto_rawDescGZIP(), []int{0}
 }
 
 type DeviceConnectionState int32
@@ -115,11 +115,11 @@ func (x DeviceConnectionState) String() string {
 }
 
 func (DeviceConnectionState) Descriptor() protoreflect.EnumDescriptor {
-	return file_internal_proto_common_proto_enumTypes[1].Descriptor()
+	return file_common_proto_enumTypes[1].Descriptor()
 }
 
 func (DeviceConnectionState) Type() protoreflect.EnumType {
-	return &file_internal_proto_common_proto_enumTypes[1]
+	return &file_common_proto_enumTypes[1]
 }
 
 func (x DeviceConnectionState) Number() protoreflect.EnumNumber {
@@ -128,7 +128,7 @@ func (x DeviceConnectionState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DeviceConnectionState.Descriptor instead.
 func (DeviceConnectionState) EnumDescriptor() ([]byte, []int) {
-	return file_internal_proto_common_proto_rawDescGZIP(), []int{1}
+	return file_common_proto_rawDescGZIP(), []int{1}
 }
 
 type DeviceConnectionProblem int32
@@ -185,11 +185,11 @@ func (x DeviceConnectionProblem) String() string {
 }
 
 func (DeviceConnectionProblem) Descriptor() protoreflect.EnumDescriptor {
-	return file_internal_proto_common_proto_enumTypes[2].Descriptor()
+	return file_common_proto_enumTypes[2].Descriptor()
 }
 
 func (DeviceConnectionProblem) Type() protoreflect.EnumType {
-	return &file_internal_proto_common_proto_enumTypes[2]
+	return &file_common_proto_enumTypes[2]
 }
 
 func (x DeviceConnectionProblem) Number() protoreflect.EnumNumber {
@@ -198,7 +198,7 @@ func (x DeviceConnectionProblem) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DeviceConnectionProblem.Descriptor instead.
 func (DeviceConnectionProblem) EnumDescriptor() ([]byte, []int) {
-	return file_internal_proto_common_proto_rawDescGZIP(), []int{2}
+	return file_common_proto_rawDescGZIP(), []int{2}
 }
 
 type LogEntry struct {
@@ -213,7 +213,7 @@ type LogEntry struct {
 
 func (x *LogEntry) Reset() {
 	*x = LogEntry{}
-	mi := &file_internal_proto_common_proto_msgTypes[0]
+	mi := &file_common_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -225,7 +225,7 @@ func (x *LogEntry) String() string {
 func (*LogEntry) ProtoMessage() {}
 
 func (x *LogEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_common_proto_msgTypes[0]
+	mi := &file_common_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -238,7 +238,7 @@ func (x *LogEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogEntry.ProtoReflect.Descriptor instead.
 func (*LogEntry) Descriptor() ([]byte, []int) {
-	return file_internal_proto_common_proto_rawDescGZIP(), []int{0}
+	return file_common_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *LogEntry) GetTime() *timestamppb.Timestamp {
@@ -281,7 +281,7 @@ type FileInfo struct {
 
 func (x *FileInfo) Reset() {
 	*x = FileInfo{}
-	mi := &file_internal_proto_common_proto_msgTypes[1]
+	mi := &file_common_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -293,7 +293,7 @@ func (x *FileInfo) String() string {
 func (*FileInfo) ProtoMessage() {}
 
 func (x *FileInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_common_proto_msgTypes[1]
+	mi := &file_common_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -306,7 +306,7 @@ func (x *FileInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileInfo.ProtoReflect.Descriptor instead.
 func (*FileInfo) Descriptor() ([]byte, []int) {
-	return file_internal_proto_common_proto_rawDescGZIP(), []int{1}
+	return file_common_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *FileInfo) GetPath() string {
@@ -348,7 +348,7 @@ type FileChunk struct {
 
 func (x *FileChunk) Reset() {
 	*x = FileChunk{}
-	mi := &file_internal_proto_common_proto_msgTypes[2]
+	mi := &file_common_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -360,7 +360,7 @@ func (x *FileChunk) String() string {
 func (*FileChunk) ProtoMessage() {}
 
 func (x *FileChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_common_proto_msgTypes[2]
+	mi := &file_common_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -373,7 +373,7 @@ func (x *FileChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileChunk.ProtoReflect.Descriptor instead.
 func (*FileChunk) Descriptor() ([]byte, []int) {
-	return file_internal_proto_common_proto_rawDescGZIP(), []int{2}
+	return file_common_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *FileChunk) GetPath() string {
@@ -409,7 +409,7 @@ type StackFrame struct {
 
 func (x *StackFrame) Reset() {
 	*x = StackFrame{}
-	mi := &file_internal_proto_common_proto_msgTypes[3]
+	mi := &file_common_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -421,7 +421,7 @@ func (x *StackFrame) String() string {
 func (*StackFrame) ProtoMessage() {}
 
 func (x *StackFrame) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_common_proto_msgTypes[3]
+	mi := &file_common_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -434,7 +434,7 @@ func (x *StackFrame) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StackFrame.ProtoReflect.Descriptor instead.
 func (*StackFrame) Descriptor() ([]byte, []int) {
-	return file_internal_proto_common_proto_rawDescGZIP(), []int{3}
+	return file_common_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *StackFrame) GetFunction() string {
@@ -476,7 +476,7 @@ type ScriptError struct {
 
 func (x *ScriptError) Reset() {
 	*x = ScriptError{}
-	mi := &file_internal_proto_common_proto_msgTypes[4]
+	mi := &file_common_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -488,7 +488,7 @@ func (x *ScriptError) String() string {
 func (*ScriptError) ProtoMessage() {}
 
 func (x *ScriptError) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_common_proto_msgTypes[4]
+	mi := &file_common_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -501,7 +501,7 @@ func (x *ScriptError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScriptError.ProtoReflect.Descriptor instead.
 func (*ScriptError) Descriptor() ([]byte, []int) {
-	return file_internal_proto_common_proto_rawDescGZIP(), []int{4}
+	return file_common_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ScriptError) GetName() string {
@@ -538,7 +538,7 @@ type ActionResult struct {
 
 func (x *ActionResult) Reset() {
 	*x = ActionResult{}
-	mi := &file_internal_proto_common_proto_msgTypes[5]
+	mi := &file_common_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -550,7 +550,7 @@ func (x *ActionResult) String() string {
 func (*ActionResult) ProtoMessage() {}
 
 func (x *ActionResult) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_common_proto_msgTypes[5]
+	mi := &file_common_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -563,7 +563,7 @@ func (x *ActionResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ActionResult.ProtoReflect.Descriptor instead.
 func (*ActionResult) Descriptor() ([]byte, []int) {
-	return file_internal_proto_common_proto_rawDescGZIP(), []int{5}
+	return file_common_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ActionResult) GetOutcome() isActionResult_Outcome {
@@ -618,7 +618,7 @@ type DeviceConnection struct {
 
 func (x *DeviceConnection) Reset() {
 	*x = DeviceConnection{}
-	mi := &file_internal_proto_common_proto_msgTypes[6]
+	mi := &file_common_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -630,7 +630,7 @@ func (x *DeviceConnection) String() string {
 func (*DeviceConnection) ProtoMessage() {}
 
 func (x *DeviceConnection) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_common_proto_msgTypes[6]
+	mi := &file_common_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -643,7 +643,7 @@ func (x *DeviceConnection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceConnection.ProtoReflect.Descriptor instead.
 func (*DeviceConnection) Descriptor() ([]byte, []int) {
-	return file_internal_proto_common_proto_rawDescGZIP(), []int{6}
+	return file_common_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeviceConnection) GetState() DeviceConnectionState {
@@ -667,11 +667,11 @@ func (x *DeviceConnection) GetMessage() string {
 	return ""
 }
 
-var File_internal_proto_common_proto protoreflect.FileDescriptor
+var File_common_proto protoreflect.FileDescriptor
 
-const file_internal_proto_common_proto_rawDesc = "" +
+const file_common_proto_rawDesc = "" +
 	"\n" +
-	"\x1binternal/proto/common.proto\x12\x05swipt\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8d\x01\n" +
+	"\fcommon.proto\x12\x05swipt\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8d\x01\n" +
 	"\bLogEntry\x12.\n" +
 	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12%\n" +
 	"\x05level\x18\x02 \x01(\x0e2\x0f.swipt.LogLevelR\x05level\x12\x10\n" +
@@ -730,21 +730,21 @@ const file_internal_proto_common_proto_rawDesc = "" +
 	"\x1fDEVICE_CONNECTION_PROBLEM_OTHER\x10\tB2Z0github.com/swipt-automation/swipt/internal/protob\x06proto3"
 
 var (
-	file_internal_proto_common_proto_rawDescOnce sync.Once
-	file_internal_proto_common_proto_rawDescData []byte
+	file_common_proto_rawDescOnce sync.Once
+	file_common_proto_rawDescData []byte
 )
 
-func file_internal_proto_common_proto_rawDescGZIP() []byte {
-	file_internal_proto_common_proto_rawDescOnce.Do(func() {
-		file_internal_proto_common_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_proto_common_proto_rawDesc), len(file_internal_proto_common_proto_rawDesc)))
+func file_common_proto_rawDescGZIP() []byte {
+	file_common_proto_rawDescOnce.Do(func() {
+		file_common_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_common_proto_rawDesc), len(file_common_proto_rawDesc)))
 	})
-	return file_internal_proto_common_proto_rawDescData
+	return file_common_proto_rawDescData
 }
 
 var (
-	file_internal_proto_common_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-	file_internal_proto_common_proto_msgTypes  = make([]protoimpl.MessageInfo, 7)
-	file_internal_proto_common_proto_goTypes   = []any{
+	file_common_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+	file_common_proto_msgTypes  = make([]protoimpl.MessageInfo, 7)
+	file_common_proto_goTypes   = []any{
 		LogLevel(0),                   // 0: swipt.LogLevel
 		DeviceConnectionState(0),      // 1: swipt.DeviceConnectionState
 		DeviceConnectionProblem(0),    // 2: swipt.DeviceConnectionProblem
@@ -760,7 +760,7 @@ var (
 	}
 )
 
-var file_internal_proto_common_proto_depIdxs = []int32{
+var file_common_proto_depIdxs = []int32{
 	10, // 0: swipt.LogEntry.time:type_name -> google.protobuf.Timestamp
 	0,  // 1: swipt.LogEntry.level:type_name -> swipt.LogLevel
 	10, // 2: swipt.FileInfo.modified:type_name -> google.protobuf.Timestamp
@@ -776,12 +776,12 @@ var file_internal_proto_common_proto_depIdxs = []int32{
 	0,  // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_internal_proto_common_proto_init() }
-func file_internal_proto_common_proto_init() {
-	if File_internal_proto_common_proto != nil {
+func init() { file_common_proto_init() }
+func file_common_proto_init() {
+	if File_common_proto != nil {
 		return
 	}
-	file_internal_proto_common_proto_msgTypes[5].OneofWrappers = []any{
+	file_common_proto_msgTypes[5].OneofWrappers = []any{
 		(*ActionResult_Output)(nil),
 		(*ActionResult_Error)(nil),
 	}
@@ -789,18 +789,18 @@ func file_internal_proto_common_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_proto_common_proto_rawDesc), len(file_internal_proto_common_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_proto_rawDesc), len(file_common_proto_rawDesc)),
 			NumEnums:      3,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_internal_proto_common_proto_goTypes,
-		DependencyIndexes: file_internal_proto_common_proto_depIdxs,
-		EnumInfos:         file_internal_proto_common_proto_enumTypes,
-		MessageInfos:      file_internal_proto_common_proto_msgTypes,
+		GoTypes:           file_common_proto_goTypes,
+		DependencyIndexes: file_common_proto_depIdxs,
+		EnumInfos:         file_common_proto_enumTypes,
+		MessageInfos:      file_common_proto_msgTypes,
 	}.Build()
-	File_internal_proto_common_proto = out.File
-	file_internal_proto_common_proto_goTypes = nil
-	file_internal_proto_common_proto_depIdxs = nil
+	File_common_proto = out.File
+	file_common_proto_goTypes = nil
+	file_common_proto_depIdxs = nil
 }

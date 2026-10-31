@@ -23,7 +23,6 @@ final class DeviceConnection {
     }
 
     private(set) var phase: Phase = .idle
-    private(set) var problem: DeviceProblem?
     private(set) var tunnelFound: Bool?
     private(set) var tunnelThroughLocalNetwork = false
 
@@ -68,7 +67,6 @@ final class DeviceConnection {
     }
 
     func clearFailure() {
-        problem = nil
         if phase == .failed {
             phase = .idle
         }
@@ -168,21 +166,16 @@ final class DeviceConnection {
 
     private func configure(_ change: @escaping @Sendable (LibSwiptDevice) throws -> Void) {
         let box = UncheckedSendable(value: device)
-        Platform.queue.async { [weak self] in
+        Platform.queue.async {
             do {
                 try change(box.value)
             } catch {
                 Self.logger.error("Configure the device: \(error.localizedDescription, privacy: .public)")
-                let message = error.localizedDescription
-                DispatchQueue.main.async {
-                    self?.problem = DeviceProblem(kind: .other, message: message)
-                }
             }
         }
     }
 
     private func handle(_ change: DeviceStateChange) {
-        let problem = change.errorCode == LibSwiptDeviceErrorNone ? nil : DeviceProblem(code: change.errorCode, message: change.message)
         switch change.state {
         case LibSwiptDeviceConnecting:
             phase = .connecting
@@ -193,8 +186,7 @@ final class DeviceConnection {
         case LibSwiptDeviceFailed:
             phase = .failed
         default:
-            phase = problem == nil ? .idle : .failed
+            phase = change.errorCode == LibSwiptDeviceErrorNone ? .idle : .failed
         }
-        self.problem = phase == .failed ? problem ?? DeviceProblem(kind: .other, message: change.message) : problem
     }
 }

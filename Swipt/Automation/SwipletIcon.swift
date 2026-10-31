@@ -6,7 +6,7 @@ import UIKit
 nonisolated struct SwipletIcon: Hashable, Sendable {
     static let `default` = SwipletIcon(color: "grayBrown", symbol: "square.2.layers.3d.fill")
 
-    var color: String
+    var color: String?
     var symbol: String
     var image: UIImage?
 
@@ -24,12 +24,9 @@ nonisolated struct SwipletIcon: Hashable, Sendable {
 @available(iOS 27, *)
 @MainActor
 extension SwipletIcon {
-    var palette: SwipletIconColor {
-        SwipletIconCatalog.colors.first { $0.id == color } ?? SwipletIconCatalog.colors.first { $0.id == Self.default.color }!
-    }
-
-    var gradient: LinearGradient {
-        let palette = palette
+    var gradient: LinearGradient? {
+        guard let color else { return nil }
+        let palette = SwipletIconCatalog.colors.first { $0.id == color } ?? SwipletIconCatalog.colors.first { $0.id == Self.default.color }!
         return LinearGradient(colors: [palette.top, palette.bottom], startPoint: .top, endPoint: .bottom)
     }
 }
@@ -47,11 +44,14 @@ struct SwipletIconImage: View {
                 .scaledToFill()
                 .frame(width: size, height: size)
                 .clipShape(shape)
-        } else {
+        } else if let gradient = icon.gradient {
             SwipletIconGlyph(symbol: icon.symbol, pointSize: size * 0.6)
                 .foregroundStyle(.white)
                 .frame(width: size, height: size)
-                .background(icon.gradient, in: shape)
+                .background(gradient, in: shape)
+        } else {
+            SwipletIconGlyph(symbol: icon.symbol, pointSize: size * 0.6)
+                .frame(width: size, height: size)
         }
     }
 }

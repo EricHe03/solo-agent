@@ -58,11 +58,11 @@ func (x ServiceStatus) String() string {
 }
 
 func (ServiceStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_internal_proto_swiplets_proto_enumTypes[0].Descriptor()
+	return file_swiplets_proto_enumTypes[0].Descriptor()
 }
 
 func (ServiceStatus) Type() protoreflect.EnumType {
-	return &file_internal_proto_swiplets_proto_enumTypes[0]
+	return &file_swiplets_proto_enumTypes[0]
 }
 
 func (x ServiceStatus) Number() protoreflect.EnumNumber {
@@ -71,7 +71,7 @@ func (x ServiceStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ServiceStatus.Descriptor instead.
 func (ServiceStatus) EnumDescriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{0}
+	return file_swiplets_proto_rawDescGZIP(), []int{0}
 }
 
 type SwipletAction struct {
@@ -88,7 +88,7 @@ type SwipletAction struct {
 
 func (x *SwipletAction) Reset() {
 	*x = SwipletAction{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[0]
+	mi := &file_swiplets_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -100,7 +100,7 @@ func (x *SwipletAction) String() string {
 func (*SwipletAction) ProtoMessage() {}
 
 func (x *SwipletAction) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[0]
+	mi := &file_swiplets_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -113,7 +113,7 @@ func (x *SwipletAction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SwipletAction.ProtoReflect.Descriptor instead.
 func (*SwipletAction) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{0}
+	return file_swiplets_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SwipletAction) GetName() string {
@@ -170,7 +170,7 @@ type ServiceState struct {
 
 func (x *ServiceState) Reset() {
 	*x = ServiceState{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[1]
+	mi := &file_swiplets_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -182,7 +182,7 @@ func (x *ServiceState) String() string {
 func (*ServiceState) ProtoMessage() {}
 
 func (x *ServiceState) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[1]
+	mi := &file_swiplets_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -195,7 +195,7 @@ func (x *ServiceState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceState.ProtoReflect.Descriptor instead.
 func (*ServiceState) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{1}
+	return file_swiplets_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ServiceState) GetEnabled() bool {
@@ -241,7 +241,7 @@ type Swiplet struct {
 
 func (x *Swiplet) Reset() {
 	*x = Swiplet{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[2]
+	mi := &file_swiplets_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -253,7 +253,7 @@ func (x *Swiplet) String() string {
 func (*Swiplet) ProtoMessage() {}
 
 func (x *Swiplet) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[2]
+	mi := &file_swiplets_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -266,7 +266,7 @@ func (x *Swiplet) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Swiplet.ProtoReflect.Descriptor instead.
 func (*Swiplet) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{2}
+	return file_swiplets_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Swiplet) GetId() string {
@@ -327,7 +327,7 @@ type ListSwipletsResponse struct {
 
 func (x *ListSwipletsResponse) Reset() {
 	*x = ListSwipletsResponse{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[3]
+	mi := &file_swiplets_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -339,7 +339,7 @@ func (x *ListSwipletsResponse) String() string {
 func (*ListSwipletsResponse) ProtoMessage() {}
 
 func (x *ListSwipletsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[3]
+	mi := &file_swiplets_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -352,7 +352,7 @@ func (x *ListSwipletsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSwipletsResponse.ProtoReflect.Descriptor instead.
 func (*ListSwipletsResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{3}
+	return file_swiplets_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListSwipletsResponse) GetSwiplets() []*Swiplet {
@@ -373,7 +373,7 @@ type CallActionRequest struct {
 
 func (x *CallActionRequest) Reset() {
 	*x = CallActionRequest{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[4]
+	mi := &file_swiplets_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -385,7 +385,7 @@ func (x *CallActionRequest) String() string {
 func (*CallActionRequest) ProtoMessage() {}
 
 func (x *CallActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[4]
+	mi := &file_swiplets_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -398,7 +398,7 @@ func (x *CallActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallActionRequest.ProtoReflect.Descriptor instead.
 func (*CallActionRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{4}
+	return file_swiplets_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CallActionRequest) GetSwipletId() string {
@@ -435,7 +435,7 @@ type CallActionResponse struct {
 
 func (x *CallActionResponse) Reset() {
 	*x = CallActionResponse{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[5]
+	mi := &file_swiplets_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -447,7 +447,7 @@ func (x *CallActionResponse) String() string {
 func (*CallActionResponse) ProtoMessage() {}
 
 func (x *CallActionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[5]
+	mi := &file_swiplets_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -460,7 +460,7 @@ func (x *CallActionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallActionResponse.ProtoReflect.Descriptor instead.
 func (*CallActionResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{5}
+	return file_swiplets_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CallActionResponse) GetPart() isCallActionResponse_Part {
@@ -514,7 +514,7 @@ type SetServiceEnabledRequest struct {
 
 func (x *SetServiceEnabledRequest) Reset() {
 	*x = SetServiceEnabledRequest{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[6]
+	mi := &file_swiplets_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -526,7 +526,7 @@ func (x *SetServiceEnabledRequest) String() string {
 func (*SetServiceEnabledRequest) ProtoMessage() {}
 
 func (x *SetServiceEnabledRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[6]
+	mi := &file_swiplets_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -539,7 +539,7 @@ func (x *SetServiceEnabledRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetServiceEnabledRequest.ProtoReflect.Descriptor instead.
 func (*SetServiceEnabledRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{6}
+	return file_swiplets_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SetServiceEnabledRequest) GetSwipletId() string {
@@ -565,7 +565,7 @@ type SetServiceEnabledResponse struct {
 
 func (x *SetServiceEnabledResponse) Reset() {
 	*x = SetServiceEnabledResponse{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[7]
+	mi := &file_swiplets_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -577,7 +577,7 @@ func (x *SetServiceEnabledResponse) String() string {
 func (*SetServiceEnabledResponse) ProtoMessage() {}
 
 func (x *SetServiceEnabledResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[7]
+	mi := &file_swiplets_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -590,7 +590,7 @@ func (x *SetServiceEnabledResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetServiceEnabledResponse.ProtoReflect.Descriptor instead.
 func (*SetServiceEnabledResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{7}
+	return file_swiplets_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *SetServiceEnabledResponse) GetService() *ServiceState {
@@ -609,7 +609,7 @@ type WatchServicesRequest struct {
 
 func (x *WatchServicesRequest) Reset() {
 	*x = WatchServicesRequest{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[8]
+	mi := &file_swiplets_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -621,7 +621,7 @@ func (x *WatchServicesRequest) String() string {
 func (*WatchServicesRequest) ProtoMessage() {}
 
 func (x *WatchServicesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[8]
+	mi := &file_swiplets_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -634,7 +634,7 @@ func (x *WatchServicesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchServicesRequest.ProtoReflect.Descriptor instead.
 func (*WatchServicesRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{8}
+	return file_swiplets_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *WatchServicesRequest) GetSwipletId() string {
@@ -654,7 +654,7 @@ type WatchServicesResponse struct {
 
 func (x *WatchServicesResponse) Reset() {
 	*x = WatchServicesResponse{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[9]
+	mi := &file_swiplets_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -666,7 +666,7 @@ func (x *WatchServicesResponse) String() string {
 func (*WatchServicesResponse) ProtoMessage() {}
 
 func (x *WatchServicesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[9]
+	mi := &file_swiplets_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -679,7 +679,7 @@ func (x *WatchServicesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchServicesResponse.ProtoReflect.Descriptor instead.
 func (*WatchServicesResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{9}
+	return file_swiplets_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *WatchServicesResponse) GetSwipletId() string {
@@ -705,7 +705,7 @@ type DeploySwipletRequest struct {
 
 func (x *DeploySwipletRequest) Reset() {
 	*x = DeploySwipletRequest{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[10]
+	mi := &file_swiplets_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -717,7 +717,7 @@ func (x *DeploySwipletRequest) String() string {
 func (*DeploySwipletRequest) ProtoMessage() {}
 
 func (x *DeploySwipletRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[10]
+	mi := &file_swiplets_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -730,7 +730,7 @@ func (x *DeploySwipletRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeploySwipletRequest.ProtoReflect.Descriptor instead.
 func (*DeploySwipletRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{10}
+	return file_swiplets_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeploySwipletRequest) GetChunk() []byte {
@@ -750,7 +750,7 @@ type DeploySwipletResponse struct {
 
 func (x *DeploySwipletResponse) Reset() {
 	*x = DeploySwipletResponse{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[11]
+	mi := &file_swiplets_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -762,7 +762,7 @@ func (x *DeploySwipletResponse) String() string {
 func (*DeploySwipletResponse) ProtoMessage() {}
 
 func (x *DeploySwipletResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[11]
+	mi := &file_swiplets_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -775,7 +775,7 @@ func (x *DeploySwipletResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeploySwipletResponse.ProtoReflect.Descriptor instead.
 func (*DeploySwipletResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{11}
+	return file_swiplets_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DeploySwipletResponse) GetSwiplet() *Swiplet {
@@ -801,7 +801,7 @@ type RemoveSwipletRequest struct {
 
 func (x *RemoveSwipletRequest) Reset() {
 	*x = RemoveSwipletRequest{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[12]
+	mi := &file_swiplets_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -813,7 +813,7 @@ func (x *RemoveSwipletRequest) String() string {
 func (*RemoveSwipletRequest) ProtoMessage() {}
 
 func (x *RemoveSwipletRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[12]
+	mi := &file_swiplets_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -826,7 +826,7 @@ func (x *RemoveSwipletRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveSwipletRequest.ProtoReflect.Descriptor instead.
 func (*RemoveSwipletRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{12}
+	return file_swiplets_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RemoveSwipletRequest) GetSwipletId() string {
@@ -847,7 +847,7 @@ type ListDataFilesRequest struct {
 
 func (x *ListDataFilesRequest) Reset() {
 	*x = ListDataFilesRequest{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[13]
+	mi := &file_swiplets_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -859,7 +859,7 @@ func (x *ListDataFilesRequest) String() string {
 func (*ListDataFilesRequest) ProtoMessage() {}
 
 func (x *ListDataFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[13]
+	mi := &file_swiplets_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -872,7 +872,7 @@ func (x *ListDataFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDataFilesRequest.ProtoReflect.Descriptor instead.
 func (*ListDataFilesRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{13}
+	return file_swiplets_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListDataFilesRequest) GetSwipletId() string {
@@ -905,7 +905,7 @@ type ListDataFilesResponse struct {
 
 func (x *ListDataFilesResponse) Reset() {
 	*x = ListDataFilesResponse{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[14]
+	mi := &file_swiplets_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -917,7 +917,7 @@ func (x *ListDataFilesResponse) String() string {
 func (*ListDataFilesResponse) ProtoMessage() {}
 
 func (x *ListDataFilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[14]
+	mi := &file_swiplets_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -930,7 +930,7 @@ func (x *ListDataFilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDataFilesResponse.ProtoReflect.Descriptor instead.
 func (*ListDataFilesResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{14}
+	return file_swiplets_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListDataFilesResponse) GetFiles() []*FileInfo {
@@ -950,7 +950,7 @@ type ReadDataFileRequest struct {
 
 func (x *ReadDataFileRequest) Reset() {
 	*x = ReadDataFileRequest{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[15]
+	mi := &file_swiplets_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -962,7 +962,7 @@ func (x *ReadDataFileRequest) String() string {
 func (*ReadDataFileRequest) ProtoMessage() {}
 
 func (x *ReadDataFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[15]
+	mi := &file_swiplets_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -975,7 +975,7 @@ func (x *ReadDataFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadDataFileRequest.ProtoReflect.Descriptor instead.
 func (*ReadDataFileRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{15}
+	return file_swiplets_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ReadDataFileRequest) GetSwipletId() string {
@@ -1005,7 +1005,7 @@ type ReadDataFileResponse struct {
 
 func (x *ReadDataFileResponse) Reset() {
 	*x = ReadDataFileResponse{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[16]
+	mi := &file_swiplets_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1017,7 +1017,7 @@ func (x *ReadDataFileResponse) String() string {
 func (*ReadDataFileResponse) ProtoMessage() {}
 
 func (x *ReadDataFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[16]
+	mi := &file_swiplets_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1030,7 +1030,7 @@ func (x *ReadDataFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadDataFileResponse.ProtoReflect.Descriptor instead.
 func (*ReadDataFileResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{16}
+	return file_swiplets_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ReadDataFileResponse) GetPart() isReadDataFileResponse_Part {
@@ -1084,7 +1084,7 @@ type WriteDataFileHeader struct {
 
 func (x *WriteDataFileHeader) Reset() {
 	*x = WriteDataFileHeader{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[17]
+	mi := &file_swiplets_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1096,7 +1096,7 @@ func (x *WriteDataFileHeader) String() string {
 func (*WriteDataFileHeader) ProtoMessage() {}
 
 func (x *WriteDataFileHeader) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[17]
+	mi := &file_swiplets_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1109,7 +1109,7 @@ func (x *WriteDataFileHeader) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteDataFileHeader.ProtoReflect.Descriptor instead.
 func (*WriteDataFileHeader) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{17}
+	return file_swiplets_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *WriteDataFileHeader) GetSwipletId() string {
@@ -1139,7 +1139,7 @@ type WriteDataFileRequest struct {
 
 func (x *WriteDataFileRequest) Reset() {
 	*x = WriteDataFileRequest{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[18]
+	mi := &file_swiplets_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1151,7 +1151,7 @@ func (x *WriteDataFileRequest) String() string {
 func (*WriteDataFileRequest) ProtoMessage() {}
 
 func (x *WriteDataFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[18]
+	mi := &file_swiplets_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1164,7 +1164,7 @@ func (x *WriteDataFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteDataFileRequest.ProtoReflect.Descriptor instead.
 func (*WriteDataFileRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{18}
+	return file_swiplets_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *WriteDataFileRequest) GetPart() isWriteDataFileRequest_Part {
@@ -1217,7 +1217,7 @@ type WriteDataFileResponse struct {
 
 func (x *WriteDataFileResponse) Reset() {
 	*x = WriteDataFileResponse{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[19]
+	mi := &file_swiplets_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1229,7 +1229,7 @@ func (x *WriteDataFileResponse) String() string {
 func (*WriteDataFileResponse) ProtoMessage() {}
 
 func (x *WriteDataFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[19]
+	mi := &file_swiplets_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1242,7 +1242,7 @@ func (x *WriteDataFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteDataFileResponse.ProtoReflect.Descriptor instead.
 func (*WriteDataFileResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{19}
+	return file_swiplets_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *WriteDataFileResponse) GetFile() *FileInfo {
@@ -1263,7 +1263,7 @@ type RemoveDataFileRequest struct {
 
 func (x *RemoveDataFileRequest) Reset() {
 	*x = RemoveDataFileRequest{}
-	mi := &file_internal_proto_swiplets_proto_msgTypes[20]
+	mi := &file_swiplets_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1275,7 +1275,7 @@ func (x *RemoveDataFileRequest) String() string {
 func (*RemoveDataFileRequest) ProtoMessage() {}
 
 func (x *RemoveDataFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_swiplets_proto_msgTypes[20]
+	mi := &file_swiplets_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1288,7 +1288,7 @@ func (x *RemoveDataFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveDataFileRequest.ProtoReflect.Descriptor instead.
 func (*RemoveDataFileRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_swiplets_proto_rawDescGZIP(), []int{20}
+	return file_swiplets_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *RemoveDataFileRequest) GetSwipletId() string {
@@ -1312,11 +1312,11 @@ func (x *RemoveDataFileRequest) GetRecursive() bool {
 	return false
 }
 
-var File_internal_proto_swiplets_proto protoreflect.FileDescriptor
+var File_swiplets_proto protoreflect.FileDescriptor
 
-const file_internal_proto_swiplets_proto_rawDesc = "" +
+const file_swiplets_proto_rawDesc = "" +
 	"\n" +
-	"\x1dinternal/proto/swiplets.proto\x12\x05swipt\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1binternal/proto/common.proto\"\x87\x02\n" +
+	"\x0eswiplets.proto\x12\x05swipt\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\fcommon.proto\"\x87\x02\n" +
 	"\rSwipletAction\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
@@ -1420,21 +1420,21 @@ const file_internal_proto_swiplets_proto_rawDesc = "" +
 	"\x0eRemoveDataFile\x12\x1c.swipt.RemoveDataFileRequest\x1a\x16.google.protobuf.EmptyB2Z0github.com/swipt-automation/swipt/internal/protob\x06proto3"
 
 var (
-	file_internal_proto_swiplets_proto_rawDescOnce sync.Once
-	file_internal_proto_swiplets_proto_rawDescData []byte
+	file_swiplets_proto_rawDescOnce sync.Once
+	file_swiplets_proto_rawDescData []byte
 )
 
-func file_internal_proto_swiplets_proto_rawDescGZIP() []byte {
-	file_internal_proto_swiplets_proto_rawDescOnce.Do(func() {
-		file_internal_proto_swiplets_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_proto_swiplets_proto_rawDesc), len(file_internal_proto_swiplets_proto_rawDesc)))
+func file_swiplets_proto_rawDescGZIP() []byte {
+	file_swiplets_proto_rawDescOnce.Do(func() {
+		file_swiplets_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_swiplets_proto_rawDesc), len(file_swiplets_proto_rawDesc)))
 	})
-	return file_internal_proto_swiplets_proto_rawDescData
+	return file_swiplets_proto_rawDescData
 }
 
 var (
-	file_internal_proto_swiplets_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-	file_internal_proto_swiplets_proto_msgTypes  = make([]protoimpl.MessageInfo, 21)
-	file_internal_proto_swiplets_proto_goTypes   = []any{
+	file_swiplets_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+	file_swiplets_proto_msgTypes  = make([]protoimpl.MessageInfo, 21)
+	file_swiplets_proto_goTypes   = []any{
 		ServiceStatus(0),                  // 0: swipt.ServiceStatus
 		(*SwipletAction)(nil),             // 1: swipt.SwipletAction
 		(*ServiceState)(nil),              // 2: swipt.ServiceState
@@ -1469,7 +1469,7 @@ var (
 	}
 )
 
-var file_internal_proto_swiplets_proto_depIdxs = []int32{
+var file_swiplets_proto_depIdxs = []int32{
 	22, // 0: swipt.SwipletAction.input_schema:type_name -> google.protobuf.Struct
 	22, // 1: swipt.SwipletAction.output_schema:type_name -> google.protobuf.Struct
 	0,  // 2: swipt.ServiceState.status:type_name -> swipt.ServiceStatus
@@ -1516,21 +1516,21 @@ var file_internal_proto_swiplets_proto_depIdxs = []int32{
 	0,  // [0:19] is the sub-list for field type_name
 }
 
-func init() { file_internal_proto_swiplets_proto_init() }
-func file_internal_proto_swiplets_proto_init() {
-	if File_internal_proto_swiplets_proto != nil {
+func init() { file_swiplets_proto_init() }
+func file_swiplets_proto_init() {
+	if File_swiplets_proto != nil {
 		return
 	}
-	file_internal_proto_common_proto_init()
-	file_internal_proto_swiplets_proto_msgTypes[5].OneofWrappers = []any{
+	file_common_proto_init()
+	file_swiplets_proto_msgTypes[5].OneofWrappers = []any{
 		(*CallActionResponse_Log)(nil),
 		(*CallActionResponse_Result)(nil),
 	}
-	file_internal_proto_swiplets_proto_msgTypes[16].OneofWrappers = []any{
+	file_swiplets_proto_msgTypes[16].OneofWrappers = []any{
 		(*ReadDataFileResponse_File)(nil),
 		(*ReadDataFileResponse_Chunk)(nil),
 	}
-	file_internal_proto_swiplets_proto_msgTypes[18].OneofWrappers = []any{
+	file_swiplets_proto_msgTypes[18].OneofWrappers = []any{
 		(*WriteDataFileRequest_Header)(nil),
 		(*WriteDataFileRequest_Data)(nil),
 	}
@@ -1538,18 +1538,18 @@ func file_internal_proto_swiplets_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_proto_swiplets_proto_rawDesc), len(file_internal_proto_swiplets_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_swiplets_proto_rawDesc), len(file_swiplets_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_internal_proto_swiplets_proto_goTypes,
-		DependencyIndexes: file_internal_proto_swiplets_proto_depIdxs,
-		EnumInfos:         file_internal_proto_swiplets_proto_enumTypes,
-		MessageInfos:      file_internal_proto_swiplets_proto_msgTypes,
+		GoTypes:           file_swiplets_proto_goTypes,
+		DependencyIndexes: file_swiplets_proto_depIdxs,
+		EnumInfos:         file_swiplets_proto_enumTypes,
+		MessageInfos:      file_swiplets_proto_msgTypes,
 	}.Build()
-	File_internal_proto_swiplets_proto = out.File
-	file_internal_proto_swiplets_proto_goTypes = nil
-	file_internal_proto_swiplets_proto_depIdxs = nil
+	File_swiplets_proto = out.File
+	file_swiplets_proto_goTypes = nil
+	file_swiplets_proto_depIdxs = nil
 }

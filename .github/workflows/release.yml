@@ -42,12 +42,12 @@ jobs:
           else
             NOTES=$(git log --format='* %s' nightly)
           fi
-          go run ./cmd/internal/build_altstore_source -tag "$TAG"
+          go run ./internal/cmd/build_altstore_source -tag "$TAG"
           gh release create "$TAG" --draft --target "$(git rev-parse 'nightly^{commit}')" --notes "$NOTES" \
             build/Swipt.ipa build/Swipt-iOS.dSYMs.zip build/metadata.json build/icon.png build/altstore/altstore.json
-          git archive 'nightly^{commit}' api | tar -x -C build
+          git archive 'nightly^{commit}' api cli | tar -x -C build
           npm install -g npm@latest
-          for package in api api/cli; do
+          for package in api cli; do
             cp LICENSE "build/$package/"
             PACKAGE=$(node -p "const p = require('./build/$package/package.json'); p.name + '@' + p.version")
             if npm view "$PACKAGE" version > /dev/null 2>&1; then
