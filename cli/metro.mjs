@@ -167,7 +167,22 @@ module.exports = { uri: assets.file(file).uri, scale${size ? `, width: ${size.wi
 `;
 }
 
+function checkWorklets(root) {
+  let plugin;
+  try {
+    plugin = require.resolve("react-native-worklets/plugin", { paths: [root] });
+  } catch {
+    return;
+  }
+  const { version } = JSON.parse(fs.readFileSync(path.join(path.dirname(plugin), "..", "package.json"), "utf8"));
+  const { version: expected } = require("react-native-worklets/package.json");
+  if (version !== expected) {
+    throw new Error(`the project has react-native-worklets ${version}, but Swipt runs ${expected}; install react-native-worklets@${expected} or remove it`);
+  }
+}
+
 export function metro(root, { assets, sourcemap }) {
+  checkWorklets(root);
   const configName = babelConfigNames.find(name => fs.existsSync(path.join(root, name)));
   const babel = {
     cwd: root,

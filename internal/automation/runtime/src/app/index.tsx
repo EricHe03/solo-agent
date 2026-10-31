@@ -109,6 +109,7 @@ const modules: Record<string, () => unknown> = {
   react: () => require("react"),
   "react/jsx-runtime": () => require("react/jsx-runtime"),
   "react-native": () => require("react-native"),
+  "react-native-worklets": () => require("react-native-worklets"),
   expo: () => require("expo"),
   "expo-localization": () => require("expo-localization"),
   "@expo/ui": () => require("@expo/ui"),

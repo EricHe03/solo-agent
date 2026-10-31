@@ -18,6 +18,7 @@ const appModules = [
   "react",
   "react/jsx-runtime",
   "react-native",
+  "react-native-worklets",
   "expo",
   "expo-localization",
   "@expo/ui",
