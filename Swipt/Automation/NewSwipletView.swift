@@ -21,6 +21,11 @@ struct NewSwipletView: View {
     private var form: some View {
         Form {
             Section("Repository") {
+                NavigationLink {
+                    AddRepositoryView()
+                } label: {
+                    Label("Add Repository", systemImage: "plus")
+                }
                 ForEach(swiplets.repositories) { repository in
                     NavigationLink {
                         RepositoryView(url: repository.url, isImported: $isImported)
@@ -32,11 +37,6 @@ struct NewSwipletView: View {
                     for offset in offsets {
                         swiplets.removeRepository(swiplets.repositories[offset].url)
                     }
-                }
-                NavigationLink {
-                    AddRepositoryView()
-                } label: {
-                    Label("Add Repository", systemImage: "plus")
                 }
             }
             Section("Manual") {
