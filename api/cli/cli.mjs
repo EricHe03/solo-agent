@@ -265,7 +265,15 @@ async function buildCommand(root) {
 
 const manifestEntry = /^(?:[^/]+\/)?manifest\.json$/;
 
-function sourceCommand(files, base, output, name, icon, image) {
+function sourceCommand(files, base, output, name, localizedNames, icon, image) {
+  const names = {};
+  for (const entry of localizedNames ?? []) {
+    const [language, ...rest] = entry.split("=");
+    if (!language || rest.length === 0 || !rest.join("=")) {
+      throw new UsageError("--localized-name takes <language>=<name>, such as zh-Hans=示例");
+    }
+    names[language] = rest.join("=");
+  }
   let shownIcon;
   if (icon !== undefined) {
     const [color, ...symbol] = icon.split("/");
@@ -309,6 +317,7 @@ function sourceCommand(files, base, output, name, icon, image) {
   const listed = `${JSON.stringify(
     {
       ...(name ? { name } : {}),
+      ...(Object.keys(names).length > 0 ? { localizedNames: names } : {}),
       ...(shownIcon ? { icon: shownIcon } : {}),
       ...(image ? { image: prefix ? new URL(image, prefix).href : image } : {}),
       swiplets: [...swiplets.keys()].sort().map(id => swiplets.get(id).entry),
@@ -417,7 +426,8 @@ function createCommand(directory) {
 
 const usage = `usage: swiplet create <directory>
        swiplet build
-       swiplet source [--name <name>] [--icon <color>/<symbol>] [--image <file>] [--url <address>] [--output <file>] <swiplet>...
+       swiplet source [--name <name>] [--localized-name <language>=<name>]... [--icon <color>/<symbol>] [--image <file>]
+                      [--url <address>] [--output <file>] <swiplet>...
 
   create   make a swiplet project in a new or empty directory
   build    bundle the project in this directory into dist/<swiplet.id>.swiplet
@@ -433,7 +443,8 @@ try {
   let parsed;
   try {
     parsed = parseArgs({ allowPositionals: true, options: {
-        help: { type: "boolean", short: "h" }, name: { type: "string" }, icon: { type: "string" }, image: { type: "string" }, url: { type: "string" }, output: { type: "string" },
+        help: { type: "boolean", short: "h" }, name: { type: "string" }, "localized-name": { type: "string", multiple: true }, icon: { type: "string" },
+        image: { type: "string" }, url: { type: "string" }, output: { type: "string" },
       } });
   } catch (error) {
     throw new UsageError(error.message);
@@ -452,7 +463,7 @@ try {
   } else if (command === "create") {
     createCommand(rest[0]);
   } else if (command === "source") {
-    sourceCommand(rest, parsed.values.url, parsed.values.output, parsed.values.name, parsed.values.icon, parsed.values.image);
+    sourceCommand(rest, parsed.values.url, parsed.values.output, parsed.values.name, parsed.values["localized-name"], parsed.values.icon, parsed.values.image);
   } else {
     await buildCommand(process.cwd());
   }

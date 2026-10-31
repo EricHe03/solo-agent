@@ -25,7 +25,7 @@ struct RepositoryView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle(Text(verbatim: repository?.name ?? ""))
+            .navigationTitle(Text(verbatim: repository?.title ?? ""))
             .refreshable { await refresh(force: true) }
             .task { await refresh(force: false) }
             .alert($alert)

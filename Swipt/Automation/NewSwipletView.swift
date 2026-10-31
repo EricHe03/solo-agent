@@ -31,7 +31,7 @@ struct NewSwipletView: View {
                         RepositoryView(url: repository.url, isImported: $isImported)
                     } label: {
                         Label {
-                            Text(verbatim: repository.name)
+                            Text(verbatim: repository.title)
                                 .lineLimit(1)
                         } icon: {
                             SwipletIconImage(icon: repository.swipletIcon, size: 29)

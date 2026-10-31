@@ -154,7 +154,9 @@ final class SwipletStore {
         let index = try JSONDecoder().decode(SourceIndex.self, from: fetched.data)
         let image = await Self.image(index.image, relativeTo: link)
         repositories.append(
-            Repository(url: link, name: index.name ?? Self.repositoryName(of: link), icon: index.icon, image: image, etag: fetched.etag, swiplets: index.swiplets))
+            Repository(
+                url: link, name: index.name ?? Self.repositoryName(of: link), localizedNames: index.localizedNames, icon: index.icon, image: image,
+                etag: fetched.etag, swiplets: index.swiplets))
         repositoriesChecked[link] = .now
         saveRepositories()
     }
@@ -178,6 +180,7 @@ final class SwipletStore {
         let image = await Self.image(listed.image, relativeTo: url)
         guard let current = repositories.firstIndex(where: { $0.url == url }) else { return }
         repositories[current].name = listed.name ?? Self.repositoryName(of: url)
+        repositories[current].localizedNames = listed.localizedNames
         repositories[current].icon = listed.icon
         repositories[current].image = image
         repositories[current].etag = fetched.etag
@@ -426,12 +429,17 @@ nonisolated struct SwipletPreview: Identifiable, Sendable {
 nonisolated struct Repository: Codable, Identifiable, Sendable {
     var url: String
     var name: String
+    var localizedNames: [String: String]?
     var icon: RepositorySwiplet.Icon?
     var image: Data?
     var etag: String
     var swiplets: [RepositorySwiplet]
 
     var id: String { url }
+
+    var title: String {
+        SwipletStore.preferredName(name, localized: localizedNames ?? [:])
+    }
 
     var swipletIcon: SwipletIcon {
         var shown = icon.map { SwipletIcon(color: $0.color, symbol: $0.symbol) } ?? .default
@@ -480,6 +488,7 @@ nonisolated struct RepositorySwiplet: Codable, Identifiable, Sendable {
 
 nonisolated private struct SourceIndex: Decodable {
     let name: String?
+    let localizedNames: [String: String]?
     let icon: RepositorySwiplet.Icon?
     let image: String?
     let swiplets: [RepositorySwiplet]
