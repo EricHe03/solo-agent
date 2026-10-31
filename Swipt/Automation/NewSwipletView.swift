@@ -110,16 +110,13 @@ private struct ImportFromURLView: View {
     var body: some View {
         Form {
             Section {
-                LabeledContentCompat("URL") {
-                    TextField("URL", text: $url, prompt: Text("Required"))
-                        .keyboardType(.URL)
-                        .textContentType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .multilineTextAlignment(.trailing)
-                        .submitLabel(.done)
-                        .onSubmit(importSwiplet)
-                }
+                TextField("URL", text: $url)
+                    .keyboardType(.URL)
+                    .textContentType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .onSubmit(importSwiplet)
             } footer: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Supported formats:")

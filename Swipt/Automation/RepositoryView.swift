@@ -102,20 +102,13 @@ struct AddRepositoryView: View {
 
     var body: some View {
         Form {
-            Section {
-                LabeledContentCompat("URL") {
-                    TextField("URL", text: $url, prompt: Text("Required"))
-                        .keyboardType(.URL)
-                        .textContentType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .multilineTextAlignment(.trailing)
-                        .submitLabel(.done)
-                        .onSubmit(add)
-                }
-            } footer: {
-                Text("Enter the address of a swiplets.json index.")
-            }
+            TextField("URL", text: $url)
+                .keyboardType(.URL)
+                .textContentType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+                .onSubmit(add)
         }
         .disabled(isAdding)
         .navigationTitle("Add Repository")

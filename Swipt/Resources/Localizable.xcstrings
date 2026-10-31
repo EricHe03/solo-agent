@@ -10245,22 +10245,6 @@
         }
       }
     },
-    "Enter the address of a swiplets.json index." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "输入 swiplets.json 索引的地址。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "輸入 swiplets.json 索引的位址。"
-          }
-        }
-      }
-    },
     "Enter this device’s lock screen passcode." : {
       "localizations" : {
         "en" : {
