@@ -510,14 +510,14 @@ func uiSnapshot(ctx context.Context, call *operation) (any, error) {
 	if err := call.decode(0, &strict{&options}); err != nil {
 		return nil, err
 	}
-	if options.Scope != "" && options.Scope != "screen" && options.Scope != "frontApp" {
-		return nil, E.Cause1(ErrInvalid, E.New("scope must be screen or frontApp"))
+	if options.Scope != "" && options.Scope != "frontApp" && options.Scope != "screen" {
+		return nil, E.Cause1(ErrInvalid, E.New("scope must be frontApp or screen"))
 	}
 	phone, err := call.screen(ctx)
 	if err != nil {
 		return nil, err
 	}
-	view, err := phone.Snapshot(ctx, device.SnapshotOptions{Front: options.Scope == "frontApp", Raw: options.Full})
+	view, err := phone.Snapshot(ctx, device.SnapshotOptions{Front: options.Scope != "screen", Raw: options.Full})
 	if err != nil {
 		return nil, err
 	}

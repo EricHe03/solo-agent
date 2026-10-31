@@ -17,7 +17,6 @@ struct SwipletInterface: View {
         WithPerceptionTracking {
             SwipletSurfaceView(name: name, entry: swiplets.interfaces[name] ?? entry)
                 .ignoresSafeArea()
-                .navigationTitle(swiplets.titles[name] ?? name)
         }
     }
 }
@@ -85,35 +84,7 @@ private final class SwipletViewController: UIViewController {
             displayed.view.removeFromSuperview()
             displayed.stop()
             displayed = next
-            relayoutNavigationBar(around: next)
         }
-    }
-
-    // _UINavigationBarLargeTitleView lives inside the page's content scroll view. When that scroll view is replaced,
-    // the page keeps reporting the detached one, and UIKit moves the large title into the new one only on a navigation
-    // bar layout at least a frame after it became the content scroll view; until then the large title is gone
-    // (iOS 27.2 24B5084k).
-    private func relayoutNavigationBar(around surface: SwipletSurface) {
-        Task { [weak self, weak surface] in
-            for _ in 0..<60 {
-                try? await Task.sleep(for: .milliseconds(16))
-                guard let self, let surface, let page = parent else { return }
-                guard let scrollView = Self.firstScrollView(in: surface.view) else { continue }
-                if page.contentScrollView(for: .top) !== scrollView {
-                    page.setContentScrollView(scrollView, for: .top)
-                    continue
-                }
-                navigationController?.navigationBar.setNeedsLayout()
-                return
-            }
-        }
-    }
-
-    private static func firstScrollView(in view: UIView) -> UIScrollView? {
-        if let scrollView = view as? UIScrollView, scrollView.window != nil {
-            return scrollView
-        }
-        return view.subviews.lazy.compactMap(firstScrollView).first
     }
 }
 
@@ -162,6 +133,7 @@ final class SwipletHost: SwiptHostDelegate {
     private let delegate = FactoryDelegate()
     private let factory: ExpoReactNativeFactory
     private var prepared: [String: SwipletSurface] = [:]
+    var exits: [String: () -> Void] = [:]
     private let surfaces = NSMapTable<NSString, SwipletSurface>.strongToWeakObjects()
 
     private init() {
@@ -208,6 +180,7 @@ final class SwipletHost: SwiptHostDelegate {
                 "source": (try? String(contentsOf: entry.url, encoding: .utf8)) ?? "",
                 "dataDirectory": SwipletStore.shared.dataDirectory(of: name)?.absoluteString ?? "",
                 "assetsDirectory": SwipletStore.shared.assetsDirectory(of: name)?.absoluteString ?? "",
+                "closeTitle": String(localized: "Close"),
                 "service": [
                     "enabled": service.enabled, "status": service.status.rawValue, "error": service.error,
                     "since": service.since.map { $0.timeIntervalSince1970 * 1000 } ?? 0,
@@ -261,6 +234,10 @@ final class SwipletHost: SwiptHostDelegate {
 
     func moveFile(swiplet: String, root: String, from: String, toRoot: String, to: String) async throws {
         try await Platform.shared.moveSwipletFile(swiplet, root: root, from: from, toRoot: toRoot, to: to)
+    }
+
+    func exit(swiplet: String) {
+        exits[swiplet]?()
     }
 
     func surfaceDidMount(_ surface: String) {

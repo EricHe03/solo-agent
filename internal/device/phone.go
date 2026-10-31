@@ -438,7 +438,7 @@ func (p *Phone) readScreen(ctx context.Context, c *conn, client *accessibility.R
 	var screen *accessibility.Screen
 	var err error
 	if options.Front {
-		screen, err = client.ReadApplication(ctx, accessibility.ApplicationOptions{})
+		screen, err = client.ReadApplication(ctx, accessibility.ApplicationOptions{Focused: true, Expand: true})
 	} else {
 		screen, err = client.ReadScreen(ctx, springboard, func(front accessibility.Element) bool {
 			return options.App == "" || c.front.knownBundle(front.Ref.PID) != options.App

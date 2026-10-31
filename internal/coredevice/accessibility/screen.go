@@ -140,6 +140,7 @@ type ApplicationOptions struct {
 	Attributes []int64
 	Modal      bool
 	Focused    bool
+	Expand     bool
 }
 
 // An app that read the pasteboard while launching answered no snapshot until
@@ -160,9 +161,13 @@ func (c *RemoteClient) ReadApplication(ctx context.Context, options ApplicationO
 		if err := app.Err("read the application"); err != nil {
 			return nil, err
 		}
+		attributes := options.Attributes
+		if options.Expand && len(attributes) > 0 && !slices.Contains(attributes, nativeClassName) {
+			attributes = append(slices.Clone(attributes), nativeClassName)
+		}
 		second := &Batch{}
 		bundle := second.BundleID(app.Value)
-		full := second.Snapshot(app.Value, SnapshotOptions{Attributes: options.Attributes})
+		full := second.Snapshot(app.Value, SnapshotOptions{Attributes: attributes})
 		var modal *Result[*Snapshot]
 		if options.Modal {
 			modal = second.Snapshot(app.Value, SnapshotOptions{Attributes: []int64{nativeClassName}, HonorModal: true})
@@ -190,6 +195,12 @@ func (c *RemoteClient) ReadApplication(ctx context.Context, options ApplicationO
 		if focused != nil && focused.Code == 0 {
 			ref := focused.Value.Ref
 			screen.Focused = &ref
+		}
+		if options.Expand {
+			run := func(batch *Batch) error { return c.Run(ctx, batch) }
+			if err := c.expand(run, []*Snapshot{full.Value}, 0); err != nil {
+				return nil, err
+			}
 		}
 		return screen, nil
 	}

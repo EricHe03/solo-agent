@@ -31,6 +31,7 @@ public protocol SwiptHostDelegate: AnyObject {
   func call(swiplet: String, action: String, input: String) async throws -> String
   func setServiceEnabled(swiplet: String, enabled: Bool) async throws
   func surfaceDidMount(_ surface: String)
+  func exit(swiplet: String)
   func statFile(swiplet: String, root: String, path: String) async throws -> SwiptHostFileInfo
   func listFiles(swiplet: String, root: String, path: String) async throws -> [SwiptHostFileEntry]
   func readFile(swiplet: String, root: String, path: String) async throws -> Data
@@ -92,6 +93,12 @@ public final class SwiptHostModule: Module {
     Function("mounted") { (surface: String) in
       Task { @MainActor in
         Self.delegate?.surfaceDidMount(surface)
+      }
+    }
+
+    Function("exit") { (swiplet: String) in
+      Task { @MainActor in
+        Self.delegate?.exit(swiplet: swiplet)
       }
     }
 

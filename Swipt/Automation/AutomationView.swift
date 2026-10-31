@@ -3,11 +3,6 @@ import SwiftUI
 
 @available(iOS 27, *)
 struct AutomationView: View {
-    private struct InterfaceRoute: Hashable {
-        let name: String
-        let entry: SwipletEntry
-    }
-
     @State private var isAddingSwiplet = false
     @State private var swipletToDelete: String?
     @State private var alert: AlertState?
@@ -18,9 +13,6 @@ struct AutomationView: View {
         WithPerceptionTracking {
             Form {
                 swipletsSection
-            }
-            .navigationDestination(for: InterfaceRoute.self) { route in
-                SwipletInterface(name: route.name, entry: route.entry)
             }
             .navigationTitle("Automation")
             .toolbar {
@@ -82,9 +74,12 @@ struct AutomationView: View {
         let interface = swiplets.interfaces[name]
         return Group {
             if let interface {
-                NavigationLink(value: InterfaceRoute(name: name, entry: interface)) {
+                Button {
+                    SwipletPresentation.open(name: name, entry: interface)
+                } label: {
                     swipletLabel(name)
                 }
+                .tint(.primary)
             } else if let service {
                 Toggle(isOn: Binding(get: { service.enabled }, set: { setService(name, enabled: $0) })) {
                     swipletLabel(name)

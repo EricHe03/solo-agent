@@ -6,9 +6,9 @@ import { act, check, optionsOf, signalOf, type Options } from "./options";
 const defaultTimeout = 10_000;
 
 const view = (options: unknown) => {
-  const { scope = "screen", full = false } = optionsOf(options, ["scope", "full"]);
-  if (scope !== "screen" && scope !== "frontApp") {
-    throw new TypeError("scope must be screen or frontApp");
+  const { scope = "frontApp", full = false } = optionsOf(options, ["scope", "full"]);
+  if (scope !== "frontApp" && scope !== "screen") {
+    throw new TypeError("scope must be frontApp or screen");
   }
   if (typeof full !== "boolean") {
     throw new TypeError("full must be a boolean");

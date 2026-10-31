@@ -567,8 +567,6 @@ func (s *axSession) aim(ctx context.Context, target *PhoneNode) (Point, error) {
 		return Point{}, E.New(name, " has no position on the screen; perform one of its actions instead")
 	case !target.AX.Enabled:
 		return Point{}, &pendingError{message: name + " is disabled", retry: true}
-	case target.Inert:
-		return Point{}, &pendingError{message: name + " is behind a modal view, as a sheet or an alert", retry: true}
 	case !target.Shown() || target.Covered:
 		return Point{}, s.reveal(ctx, target)
 	}
@@ -610,6 +608,9 @@ func (s *axSession) aim(ctx context.Context, target *PhoneNode) (Point, error) {
 				at = piece.Center()
 				continue
 			}
+		}
+		if target.Inert {
+			return Point{}, &pendingError{message: name + " is behind a modal view, as a sheet or an alert", retry: true}
 		}
 		return Point{}, &pendingError{message: "a tap at " + pointText(at) + " would reach " + describeElement(element.Value) + ", not " + name, retry: true}
 	}

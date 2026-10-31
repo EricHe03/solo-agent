@@ -150,7 +150,7 @@ declare namespace accessibility {
     | ((element: AccessibilityElement) => boolean);
 
   export interface SnapshotOptions extends CallOptions {
-    readonly scope?: "screen" | "frontApp";
+    readonly scope?: "frontApp" | "screen";
     readonly full?: boolean;
   }
 

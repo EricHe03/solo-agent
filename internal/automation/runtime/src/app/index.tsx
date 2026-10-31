@@ -1,7 +1,6 @@
-import * as SwiftUI from "@expo/ui/swift-ui";
 import { registerRootComponent, requireNativeModule, type EventSubscription } from "expo";
 import { Component, useEffect, useMemo, useSyncExternalStore, useState, type ComponentType, type ReactNode } from "react";
-import { ScrollView, Text } from "react-native";
+import { Pressable, ScrollView, Text } from "react-native";
 
 import { directoryOf, type FileHost } from "./files";
 
@@ -28,6 +27,7 @@ interface Props {
   source: string;
   dataDirectory: string;
   assetsDirectory: string;
+  closeTitle: string;
   service: ServiceEvent;
 }
 
@@ -35,6 +35,7 @@ interface SwiptHost extends FileHost {
   call(swiplet: string, action: string, input: string): Promise<string>;
   setServiceEnabled(swiplet: string, enabled: boolean): Promise<void>;
   mounted(surface: string): void;
+  exit(swiplet: string): void;
   addListener(event: "service", listener: (event: ServiceEvent & { name: string }) => void): EventSubscription;
 }
 
@@ -101,17 +102,8 @@ function interfaceModule({ name, service }: Props) {
     const current = useSyncExternalStore(subscribe, () => state.service);
     return useMemo(() => ({ ...current, setEnabled }), [current]);
   };
-  return { __esModule: true, actions: () => calls, useService };
+  return { __esModule: true, actions: () => calls, useService, exit: () => host.exit(name) };
 }
-
-function NavigationStack(props: SwiftUI.NavigationStackProps) {
-  if (props.path !== undefined || props.onPathChange !== undefined) {
-    throw new Error("Swipt shows swiplets inside its own navigation stack, so NavigationStack takes neither path nor onPathChange");
-  }
-  return <SwiftUI.NavigationStack {...props} embedded />;
-}
-
-const swiftUI = { ...SwiftUI, __esModule: true, NavigationStack };
 
 const modules: Record<string, () => unknown> = {
   react: () => require("react"),
@@ -120,7 +112,7 @@ const modules: Record<string, () => unknown> = {
   expo: () => require("expo"),
   "expo-localization": () => require("expo-localization"),
   "@expo/ui": () => require("@expo/ui"),
-  "@expo/ui/swift-ui": () => swiftUI,
+  "@expo/ui/swift-ui": () => require("@expo/ui/swift-ui"),
   "@expo/ui/swift-ui/modifiers": () => require("@expo/ui/swift-ui/modifiers"),
   "@expo/ui/community/bottom-sheet": () => require("@expo/ui/community/bottom-sheet"),
   "@expo/ui/community/datetime-picker": () => require("@expo/ui/community/datetime-picker"),
@@ -154,9 +146,12 @@ function load(props: Props): ComponentType {
   return module.exports.default ?? (module.exports as unknown as ComponentType);
 }
 
-function Failure({ error }: { error: unknown }) {
+function Failure({ name, closeTitle, error }: { name: string; closeTitle: string; error: unknown }) {
   return (
-    <ScrollView contentContainerStyle={{ padding: 20 }}>
+    <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 60 }}>
+      <Pressable onPress={() => host.exit(name)} style={{ alignSelf: "flex-start", paddingVertical: 8, marginBottom: 12 }}>
+        <Text style={{ color: "#0a84ff", fontSize: 17 }}>{closeTitle}</Text>
+      </Pressable>
       <Text selectable style={{ color: "red", fontFamily: "Menlo", fontSize: 13 }}>
         {String((error as Error | undefined)?.stack ?? error)}
       </Text>
@@ -164,7 +159,7 @@ function Failure({ error }: { error: unknown }) {
   );
 }
 
-class Boundary extends Component<{ children: ReactNode }, { error: unknown }> {
+class Boundary extends Component<{ name: string; closeTitle: string; children: ReactNode }, { error: unknown }> {
   state = { error: null as unknown };
 
   static getDerivedStateFromError(error: unknown) {
@@ -172,7 +167,7 @@ class Boundary extends Component<{ children: ReactNode }, { error: unknown }> {
   }
 
   render() {
-    return this.state.error === null ? this.props.children : <Failure error={this.state.error} />;
+    return this.state.error === null ? this.props.children : <Failure name={this.props.name} closeTitle={this.props.closeTitle} error={this.state.error} />;
   }
 }
 
@@ -186,11 +181,11 @@ function Root(props: Props) {
     }
   });
   if ("error" in loaded) {
-    return <Failure error={loaded.error} />;
+    return <Failure name={props.name} closeTitle={props.closeTitle} error={loaded.error} />;
   }
   const { Swiplet } = loaded;
   return (
-    <Boundary>
+    <Boundary name={props.name} closeTitle={props.closeTitle}>
       <Swiplet />
     </Boundary>
   );

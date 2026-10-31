@@ -59,6 +59,16 @@ struct SwiptApp: App {
 
 #if os(iOS)
 final class AppDelegate: NSObject, UIApplicationDelegate {
+    // RCTKeyWindow falls back to the application delegate's window while no scene is in the foreground, and the
+    // delegate SwiftUI installs does not answer it (react-native 0.88.1).
+    var window: UIWindow? {
+        get {
+            let windows = UIApplication.shared.connectedScenes.lazy.compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
+            return windows.first(where: \.isKeyWindow) ?? windows.first
+        }
+        set {}
+    }
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         return true
