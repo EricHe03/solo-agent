@@ -179,8 +179,8 @@ jobs:
             PUBLISHED=$(npm view "@swipt/api@$CURRENT" gitHead 2> /dev/null || true)
             if [ "$PUBLISHED" = "$GITHUB_SHA" ]; then
               NUMBER=${CURRENT##*.}
-            elif [ -n "$PUBLISHED" ] && git cat-file -e "$PUBLISHED^{commit}" 2> /dev/null && git diff --quiet "$PUBLISHED" HEAD -- api; then
-              echo "api is unchanged since $CURRENT"
+            elif [ -n "$PUBLISHED" ] && git cat-file -e "$PUBLISHED^{commit}" 2> /dev/null && git diff --quiet "$PUBLISHED" HEAD -- api cli; then
+              echo "the packages are unchanged since $CURRENT"
               exit 0
             else
               NUMBER=$(( ${CURRENT##*.} + 1 ))
