@@ -9,6 +9,8 @@ import vm from "node:vm";
 
 import { build } from "esbuild";
 
+import { loadEnvironment, metro } from "./metro.mjs";
+
 const { version } = JSON.parse(fs.readFileSync(new URL("package.json", import.meta.url), "utf8"));
 const { peerDependencies } = createRequire(import.meta.url)("@swipt/api/package.json");
 
@@ -78,7 +80,8 @@ const typeImport = extension => ({
 });
 
 async function bundle(project) {
-  const out = { app: "", extension: "", extensionMap: "" };
+  const out = { app: "", extension: "", extensionMap: "", assets: new Map() };
+  loadEnvironment(project.root);
   if (project.extension) {
     const result = await build({
       entryPoints: [project.extension],
@@ -93,6 +96,7 @@ async function bundle(project) {
       sourcesContent: false,
       write: false,
       logLevel: "silent",
+      plugins: [metro(project.root, { sourcemap: true })],
     });
     out.extension = result.outputFiles.find(file => file.path.endsWith(".js")).text;
     out.extensionMap = result.outputFiles.find(file => file.path.endsWith(".map")).text;
@@ -112,7 +116,7 @@ async function bundle(project) {
       external: appModules,
       write: false,
       logLevel: "silent",
-      plugins: project.extension ? [typeImport(project.extension)] : [],
+      plugins: [...(project.extension ? [typeImport(project.extension)] : []), metro(project.root, { assets: out.assets })],
     });
     out.app = result.outputFiles[0].text;
   }
@@ -255,6 +259,14 @@ export async function buildProject(root) {
   }
   if (fs.existsSync(path.join(root, "assets"))) {
     fs.cpSync(path.join(root, "assets"), path.join(folder, "assets"), { recursive: true, filter: source => !path.basename(source).startsWith(".") });
+  }
+  for (const [name, source] of output.assets) {
+    const target = path.join(folder, "assets", name);
+    if (fs.existsSync(target)) {
+      throw new Error(`${path.relative(root, source)} and ${path.join("assets", name)} would both be assets/${name} in the swiplet`);
+    }
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(source, target);
   }
   const archive = path.join(dist, `${manifest.id}.swiplet`);
   fs.rmSync(archive, { force: true });
