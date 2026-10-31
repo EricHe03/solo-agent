@@ -229,6 +229,39 @@ final class SwipletHost: SwiptHostDelegate {
         try await SwipletStore.shared.setServiceEnabled(swiplet, enabled)
     }
 
+    func statFile(swiplet: String, path: String) async throws -> SwiptHostFileInfo {
+        let info = try await Platform.shared.statSwipletFile(swiplet, path: path)
+        return SwiptHostFileInfo(exists: info.exists, directory: info.directory, size: info.size, modified: info.modified)
+    }
+
+    func listFiles(swiplet: String, path: String) async throws -> [SwiptHostFileEntry] {
+        try await Platform.shared.listSwipletFiles(swiplet, path: path).map { SwiptHostFileEntry(name: $0.name, directory: $0.directory) }
+    }
+
+    func readFile(swiplet: String, path: String) async throws -> Data {
+        try await Platform.shared.readSwipletFile(swiplet, path: path)
+    }
+
+    func writeFile(swiplet: String, path: String, data: Data) async throws {
+        try await Platform.shared.writeSwipletFile(swiplet, path: path, data: data)
+    }
+
+    func makeDirectory(swiplet: String, path: String) async throws {
+        try await Platform.shared.makeSwipletDirectory(swiplet, path: path)
+    }
+
+    func removeFile(swiplet: String, path: String) async throws {
+        try await Platform.shared.removeSwipletFile(swiplet, path: path)
+    }
+
+    func copyFile(swiplet: String, from: String, to: String) async throws {
+        try await Platform.shared.copySwipletFile(swiplet, from: from, to: to)
+    }
+
+    func moveFile(swiplet: String, from: String, to: String) async throws {
+        try await Platform.shared.moveSwipletFile(swiplet, from: from, to: to)
+    }
+
     func surfaceDidMount(_ surface: String) {
         surfaces.object(forKey: surface as NSString)?.didMount()
         surfaces.removeObject(forKey: surface as NSString)

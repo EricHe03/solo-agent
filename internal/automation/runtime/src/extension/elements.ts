@@ -20,17 +20,17 @@ export interface RawSnapshot {
   system?: Raw;
 }
 
-const refs = new WeakMap<Element, string>();
-const homes = new WeakMap<Element, Snapshot>();
-const ids = new WeakMap<Snapshot, string>();
-const matches = new WeakMap<Snapshot, Map<string, Element>>();
+const refs = new WeakMap<AccessibilityElement, string>();
+const homes = new WeakMap<AccessibilityElement, AccessibilitySnapshot>();
+const ids = new WeakMap<AccessibilitySnapshot, string>();
+const matches = new WeakMap<AccessibilitySnapshot, Map<string, AccessibilityElement>>();
 
-export const refOf = (element: Element): string => refs.get(element)!;
+export const refOf = (element: AccessibilityElement): string => refs.get(element)!;
 
 const clip = (text: string, limit: number) => text.length > limit ? `${text.slice(0, limit - limit / 3)}…${text.slice(-limit / 3)}` : text;
 const flags = ["selected", "focused", "disabled", "secure", "partial", "offScreen", "inert", "remote"] as const;
 
-export class Element {
+export class AccessibilityElement {
   declare readonly role: string;
   declare readonly class?: string;
   declare readonly traits: readonly string[];
@@ -44,15 +44,15 @@ export class Element {
   declare readonly point?: Point;
   declare readonly expanded?: boolean;
   declare readonly actions?: readonly string[];
-  declare readonly children: readonly Element[];
-  declare readonly parent?: Element;
+  declare readonly children: readonly AccessibilityElement[];
+  declare readonly parent?: AccessibilityElement;
 
-  find(selector: Selector): Element | null {
+  find(selector: Selector): AccessibilityElement | null {
     const home = homes.get(this);
     return home === undefined ? null : search(home, refOf(this), selector, "one")[0] ?? null;
   }
 
-  findAll(selector: Selector): Element[] {
+  findAll(selector: Selector): AccessibilityElement[] {
     const home = homes.get(this);
     return home === undefined ? [] : search(home, refOf(this), selector, "all");
   }
@@ -62,17 +62,17 @@ export class Element {
   }
 }
 
-export class Snapshot {
+export class AccessibilitySnapshot {
   declare readonly app: string;
   declare readonly time: number;
-  declare readonly root: Element;
-  declare readonly system?: Element;
+  declare readonly root: AccessibilityElement;
+  declare readonly system?: AccessibilityElement;
 
-  find(selector: Selector): Element | null {
+  find(selector: Selector): AccessibilityElement | null {
     return search(this, "", selector, "one")[0] ?? null;
   }
 
-  findAll(selector: Selector): Element[] {
+  findAll(selector: Selector): AccessibilityElement[] {
     return search(this, "", selector, "all");
   }
 
@@ -82,9 +82,9 @@ export class Snapshot {
   }
 }
 
-export function wrap(raw: Raw, parent?: Element, home?: Snapshot, registry?: Map<string, Element>): Element {
+export function wrap(raw: Raw, parent?: AccessibilityElement, home?: AccessibilitySnapshot, registry?: Map<string, AccessibilityElement>): AccessibilityElement {
   const { ref, children = [], traits = [], ...fields } = raw;
-  const element = Object.assign(Object.create(Element.prototype), fields, { traits }) as Element;
+  const element = Object.assign(Object.create(AccessibilityElement.prototype), fields, { traits }) as AccessibilityElement;
   refs.set(element, ref);
   if (home !== undefined) {
     homes.set(element, home);
@@ -97,8 +97,8 @@ export function wrap(raw: Raw, parent?: Element, home?: Snapshot, registry?: Map
   return Object.freeze(element);
 }
 
-export function snapshotOf(raw: RawSnapshot): Snapshot {
-  const snapshot = Object.create(Snapshot.prototype) as Snapshot;
+export function snapshotOf(raw: RawSnapshot): AccessibilitySnapshot {
+  const snapshot = Object.create(AccessibilitySnapshot.prototype) as AccessibilitySnapshot;
   ids.set(snapshot, raw.id);
   Object.assign(snapshot, { app: raw.app, time: raw.time, root: wrap(raw.root, undefined, snapshot) });
   if (raw.system !== undefined) {
@@ -107,7 +107,7 @@ export function snapshotOf(raw: RawSnapshot): Snapshot {
   return Object.freeze(snapshot);
 }
 
-export const adopt = (home: Snapshot, raw: Raw): Element => {
+export const adopt = (home: AccessibilitySnapshot, raw: Raw): AccessibilityElement => {
   let found = matches.get(home);
   if (found === undefined) {
     found = new Map();
@@ -116,7 +116,7 @@ export const adopt = (home: Snapshot, raw: Raw): Element => {
   return found.get(raw.ref) ?? wrap(raw, undefined, home, found);
 };
 
-export const line = (element: Element): string => {
+export const line = (element: AccessibilityElement): string => {
   const parts = [element.role];
   const record = element as unknown as Record<string, unknown>;
   if (element.class !== undefined) {
@@ -154,9 +154,9 @@ export const line = (element: Element): string => {
   return parts.join(" ");
 };
 
-const outline = (root: Element): string => {
+const outline = (root: AccessibilityElement): string => {
   const lines: string[] = [];
-  const visit = (element: Element, depth: number) => {
+  const visit = (element: AccessibilityElement, depth: number) => {
     lines.push("  ".repeat(depth) + line(element));
     if (element.role === "keyboard") {
       return;
@@ -169,18 +169,18 @@ const outline = (root: Element): string => {
   return lines.join("\n");
 };
 
-export type Selector = Record<string, unknown> | ((element: Element) => boolean);
+export type Selector = Record<string, unknown> | ((element: AccessibilityElement) => boolean);
 
 const relations = ["within", "parent", "has", "not"];
 
 export const isSelector = (value: unknown): value is Selector =>
-  typeof value === "function" || (value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Element));
+  typeof value === "function" || (value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof AccessibilityElement));
 
 export interface Encoded {
   value: unknown;
   predicates: number;
   references: number;
-  holes: ((value: string, home?: Snapshot) => boolean)[];
+  holes: ((value: string, home?: AccessibilitySnapshot) => boolean)[];
 }
 
 export const encode = (selector: Selector): Encoded => {
@@ -192,7 +192,7 @@ export const encode = (selector: Selector): Encoded => {
       predicates++;
       holes.push((argument, home) => {
         const element = home === undefined ? undefined : wrap(JSON.parse(argument) as Raw, undefined, home, undefined);
-        return element !== undefined && Boolean((value as (element: Element) => unknown)(element));
+        return element !== undefined && Boolean((value as (element: AccessibilityElement) => unknown)(element));
       });
       return { $predicate: holes.length - 1 };
     }
@@ -204,7 +204,7 @@ export const encode = (selector: Selector): Encoded => {
       if (field instanceof RegExp) {
         holes.push(text => text.search(field) >= 0);
         out[key] = { $regex: field.source, $flags: field.flags, $id: holes.length - 1 };
-      } else if (relations.includes(key) && field instanceof Element) {
+      } else if (relations.includes(key) && field instanceof AccessibilityElement) {
         references++;
         out[key] = { $element: refOf(field) };
       } else if (relations.includes(key) && isSelector(field)) {
@@ -227,7 +227,7 @@ export const scripted = (encoded: Encoded): boolean => {
   return encoded.predicates > 0 || answer.scripted === true;
 };
 
-const search = (home: Snapshot, scope: string, selector: Selector, mode: "one" | "all"): Element[] => {
+const search = (home: AccessibilitySnapshot, scope: string, selector: Selector, mode: "one" | "all"): AccessibilityElement[] => {
   const encoded = encode(selector);
   let thrown: { error: unknown } | undefined;
   const answer = native.match(ids.get(home)!, scope, JSON.stringify(encoded.value), mode, (_kind, id, value) => {

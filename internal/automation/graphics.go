@@ -35,8 +35,8 @@ var (
 )
 
 var timelineOperations = []string{
-	"device.unlock", "device.tap", "device.swipe", "device.drag", "device.pinch", "device.touch", "device.pressKey",
-	"device.button", "device.launch", "ui.tap", "ui.locate",
+	"device.unlock", "device.launchApplication", "input.tap", "input.swipe", "input.drag", "input.pinch", "input.touch", "input.pressKey",
+	"input.button", "accessibility.tap", "accessibility.locate",
 }
 
 type GraphicsCall struct {

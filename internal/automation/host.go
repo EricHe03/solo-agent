@@ -41,7 +41,6 @@ var packageFiles = []string{SourceFolder, ManifestFile, IconFile}
 type Options struct {
 	Device            *device.Phone
 	Directory         string
-	Documents         string
 	Caches            string
 	Languages         []string
 	LogFactory        *log.Factory
@@ -89,9 +88,6 @@ func New(options Options) *Host {
 	}
 	if options.Caches == "" {
 		options.Caches = os.TempDir()
-	}
-	if options.Documents == "" {
-		options.Documents = options.Caches
 	}
 	h := &Host{
 		options: options, logFactory: logFactory, logger: logFactory.Logger(),

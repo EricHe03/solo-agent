@@ -14,13 +14,22 @@ const appModules = [
   "react/jsx-runtime",
   "react-native",
   "expo",
-  "expo-file-system",
   "expo-localization",
   "@expo/ui",
   "@expo/ui/*",
-  "swiplet",
+  "swiplet/interface",
+  "swiplet/file-system",
 ];
-const extensionModules = ["swiplet", "swiplet/extension", "expo-file-system", "expo-localization"];
+const extensionModules = [
+  "swiplet/extension",
+  "swiplet/file-system",
+  "swiplet/accessibility",
+  "swiplet/input",
+  "swiplet/device",
+  "swiplet/screen",
+  "swiplet/image",
+  "expo-localization",
+];
 
 const idPattern = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 
@@ -113,28 +122,31 @@ function describeExtension(source) {
     const fail = () => {
       throw new Error(`${name} is used while extension.js loads; use it inside run or an action`);
     };
-    return new Proxy(fail, { get: fail, apply: fail, construct: fail });
+    const get = (_, key) => (key === "__esModule" ? true : typeof key === "symbol" || key === "then" ? undefined : fail());
+    return new Proxy(fail, { get, apply: fail, construct: fail });
   };
-  class DeviceError extends Error {}
-  const dataDirectory = { uri: "file:///swiplet/data/" };
   const modules = {
     "swiplet/extension": {
       defineExtension: definition => ({ [definitionKey]: definition }),
-      action: definition => definition,
-      device: loading("device"),
-      ui: loading("ui"),
+      defineAction: definition => definition,
       sleep: loading("sleep"),
-      DeviceError,
-      dataDirectory,
     },
-    swiplet: { dataDirectory },
-    "expo-file-system": { File: class File {}, Directory: class Directory {}, Paths: {} },
+    "swiplet/file-system": {
+      get dataDirectory() {
+        throw new Error("dataDirectory is used while extension.js loads; use it inside run or an action");
+      },
+    },
+    "swiplet/accessibility": loading("accessibility"),
+    "swiplet/input": loading("input"),
+    "swiplet/device": loading("device"),
+    "swiplet/screen": loading("screen"),
+    "swiplet/image": loading("image"),
     "expo-localization": { getLocales: () => [{ languageTag: "en", languageCode: "en" }], getCalendars: () => [] },
   };
   const ignored = () => 0;
   const context = vm.createContext({
     console, URL, URLSearchParams, TextEncoder, TextDecoder, atob, btoa, structuredClone, queueMicrotask, crypto,
-    AbortController, AbortSignal, Event, EventTarget, CustomEvent, DOMException, Headers, Request, Response, Blob, DeviceError,
+    AbortController, AbortSignal, Event, EventTarget, CustomEvent, DOMException, Headers, Request, Response, Blob,
     fetch: loading("fetch"),
     setTimeout: ignored, setInterval: ignored, clearTimeout: ignored, clearInterval: ignored,
     navigator: { userAgent: "Swipt", language: "en", languages: ["en"] },
@@ -252,7 +264,7 @@ const templates = {
         devDependencies: {
           swiplet: `^${version}`,
           typescript: "^7.0.2",
-          ...Object.fromEntries(["@expo/ui", "@types/react", "expo-file-system", "react"].map(name => [name, peerDependencies[name]])),
+          ...Object.fromEntries(["@expo/ui", "@types/react", "react"].map(name => [name, peerDependencies[name]])),
         },
       },
       null,
@@ -270,31 +282,33 @@ const templates = {
       2,
     )}\n`,
   ".gitignore": () => "node_modules/\ndist/\n",
-  "src/extension.ts": () => `import { action, defineExtension, device } from "swiplet/extension";
+  "src/extension.ts": () => `import * as device from "swiplet/device";
+import { defineAction, defineExtension } from "swiplet/extension";
 
 export default defineExtension({
   actions: {
-    frontApp: action({
+    frontApp: defineAction({
       title: "Find the App in Front",
-      run: (_, { signal }) => device.foreground.get({ signal }),
+      run: (_, { signal }) => device.foregroundApplication.get({ signal }),
     }),
   },
 });
 `,
   "src/App.tsx": () => `import { Button, Form, Host, Section, Text } from "@expo/ui/swift-ui";
-import { useExtension } from "swiplet";
 import { useState } from "react";
+import { actions } from "swiplet/interface";
 
 import type extension from "./extension";
 
+const { frontApp } = actions<typeof extension>();
+
 export default function App() {
-  const { actions } = useExtension<typeof extension>();
   const [app, setApp] = useState("");
   return (
     <Host style={{ flex: 1 }}>
       <Form>
         <Section>
-          <Button label="Find the App in Front" onPress={async () => setApp(await actions.frontApp())} />
+          <Button label="Find the App in Front" onPress={async () => setApp(await frontApp())} />
           {app === "" ? null : <Text>{app}</Text>}
         </Section>
       </Form>

@@ -1,12 +1,9 @@
 import { stream } from "./async";
-import { check, optionsOf, signalOf } from "./device";
 import { DOMException } from "./errors";
 import { AbortController } from "./events";
-import { File, pathOf } from "./files";
-import { adopt, adoptOptional, finite, freeze, graphicsNative, handleOf, Image, rectOf, run, timeoutOf, type ImageHandle, type Rect } from "./image";
-import { native } from "./native";
-
-type Options = { signal?: AbortSignal };
+import { cacheFile, FileHandle, fileOf, handleOfPath, pathOf } from "./files";
+import { adoptOptional, finite, freeze, graphicsNative, handleOf, imageResult, RasterImage, rectOf, run, timeoutOf, type ImageHandle, type Rect } from "./image";
+import { check, optionsOf, signalOf, type Options } from "./options";
 
 interface RecordingHandle {
   readonly path: string;
@@ -40,18 +37,8 @@ interface VideoInfo {
 
 const largestFrameCount = 1000;
 
-const fileOf = (value: unknown, name: string): string => {
-  if (value instanceof File) {
-    return pathOf(value.uri);
-  }
-  if (typeof value === "string") {
-    return pathOf(value);
-  }
-  throw new TypeError(`${name} must be a File, a file: URI or an absolute path`);
-};
-
-const defaultFile = (folder: string, extension: string): string =>
-  `${native.cacheDirectory}/${folder}/${new Date().toISOString().replace(/[:.]/g, "-")}.${extension}`;
+const defaultFile = (folder: string, extension: string): FileHandle =>
+  cacheFile(`${folder}/${new Date().toISOString().replace(/[:.]/g, "-")}.${extension}`);
 
 const thresholdOf = (value: unknown): number | undefined => {
   if (value === undefined) {
@@ -73,44 +60,42 @@ const durationOf = (value: unknown, name: string, fallback: number): number => {
   return value;
 };
 
-const imageResult = async (result: Promise<{ image: number }>): Promise<Image> => adopt((await result).image);
+const recordings = new WeakMap<RecordingSession, RecordingHandle>();
+const videos = new WeakMap<ScreenRecording, VideoHandle>();
 
-const recordings = new WeakMap<Recording, RecordingHandle>();
-const videos = new WeakMap<Video, VideoHandle>();
-
-const videoOf = (id: number): Video => {
+const videoOf = (id: number): ScreenRecording => {
   const handle = graphicsNative().take(id);
   if (handle === null) {
-    throw new DOMException("the video was released", "InvalidStateError");
+    throw new DOMException("the recording was released", "InvalidStateError");
   }
-  return new Video(handle as VideoHandle);
+  return new ScreenRecording(handle as VideoHandle);
 };
 
-export class Recording {
-  declare readonly file: File;
+export class RecordingSession {
+  declare readonly file: FileHandle;
   declare readonly start: number;
 
   constructor(handle: RecordingHandle) {
     recordings.set(this, handle);
     Object.defineProperties(this, {
-      file: { value: new File(handle.path), enumerable: true },
+      file: { value: handleOfPath(handle.path), enumerable: true },
       start: { value: handle.start, enumerable: true },
     });
     Object.freeze(this);
   }
 
-  async stop(options?: Options): Promise<Video> {
+  async stop(options?: Options): Promise<ScreenRecording> {
     const result = await run<{ video: number }>("recording.stop", {}, [recordings.get(this)!], signalOf(check(options, [])));
     return videoOf(result.video);
   }
 
   toString(): string {
-    return `Recording ${this.file.name} since ${new Date(this.start).toISOString()}`;
+    return `RecordingSession ${this.file.name} since ${new Date(this.start).toISOString()}`;
   }
 }
 
-export class Video {
-  declare readonly file: File;
+export class ScreenRecording {
+  declare readonly file: FileHandle;
   declare readonly start: number | null;
   declare readonly duration: number;
   declare readonly width: number;
@@ -122,17 +107,17 @@ export class Video {
   constructor(handle: VideoHandle) {
     videos.set(this, handle);
     const info: VideoInfo = JSON.parse(handle.info);
-    const frameAt = (time: number) => new Image(handle.frame(time));
+    const frameAt = (time: number) => new RasterImage(handle.frame(time));
     const changes = info.changes.map(change => {
-      let before: Image | undefined;
-      let after: Image | undefined;
+      let before: RasterImage | undefined;
+      let after: RasterImage | undefined;
       return Object.freeze(Object.defineProperties({ time: change.time, end: change.end, frames: freeze(change.frames), app: change.app }, {
         before: { get: () => before ??= frameAt(change.before), enumerable: true },
         after: { get: () => after ??= frameAt(change.after), enumerable: true },
       }));
     });
     Object.defineProperties(this, {
-      file: { value: new File(info.path), enumerable: true },
+      file: { value: handleOfPath(info.path), enumerable: true },
       start: { value: info.start, enumerable: true },
       duration: { value: info.duration, enumerable: true },
       width: { value: info.width, enumerable: true },
@@ -152,11 +137,11 @@ export class Video {
     return time;
   }
 
-  frame(time: number): Image {
-    return new Image(videos.get(this)!.frame(this.#time(time, "the time")));
+  frame(time: number): RasterImage {
+    return new RasterImage(videos.get(this)!.frame(this.#time(time, "the time")));
   }
 
-  frames(times: readonly number[] | { everyMs: number; from?: number; to?: number }): Image[] {
+  frames(times: readonly number[] | { everyMs: number; from?: number; to?: number }): RasterImage[] {
     let chosen: number[];
     if (Array.isArray(times)) {
       chosen = times.map((time, index) => this.#time(time, `time ${index + 1}`));
@@ -176,7 +161,7 @@ export class Video {
     return chosen.map(time => this.frame(time));
   }
 
-  async grid(options?: Options & { times?: readonly number[]; columns?: number; width?: number }): Promise<Image> {
+  async grid(options?: Options & { times?: readonly number[]; columns?: number; width?: number }): Promise<RasterImage> {
     const { times, columns, width } = optionsOf(options, ["times", "columns", "width"]);
     const args: Record<string, unknown> = {};
     if (times !== undefined) {
@@ -206,12 +191,12 @@ export class Video {
     return freeze(await run("video.diff", args, [videos.get(this)!], signalOf(options)));
   }
 
-  async export(options?: Options & { file?: File | string; from?: number; to?: number; region?: Rect; scale?: number; format?: "mov" | "mp4" | "gif"; frameRate?: number }): Promise<File> {
+  async export(options?: Options & { file?: unknown; from?: number; to?: number; region?: Rect; scale?: number; format?: "mov" | "mp4" | "gif"; frameRate?: number }): Promise<FileHandle> {
     const { file, from, to, region, scale, format = "mp4", frameRate } = optionsOf(options, ["file", "from", "to", "region", "scale", "format", "frameRate"]);
     if (format !== "mov" && format !== "mp4" && format !== "gif") {
       throw new TypeError("the format must be mov, mp4 or gif");
     }
-    const args: Record<string, unknown> = { format, path: file === undefined ? defaultFile("Exports", format) : fileOf(file, "file") };
+    const args: Record<string, unknown> = { format, path: pathOf(file === undefined ? defaultFile("Exports", format) : fileOf(file, "file")) };
     if (from !== undefined) {
       args.from = this.#time(from, "from");
     }
@@ -237,11 +222,11 @@ export class Video {
       args.frameRate = frameRate;
     }
     const result = await run<{ path: string }>("video.export", args, [videos.get(this)!], signalOf(options));
-    return new File(result.path);
+    return handleOfPath(result.path);
   }
 
   toString(): string {
-    return `Video ${this.file.name} ${Math.round(this.duration) / 1000} s, ${this.changes.length} changes, ${this.events.length} events`;
+    return `ScreenRecording ${this.file.name} ${Math.round(this.duration) / 1000} s, ${this.changes.length} changes, ${this.events.length} events`;
   }
 }
 
@@ -257,10 +242,10 @@ const waitArgs = (options: unknown, extra: string[]) => {
   };
 };
 
-const screen = Object.freeze({
+export const frames = Object.freeze({
   get: (options?: Options) => imageResult(run("screen.get", {}, [], signalOf(check(options, [])))),
   values: (options?: Options) =>
-    stream<Image>("graphics.watch", () => [graphicsNative().prepare("screen.watch", "{}", [])], signalOf(check(options, [])), "latest", adoptOptional),
+    stream<RasterImage>("screen.watch", () => [graphicsNative().prepare("screen.watch", "{}", [])], signalOf(check(options, [])), "latest", adoptOptional),
 });
 
 const limited = (signal: AbortSignal | undefined, timeout: number | null) => {
@@ -280,68 +265,54 @@ const limited = (signal: AbortSignal | undefined, timeout: number | null) => {
   };
 };
 
-export const graphics = Object.freeze({
-  screenshot: (options?: Options) => imageResult(run("screenshot", {}, [], signalOf(check(options, [])))),
-  screen,
-  decode: (data: Uint8Array | File, options?: Options & { scale?: number }) => {
-    const { scale } = optionsOf(options, ["scale"]);
-    const args: Record<string, unknown> = {};
-    if (scale !== undefined) {
-      if (typeof scale !== "number" || !(scale > 0 && scale <= 16)) {
-        throw new RangeError("scale must be above 0 and at most 16");
+export const screenshot = (options?: Options) => imageResult(run("screenshot", {}, [], signalOf(check(options, []))));
+
+export const waitFor = async (predicate: (frame: RasterImage) => boolean | Promise<boolean>, options?: Options & { timeoutMs?: number }): Promise<RasterImage> => {
+  if (typeof predicate !== "function") {
+    throw new TypeError("the predicate must be a function");
+  }
+  const { timeoutMs } = optionsOf(options, ["timeoutMs"]);
+  const limit = limited(signalOf(options), timeoutOf(timeoutMs));
+  try {
+    for await (const frame of frames.values({ signal: limit.signal })) {
+      if (await predicate(frame)) {
+        return frame;
       }
-      args.scale = scale;
     }
-    const objects: object[] = [];
-    if (data instanceof Uint8Array) {
-      objects.push(data);
-    } else {
-      args.path = fileOf(data, "the data");
-    }
-    return imageResult(run("decode", args, objects, signalOf(options)));
-  },
-  waitFor: async (predicate: (frame: Image) => boolean | Promise<boolean>, options?: Options & { timeoutMs?: number }): Promise<Image> => {
-    if (typeof predicate !== "function") {
-      throw new TypeError("the predicate must be a function");
-    }
-    const { timeoutMs } = optionsOf(options, ["timeoutMs"]);
-    const limit = limited(signalOf(options), timeoutOf(timeoutMs));
-    try {
-      for await (const frame of screen.values({ signal: limit.signal })) {
-        if (await predicate(frame)) {
-          return frame;
-        }
-      }
-    } finally {
-      limit.done();
-    }
-    throw new DOMException("the screen stream ended", "UnavailableError");
-  },
-  waitForChange: (options?: Options & { region?: Rect; timeoutMs?: number; threshold?: number; from?: Image }) => {
-    const { rest, args } = waitArgs(options, ["from"]);
-    const objects = rest.from === undefined ? [] : [handleOf(rest.from, "from")];
-    return imageResult(run("screen.waitForChange", args, objects, signalOf(options)));
-  },
-  waitForStable: (options?: Options & { region?: Rect; timeoutMs?: number; threshold?: number; durationMs?: number }) => {
-    const { rest, args } = waitArgs(options, ["durationMs"]);
-    args.durationMs = durationOf(rest.durationMs, "durationMs", 500);
-    return imageResult(run("screen.waitForStable", args, [], signalOf(options)));
-  },
-  record: async (options?: Options & { file?: File | string }): Promise<Recording> => {
-    const { file } = optionsOf(options, ["file"]);
-    const path = file === undefined ? defaultFile("Recordings", "mov") : fileOf(file, "file");
-    if (!path.toLowerCase().endsWith(".mov")) {
-      throw new TypeError("a recording is a .mov file");
-    }
-    const result = await run<{ recording: number }>("record", { path }, [], signalOf(options));
-    const handle = graphicsNative().take(result.recording);
-    if (handle === null) {
-      throw new DOMException("the recording was released", "InvalidStateError");
-    }
-    return new Recording(handle as RecordingHandle);
-  },
-  open: async (file: File | string, options?: Options): Promise<Video> => {
-    const result = await run<{ video: number }>("video.open", { path: fileOf(file, "the file") }, [], signalOf(check(options, [])));
-    return videoOf(result.video);
-  },
-});
+  } finally {
+    limit.done();
+  }
+  throw new DOMException("the screen stream ended", "UnavailableError");
+};
+
+export const waitForChange = (options?: Options & { region?: Rect; timeoutMs?: number; threshold?: number; from?: RasterImage }) => {
+  const { rest, args } = waitArgs(options, ["from"]);
+  const objects = rest.from === undefined ? [] : [handleOf(rest.from, "from")];
+  return imageResult(run("screen.waitForChange", args, objects, signalOf(options)));
+};
+
+export const waitForStable = (options?: Options & { region?: Rect; timeoutMs?: number; threshold?: number; durationMs?: number }) => {
+  const { rest, args } = waitArgs(options, ["durationMs"]);
+  args.durationMs = durationOf(rest.durationMs, "durationMs", 500);
+  return imageResult(run("screen.waitForStable", args, [], signalOf(options)));
+};
+
+export const record = async (options?: Options & { file?: unknown }): Promise<RecordingSession> => {
+  const { file } = optionsOf(options, ["file"]);
+  const target = file === undefined ? defaultFile("Recordings", "mov") : fileOf(file, "file");
+  const path = pathOf(target);
+  if (!path.toLowerCase().endsWith(".mov")) {
+    throw new TypeError("a recording is a .mov file");
+  }
+  const result = await run<{ recording: number }>("record", { path }, [], signalOf(options));
+  const handle = graphicsNative().take(result.recording);
+  if (handle === null) {
+    throw new DOMException("the recording was released", "InvalidStateError");
+  }
+  return new RecordingSession(handle as RecordingHandle);
+};
+
+export const openRecording = async (file: unknown, options?: Options): Promise<ScreenRecording> => {
+  const result = await run<{ video: number }>("video.open", { path: pathOf(fileOf(file, "the file")) }, [], signalOf(check(options, [])));
+  return videoOf(result.video);
+};

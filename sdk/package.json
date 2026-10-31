@@ -6,23 +6,44 @@
     "swiplet": "cli.mjs"
   },
   "exports": {
-    ".": {
-      "types": "./index.d.ts",
-      "default": "./index.mjs"
-    },
     "./extension": {
       "types": "./extension.d.ts",
       "default": "./extension.mjs"
+    },
+    "./interface": {
+      "types": "./interface.d.ts",
+      "default": "./interface.mjs"
+    },
+    "./file-system": {
+      "types": "./file-system.d.ts",
+      "default": "./file-system.mjs"
+    },
+    "./accessibility": {
+      "types": "./accessibility.d.ts",
+      "default": "./accessibility.mjs"
+    },
+    "./input": {
+      "types": "./input.d.ts",
+      "default": "./input.mjs"
+    },
+    "./device": {
+      "types": "./device.d.ts",
+      "default": "./device.mjs"
+    },
+    "./screen": {
+      "types": "./screen.d.ts",
+      "default": "./screen.mjs"
+    },
+    "./image": {
+      "types": "./image.d.ts",
+      "default": "./image.mjs"
     },
     "./package.json": "./package.json"
   },
   "files": [
     "cli.mjs",
-    "index.d.ts",
-    "index.mjs",
-    "extension.d.ts",
-    "extension.mjs",
-    "shared.d.ts"
+    "*.d.ts",
+    "*.mjs"
   ],
   "dependencies": {
     "@standard-schema/spec": "^1.1.0",
@@ -32,7 +53,6 @@
     "@expo/ui": "~58.0.25",
     "@types/react": "~19.3.0",
     "expo": "~58.0.21",
-    "expo-file-system": "~58.0.13",
     "expo-localization": "~58.0.5",
     "react": "19.3.0",
     "react-native": "0.88.1"

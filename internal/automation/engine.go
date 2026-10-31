@@ -276,7 +276,7 @@ func (h *Host) newEngine(swiplet Swiplet, dialog Dialog, logger log.ContextLogge
 	defer native.Release()
 	properties := map[string]string{
 		"swiplet": swiplet.ID, "dataDirectory": filepath.Join(swiplet.Directory, DataFolder), "languages": strings.Join(h.options.Languages, "\n"),
-		"documentDirectory": h.options.Documents, "cacheDirectory": h.options.Caches, "extensionHead": extensionHead,
+		"cacheDirectory": h.options.Caches, "extensionHead": extensionHead,
 	}
 	for name, text := range properties {
 		value := e.context.NewString(text)
@@ -376,7 +376,6 @@ func (e *engine) natives() map[string]jsc.Function {
 		"print":       e.print,
 		"put":         e.put,
 		"take":        e.take,
-		"file":        e.file,
 		"random":      e.random,
 		"digest":      e.digest,
 		"finish":      e.finish,
@@ -501,7 +500,7 @@ func (e *engine) subscribe(arguments []jsc.Value) (any, error) {
 		return nil, E.Cause(err, "decode the arguments of ", kind)
 	}
 	ctx, cancel := context.WithCancel(e.current.ctx)
-	it := &subscription{cancel: cancel, exec: e.current, queue: kind == "device.appEvents"}
+	it := &subscription{cancel: cancel, exec: e.current, queue: kind == "device.applicationEvents"}
 	e.subscriptions[id] = it
 	publish := func(value any, failure error) {
 		it.access.Lock()

@@ -35,27 +35,35 @@ func init() {
 		"device.unlock": screenAction(func(ctx context.Context, phone *device.Phone, _ *operation) error {
 			return phone.Unlock(ctx)
 		}),
-		"device.tap":           screenAction(deviceTap),
-		"device.swipe":         screenAction(deviceGesture),
-		"device.drag":          screenAction(deviceGesture),
-		"device.pinch":         screenAction(devicePinch),
-		"device.touch":         screenAction(deviceTouch),
-		"device.pressKey":      screenAction(devicePressKey),
-		"device.button":        screenAction(deviceButton),
-		"device.launch":        screenAction(deviceLaunch),
-		"device.apps":          deviceApps,
-		"device.appIcon":       deviceAppIcon,
-		"device.clipboard":     deviceClipboard,
-		"device.setClipboard":  deviceSetClipboard,
-		"device.setLocation":   deviceSetLocation,
-		"device.clearLocation": deviceClearLocation,
-		"ui.snapshot":          uiSnapshot,
-		"ui.find":              uiFind,
-		"ui.tap":               screenAction(uiTap),
-		"ui.locate":            screenAction(uiLocate),
-		"dialog":               presentDialog,
-		"fetch":                fetch,
-		"graphics":             graphicsRun,
+		"device.installedApplications":  deviceApps,
+		"device.applicationIcon":        deviceAppIcon,
+		"device.launchApplication":      screenAction(deviceLaunch),
+		"device.pasteboard":             deviceClipboard,
+		"device.setPasteboard":          deviceSetClipboard,
+		"device.simulateLocation":       deviceSetLocation,
+		"device.clearSimulatedLocation": deviceClearLocation,
+		"input.tap":                     screenAction(deviceTap),
+		"input.swipe":                   screenAction(deviceGesture),
+		"input.drag":                    screenAction(deviceGesture),
+		"input.pinch":                   screenAction(devicePinch),
+		"input.touch":                   screenAction(deviceTouch),
+		"input.pressKey":                screenAction(devicePressKey),
+		"input.button":                  screenAction(deviceButton),
+		"accessibility.snapshot":        uiSnapshot,
+		"accessibility.find":            uiFind,
+		"accessibility.tap":             screenAction(uiTap),
+		"accessibility.locate":          screenAction(uiLocate),
+		"fs.stat":                       fsStat,
+		"fs.list":                       fsList,
+		"fs.read":                       fsRead,
+		"fs.write":                      fsWrite,
+		"fs.mkdir":                      fsMkdir,
+		"fs.remove":                     fsRemove,
+		"fs.copy":                       fsTransfer(false),
+		"fs.move":                       fsTransfer(true),
+		"dialog":                        presentDialog,
+		"fetch":                         fetch,
+		"graphics":                      graphicsRun,
 	}
 }
 
@@ -353,7 +361,7 @@ func deviceGesture(ctx context.Context, phone *device.Phone, call *operation) er
 		return err
 	}
 	var fingers [][]device.TouchSample
-	if call.name == "device.swipe" {
+	if call.name == "input.swipe" {
 		if options.PressMs != nil {
 			return E.Cause1(ErrInvalid, E.New("pressMs applies to drag"))
 		}

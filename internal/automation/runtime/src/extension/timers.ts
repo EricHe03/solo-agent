@@ -1,4 +1,4 @@
-import { check, signalOf } from "./device";
+import { check, signalOf } from "./options";
 
 export const sleep = (ms: number, options?: { signal?: AbortSignal }): Promise<void> => {
   const signal = signalOf(check(options, []));

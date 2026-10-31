@@ -1,13 +1,11 @@
+import { accessibility, device, image, input, screen } from "./api";
 import { createDialog, type Dialog } from "./dialog";
-import { device } from "./device";
 import { DOMException, failureOf } from "./errors";
 import { AbortController } from "./events";
-import { dataDirectory, Directory, File, Paths } from "./files";
-import { graphics } from "./graphics";
+import { dataDirectory } from "./files";
 import { getCalendars, getLocales } from "./localization";
 import { native } from "./native";
 import { sleep } from "./timers";
-import { ui } from "./ui";
 
 type Caller = "app" | "shortcuts" | "api";
 const exposable: Caller[] = ["shortcuts"];
@@ -45,7 +43,7 @@ const schemaOf = (value: unknown, name: string): StandardSchema | undefined => {
   return value as StandardSchema;
 };
 
-export function action(definition: ActionDefinition) {
+export function defineAction(definition: ActionDefinition) {
   if (definition === null || typeof definition !== "object") {
     throw new TypeError("the action definition must be an object");
   }
@@ -80,7 +78,7 @@ export function defineExtension(definition: ExtensionDefinition) {
   const actions = definition.actions ?? {};
   for (const [name, item] of Object.entries(actions)) {
     if (!actionDefinitions.has(item)) {
-      throw new TypeError(`the action ${JSON.stringify(name)} was not made with action()`);
+      throw new TypeError(`the action ${JSON.stringify(name)} was not made with defineAction()`);
     }
   }
   const out = Object.freeze({ actions: Object.freeze({ ...actions }) });
@@ -89,19 +87,18 @@ export function defineExtension(definition: ExtensionDefinition) {
 }
 
 const modules: Record<string, () => object> = {
-  "swiplet/extension": () => ({
-    __esModule: true, defineExtension, action, device, ui, graphics, sleep,
-    get dataDirectory() {
-      return dataDirectory();
-    },
-  }),
-  swiplet: () => ({
+  "swiplet/extension": () => ({ __esModule: true, defineExtension, defineAction, sleep }),
+  "swiplet/file-system": () => ({
     __esModule: true,
     get dataDirectory() {
       return dataDirectory();
     },
   }),
-  "expo-file-system": () => ({ __esModule: true, File, Directory, Paths }),
+  "swiplet/accessibility": () => ({ __esModule: true, ...accessibility }),
+  "swiplet/input": () => ({ __esModule: true, ...input }),
+  "swiplet/device": () => ({ __esModule: true, ...device }),
+  "swiplet/screen": () => ({ __esModule: true, ...screen }),
+  "swiplet/image": () => ({ __esModule: true, ...image }),
   "expo-localization": () => ({ __esModule: true, getLocales, getCalendars }),
 };
 

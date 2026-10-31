@@ -1,10 +1,9 @@
 import { invoke } from "./async";
-import { check, optionsOf, signalOf } from "./device";
 import { DOMException } from "./errors";
-import { File, pathOf } from "./files";
+import { fileOf, pathOf } from "./files";
 import { native, type GraphicsNative } from "./native";
+import { check, optionsOf, signalOf, type Options } from "./options";
 
-type Options = { signal?: AbortSignal };
 export type Point = [x: number, y: number];
 export type Rect = [x: number, y: number, width: number, height: number];
 type Quad = [Point, Point, Point, Point];
@@ -136,27 +135,27 @@ const freeze = <T>(value: T): T => {
   return value;
 };
 
-const handles = new WeakMap<Image, ImageHandle>();
+const handles = new WeakMap<RasterImage, ImageHandle>();
 
 export const handleOf = (image: unknown, name = "the image"): ImageHandle => {
-  const handle = image instanceof Image ? handles.get(image) : undefined;
+  const handle = image instanceof RasterImage ? handles.get(image) : undefined;
   if (handle === undefined) {
-    throw new TypeError(`${name} must be an Image`);
+    throw new TypeError(`${name} must be a RasterImage`);
   }
   return handle;
 };
 
-export const adopt = (id: number): Image => {
+export const adopt = (id: number): RasterImage => {
   const handle = graphicsNative().take(id);
   if (handle === null) {
     throw new DOMException("the image was released", "InvalidStateError");
   }
-  return new Image(handle as ImageHandle);
+  return new RasterImage(handle as ImageHandle);
 };
 
-export const adoptOptional = (id: unknown): Image | undefined => {
+export const adoptOptional = (id: unknown): RasterImage | undefined => {
   const handle = typeof id === "number" ? graphicsNative().take(id) : null;
-  return handle === null ? undefined : new Image(handle as ImageHandle);
+  return handle === null ? undefined : new RasterImage(handle as ImageHandle);
 };
 
 interface TextOptions extends Options {
@@ -243,7 +242,7 @@ const linesOf = (result: { lines: RawLine[]; text: number }): TextLine[] => {
   return result.lines.map(({ candidates, ...line }, index) => freeze(boxed({
     ...line,
     candidates: candidates.map((candidate, rank) => boxed({ ...candidate }, candidate.text, index, rank)),
-  }, line.text, index, 0) as TextLine));
+  }, line.text, index, 0) as unknown as TextLine));
 };
 
 const formatOf = (value: unknown): "png" | "jpeg" | "heic" => {
@@ -293,7 +292,7 @@ const matchOptionsOf = (options: unknown, extra: string[]) => {
   return out;
 };
 
-export class Image {
+export class RasterImage {
   declare readonly width: number;
   declare readonly height: number;
   declare readonly scale: number;
@@ -313,12 +312,12 @@ export class Image {
     Object.freeze(this);
   }
 
-  crop(rect: Rect): Image {
+  crop(rect: Rect): RasterImage {
     const [x, y, width, height] = rectOf(rect, "the rect");
-    return new Image(handleOf(this).crop(x, y, width, height));
+    return new RasterImage(handleOf(this).crop(x, y, width, height));
   }
 
-  resize(size: number | { width?: number; height?: number }): Image {
+  resize(size: number | { width?: number; height?: number }): RasterImage {
     const handle = handleOf(this);
     let width: number;
     let height: number;
@@ -339,22 +338,22 @@ export class Image {
     if (width > largestSide || height > largestSide) {
       throw new RangeError(`the image would be ${width}x${height} pixels; a side is at most ${largestSide}`);
     }
-    return new Image(handle.resize(width, height));
+    return new RasterImage(handle.resize(width, height));
   }
 
-  rotate(degrees: number): Image {
-    return new Image(handleOf(this).rotate(finite(degrees, "degrees")));
+  rotate(degrees: number): RasterImage {
+    return new RasterImage(handleOf(this).rotate(finite(degrees, "degrees")));
   }
 
-  grayscale(): Image {
-    return new Image(handleOf(this).grayscale());
+  grayscale(): RasterImage {
+    return new RasterImage(handleOf(this).grayscale());
   }
 
-  threshold(level: number | "otsu" = "otsu"): Image {
-    return new Image(handleOf(this).threshold(level === "otsu" ? -1 : integer(level, "the level", 0, 255)));
+  threshold(level: number | "otsu" = "otsu"): RasterImage {
+    return new RasterImage(handleOf(this).threshold(level === "otsu" ? -1 : integer(level, "the level", 0, 255)));
   }
 
-  mask(color: unknown, options?: { tolerance?: number }): Image {
+  mask(color: unknown, options?: { tolerance?: number }): RasterImage {
     const { tolerance } = check(options, ["tolerance"]) as { tolerance?: unknown };
     let low: Color;
     let high: Color;
@@ -370,19 +369,19 @@ export class Image {
       low = center.map(value => clampChannel(value - spread)) as Color;
       high = center.map(value => clampChannel(value + spread)) as Color;
     }
-    return new Image(handleOf(this).mask(low[0], low[1], low[2], high[0], high[1], high[2]));
+    return new RasterImage(handleOf(this).mask(low[0], low[1], low[2], high[0], high[1], high[2]));
   }
 
-  invert(): Image {
-    return new Image(handleOf(this).invert());
+  invert(): RasterImage {
+    return new RasterImage(handleOf(this).invert());
   }
 
-  dilate(radius = 1): Image {
-    return new Image(handleOf(this).dilate(integer(radius, "the radius", 1, 64)));
+  dilate(radius = 1): RasterImage {
+    return new RasterImage(handleOf(this).dilate(integer(radius, "the radius", 1, 64)));
   }
 
-  erode(radius = 1): Image {
-    return new Image(handleOf(this).erode(integer(radius, "the radius", 1, 64)));
+  erode(radius = 1): RasterImage {
+    return new RasterImage(handleOf(this).erode(integer(radius, "the radius", 1, 64)));
   }
 
   async encode(format: "png" | "jpeg" | "heic" = "png", options?: Options & { quality?: number }): Promise<Uint8Array> {
@@ -391,13 +390,14 @@ export class Image {
     return bytesOf(result.bytes);
   }
 
-  async save(file: File | string, options?: Options & { format?: "png" | "jpeg" | "heic"; quality?: number }): Promise<File> {
+  async save(file: unknown, options?: Options & { format?: "png" | "jpeg" | "heic"; quality?: number }) {
     const { format, quality } = optionsOf(options, ["format", "quality"]);
-    const path = pathOf(file instanceof File ? file.uri : file);
+    const handle = fileOf(file, "the file");
+    const path = pathOf(handle);
     const extension = path.slice(path.lastIndexOf(".") + 1).toLowerCase();
     const chosen = format === undefined ? ({ png: "png", jpg: "jpeg", jpeg: "jpeg", heic: "heic" } as Record<string, string>)[extension] ?? "png" : formatOf(format);
     await run("save", { path, format: chosen, quality: qualityOf(quality) }, [handleOf(this)], signalOf(options));
-    return new File(path);
+    return handle;
   }
 
   pixel(point: Point, options?: Options): Promise<[red: number, green: number, blue: number, alpha: number]> {
@@ -409,12 +409,12 @@ export class Image {
     return freeze(await run("stats", { region: region === undefined ? undefined : rectOf(region, "region") }, [handleOf(this)], signalOf(options)));
   }
 
-  async find(template: Image, options?: Options & { threshold?: number; region?: Rect; scales?: number[] }) {
+  async find(template: RasterImage, options?: Options & { threshold?: number; region?: Rect; scales?: number[] }) {
     const found = await run<unknown[]>("find", { ...matchOptionsOf(options, []), limit: 1 }, [handleOf(this), handleOf(template, "the template")], signalOf(options));
     return found.length > 0 ? freeze(found[0]) : null;
   }
 
-  async findAll(template: Image, options?: Options & { threshold?: number; region?: Rect; scales?: number[]; limit?: number; overlap?: number }) {
+  async findAll(template: RasterImage, options?: Options & { threshold?: number; region?: Rect; scales?: number[]; limit?: number; overlap?: number }) {
     return freeze(await run<unknown[]>("find", matchOptionsOf(options, ["limit", "overlap"]), [handleOf(this), handleOf(template, "the template")], signalOf(options)));
   }
 
@@ -438,16 +438,16 @@ export class Image {
     return linesOf(await run<{ lines: RawLine[]; text: number }>("text", textOptionsOf(options), [handleOf(this)], signalOf(options)));
   }
 
-  async diff(other: Image, options?: Options & { threshold?: number }) {
+  async diff(other: RasterImage, options?: Options & { threshold?: number }) {
     const { threshold } = optionsOf(options, ["threshold"]);
     return freeze(await run("diff", { threshold: threshold === undefined ? undefined : integer(threshold, "threshold", 1, 255) }, [handleOf(this), handleOf(other, "the other image")], signalOf(options)));
   }
 
-  distance(other: Image, options?: Options): Promise<number> {
+  distance(other: RasterImage, options?: Options): Promise<number> {
     return run("distance", {}, [handleOf(this), handleOf(other, "the other image")], signalOf(check(options, [])));
   }
 
-  async nearest(candidates: readonly Image[], options?: Options): Promise<{ index: number; distance: number }> {
+  async nearest(candidates: readonly RasterImage[], options?: Options): Promise<{ index: number; distance: number }> {
     if (!Array.isArray(candidates) || candidates.length === 0) {
       throw new TypeError("the candidates must be a non-empty array of Images");
     }
@@ -466,8 +466,28 @@ export class Image {
   toString(): string {
     const [x, y] = this.frame;
     const at = x === 0 && y === 0 ? "" : ` at [${Math.round(x * 10) / 10}, ${Math.round(y * 10) / 10}]`;
-    return `Image ${Math.round(this.width * 10) / 10}x${Math.round(this.height * 10) / 10} @${Math.round(this.scale * 100) / 100}x${at}`;
+    return `RasterImage ${Math.round(this.width * 10) / 10}x${Math.round(this.height * 10) / 10} @${Math.round(this.scale * 100) / 100}x${at}`;
   }
 }
 
 export { freeze };
+
+export const imageResult = async (result: Promise<{ image: number }>): Promise<RasterImage> => adopt((await result).image);
+
+export const decode = (data: unknown, options?: Options & { scale?: number }) => {
+  const { scale } = optionsOf(options, ["scale"]);
+  const args: Record<string, unknown> = {};
+  if (scale !== undefined) {
+    if (typeof scale !== "number" || !(scale > 0 && scale <= 16)) {
+      throw new RangeError("scale must be above 0 and at most 16");
+    }
+    args.scale = scale;
+  }
+  const objects: object[] = [];
+  if (data instanceof Uint8Array) {
+    objects.push(data);
+  } else {
+    args.path = pathOf(fileOf(data, "the data"));
+  }
+  return imageResult(run("decode", args, objects, signalOf(options)));
+};

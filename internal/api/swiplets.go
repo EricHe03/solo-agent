@@ -307,7 +307,7 @@ func (s *swipletService) statFile(id, name string) (*proto.FileInfo, error) {
 	}
 	index := slices.IndexFunc(files, func(file automation.FileInfo) bool { return file.Name == path.Base(name) })
 	if index < 0 {
-		return nil, automation.FileNotFound(id, name)
+		return nil, automation.FileNotFound("the data directory of "+id, name)
 	}
 	return fileInfoOf(parent, files[index]), nil
 }

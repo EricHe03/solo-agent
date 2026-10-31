@@ -1,8 +1,9 @@
 import * as SwiftUI from "@expo/ui/swift-ui";
 import { registerRootComponent, requireNativeModule, type EventSubscription } from "expo";
-import { Directory } from "expo-file-system";
 import { Component, useEffect, useMemo, useSyncExternalStore, useState, type ComponentType, type ReactNode } from "react";
 import { ScrollView, Text } from "react-native";
+
+import { dataDirectoryOf, type FileHost } from "./files";
 
 type ServiceStatus = "starting" | "running" | "stopped" | "failed";
 
@@ -29,7 +30,7 @@ interface Props {
   service: ServiceEvent;
 }
 
-interface SwiptHost {
+interface SwiptHost extends FileHost {
   call(swiplet: string, action: string, input: string): Promise<string>;
   setServiceEnabled(swiplet: string, enabled: boolean): Promise<void>;
   mounted(surface: string): void;
@@ -67,7 +68,7 @@ host.addListener("service", event => {
 
 const abortError = (signal: AbortSignal): unknown => signal.reason ?? Object.assign(new Error("the call was aborted"), { name: "AbortError" });
 
-function swipletModule({ name, dataDirectory, service }: Props) {
+function interfaceModule({ name, service }: Props) {
   const state = stateOf(name);
   state.service = serviceOf(service);
   const subscribe = (listener: () => void) => {
@@ -91,15 +92,15 @@ function swipletModule({ name, dataDirectory, service }: Props) {
       reply.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
     });
   };
-  const actions = new Proxy({} as Record<string, unknown>, {
+  const calls = new Proxy({} as Record<string, unknown>, {
     get: (_, action) => (typeof action !== "string" || action === "then" ? undefined : (input?: unknown, options?: { signal?: AbortSignal }) => call(action, input, options)),
   });
   const setEnabled = (enabled: boolean) => host.setServiceEnabled(name, Boolean(enabled));
-  const useExtension = () => {
+  const useService = () => {
     const current = useSyncExternalStore(subscribe, () => state.service);
-    return useMemo(() => ({ actions, service: { ...current, setEnabled } }), [current]);
+    return useMemo(() => ({ ...current, setEnabled }), [current]);
   };
-  return { __esModule: true, useExtension, dataDirectory: new Directory(dataDirectory) };
+  return { __esModule: true, actions: () => calls, useService };
 }
 
 function NavigationStack(props: SwiftUI.NavigationStackProps) {
@@ -116,7 +117,6 @@ const modules: Record<string, () => unknown> = {
   "react/jsx-runtime": () => require("react/jsx-runtime"),
   "react-native": () => require("react-native"),
   expo: () => require("expo"),
-  "expo-file-system": () => require("expo-file-system"),
   "expo-localization": () => require("expo-localization"),
   "@expo/ui": () => require("@expo/ui"),
   "@expo/ui/swift-ui": () => swiftUI,
@@ -132,12 +132,12 @@ const modules: Record<string, () => unknown> = {
 };
 
 function load(props: Props): ComponentType {
-  const host = swipletModule(props);
+  const own: Record<string, () => unknown> = {
+    "swiplet/interface": () => interfaceModule(props),
+    "swiplet/file-system": () => ({ __esModule: true, dataDirectory: dataDirectoryOf(host, props.name, props.dataDirectory) }),
+  };
   const resolve = (specifier: string) => {
-    if (specifier === "swiplet") {
-      return host;
-    }
-    const module = modules[specifier];
+    const module = own[specifier] ?? modules[specifier];
     if (module === undefined) {
       throw new Error(`Swipt doesn't provide "${specifier}"; bundle it into ${props.file}`);
     }

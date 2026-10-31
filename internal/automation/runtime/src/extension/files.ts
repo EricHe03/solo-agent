@@ -1,194 +1,195 @@
-import { base64Bytes, bytesBase64, TextDecoder, TextEncoder } from "./encoding";
+import { directoryURI, fileURI, joinRelative, nameOf } from "../shared/paths";
+import { invoke } from "./async";
+import { TextDecoder, TextEncoder } from "./encoding";
+import { Blob } from "./fetch";
 import { native } from "./native";
 
+type Root = "data" | "cache";
+
+interface Location {
+  readonly root: Root;
+  readonly path: string;
+}
+
 interface Stat {
-  kind: "file" | "directory" | "";
+  kind: "file" | "directory";
   size: number;
   modified: number;
 }
 
-export const pathOf = (uri: string): string => {
-  if (uri.startsWith("file://")) {
-    return decodeURIComponent(uri.slice("file://".length));
-  }
-  if (uri.startsWith("/")) {
-    return uri;
-  }
-  throw new TypeError(`${JSON.stringify(uri)} is not a file: URI or an absolute path`);
+const token = Symbol("location");
+const locations = new WeakMap<FileHandle | DirectoryHandle, Location>();
+
+const rootPath = (root: Root): string => (root === "data" ? native.dataDirectory : native.cacheDirectory).replace(/\/+$/, "");
+
+const at = (handle: FileHandle | DirectoryHandle): Location => locations.get(handle)!;
+
+export const pathOf = (handle: FileHandle | DirectoryHandle): string => {
+  const location = at(handle);
+  return location.path === "" ? rootPath(location.root) : `${rootPath(location.root)}/${location.path}`;
 };
 
-const uriOf = (path: string): string => `file://${encodeURI(path).replace(/[?#]/g, encodeURIComponent)}`;
+const uriOf = (location: Location, directory: boolean): string => fileURI(directoryURI(rootPath(location.root)), location.path, directory);
 
-const join = (...parts: string[]): string => {
-  const segments: string[] = [];
-  for (const part of parts.join("/").split("/")) {
-    if (part === "" || part === ".") {
-      continue;
-    }
-    if (part === "..") {
-      segments.pop();
-    } else {
-      segments.push(part);
-    }
+const call = <T>(name: string, ...args: unknown[]): Promise<T> => invoke<T>(`fs.${name}`, args);
+
+const child = (parent: Location, path: string): Location => ({ root: parent.root, path: joinRelative(parent.path, path) });
+
+const bytesOf = async (data: unknown): Promise<Uint8Array> => {
+  if (typeof data === "string") {
+    return new TextEncoder().encode(data);
   }
-  return `/${segments.join("/")}`;
+  if (data instanceof Uint8Array) {
+    return data;
+  }
+  if (data instanceof Blob) {
+    return data.bytes();
+  }
+  throw new TypeError("the data must be a string, a Uint8Array or a Blob");
 };
 
-type Location = string | File | Directory;
-
-const resolve = (uris: Location[]): string => {
-  if (uris.length === 0) {
-    throw new TypeError("expected a file: URI");
+const guard = (key: symbol) => {
+  if (key !== token) {
+    throw new TypeError("file handles come from dataDirectory or from Swipt");
   }
-  const [first, ...rest] = uris.map(item => typeof item === "string" ? item : item.uri);
-  return join(pathOf(first), ...rest.map(item => item.startsWith("file://") ? pathOf(item) : item));
 };
 
-const stat = (path: string): Stat => JSON.parse(native.file("stat", path) as string);
-
-abstract class Entry {
-  readonly #path: string;
-
-  constructor(...uris: Location[]) {
-    this.#path = resolve(uris);
-  }
-
-  protected get path(): string {
-    return this.#path;
+export class DirectoryHandle {
+  constructor(key: symbol, location: Location) {
+    guard(key);
+    locations.set(this, location);
+    Object.freeze(this);
   }
 
   get uri(): string {
-    return uriOf(this.#path) + (this instanceof Directory ? "/" : "");
+    return uriOf(at(this), true);
   }
 
   get name(): string {
-    return this.#path.split("/").at(-1) ?? "";
+    return nameOf(pathOf(this));
   }
 
-  get parentDirectory(): Directory {
-    return new Directory(uriOf(join(this.#path, "..")));
+  file(path: string): FileHandle {
+    return new FileHandle(token, child(at(this), path));
   }
 
-  delete(): void {
-    native.file("remove", this.#path);
+  directory(path: string): DirectoryHandle {
+    return new DirectoryHandle(token, child(at(this), path));
   }
 
-  copy(destination: File | Directory): void {
-    native.file("copy", this.#path, destination instanceof Directory ? join(pathOf(destination.uri), this.name) : pathOf(destination.uri));
+  async exists(): Promise<boolean> {
+    const { root, path } = at(this);
+    return (await call<Stat | null>("stat", root, path))?.kind === "directory";
   }
 
-  move(destination: File | Directory): void {
-    native.file("move", this.#path, destination instanceof Directory ? join(pathOf(destination.uri), this.name) : pathOf(destination.uri));
+  async create(): Promise<void> {
+    const { root, path } = at(this);
+    await call("mkdir", root, path);
+  }
+
+  async list(): Promise<(FileHandle | DirectoryHandle)[]> {
+    const location = at(this);
+    const entries = await call<{ name: string; directory: boolean }[]>("list", location.root, location.path);
+    return entries.map(entry => entry.directory ? new DirectoryHandle(token, child(location, entry.name)) : new FileHandle(token, child(location, entry.name)));
+  }
+
+  async delete(): Promise<void> {
+    const { root, path } = at(this);
+    await call("remove", root, path);
+  }
+
+  toString(): string {
+    return `Directory ${this.uri}`;
   }
 }
 
-export class File extends Entry {
-  get exists(): boolean {
-    return stat(this.path).kind === "file";
+export class FileHandle {
+  constructor(key: symbol, location: Location) {
+    guard(key);
+    locations.set(this, location);
+    Object.freeze(this);
   }
 
-  get size(): number | null {
-    const info = stat(this.path);
-    return info.kind === "file" ? info.size : null;
+  get uri(): string {
+    return uriOf(at(this), false);
   }
 
-  get modificationTime(): number | null {
-    const info = stat(this.path);
-    return info.kind === "file" ? info.modified : null;
+  get name(): string {
+    return nameOf(at(this).path);
   }
 
-  get extension(): string {
-    const dot = this.name.lastIndexOf(".");
-    return dot > 0 ? this.name.slice(dot) : "";
-  }
-
-  create(): void {
-    if (!this.exists) {
-      this.write(new Uint8Array(0));
-    }
-  }
-
-  write(content: string | Uint8Array): void {
-    native.file("write", this.path, typeof content === "string" ? new TextEncoder().encode(content) : content);
-  }
-
-  bytesSync(): Uint8Array {
-    return native.file("read", this.path) as Uint8Array;
-  }
-
-  textSync(): string {
-    return new TextDecoder().decode(this.bytesSync());
-  }
-
-  base64Sync(): string {
-    return base64Bytes(this.bytesSync());
+  async stat(): Promise<{ size: number; modified: number } | null> {
+    const { root, path } = at(this);
+    const info = await call<Stat | null>("stat", root, path);
+    return info?.kind === "file" ? { size: info.size, modified: info.modified } : null;
   }
 
   async bytes(): Promise<Uint8Array> {
-    return this.bytesSync();
+    const { root, path } = at(this);
+    return native.take(await call<string>("read", root, path));
   }
 
   async text(): Promise<string> {
-    return this.textSync();
+    return new TextDecoder().decode(await this.bytes());
   }
 
-  async base64(): Promise<string> {
-    return this.base64Sync();
+  async write(data: string | Uint8Array | Blob): Promise<void> {
+    const { root, path } = at(this);
+    await call("write", root, path, native.put(await bytesOf(data)));
   }
 
-  static fromBase64(text: string): Uint8Array {
-    return bytesBase64(text);
+  async copy(to: FileHandle): Promise<void> {
+    const from = at(this);
+    const target = at(handleOf(to, "the destination"));
+    await call("copy", from.root, from.path, target.root, target.path);
+  }
+
+  async move(to: FileHandle): Promise<void> {
+    const from = at(this);
+    const target = at(handleOf(to, "the destination"));
+    await call("move", from.root, from.path, target.root, target.path);
+  }
+
+  async delete(): Promise<void> {
+    const { root, path } = at(this);
+    await call("remove", root, path);
+  }
+
+  toString(): string {
+    return `File ${this.uri}`;
   }
 }
 
-export class Directory extends Entry {
-  get exists(): boolean {
-    return stat(this.path).kind === "directory";
+const handleOf = (value: unknown, name: string): FileHandle => {
+  if (!(value instanceof FileHandle)) {
+    throw new TypeError(`${name} must be a FileHandle`);
   }
+  return value;
+};
 
-  create(options: { intermediates?: boolean; idempotent?: boolean } = {}): void {
-    if (options.idempotent && this.exists) {
-      return;
+let data: DirectoryHandle | undefined;
+
+export const dataDirectory = (): DirectoryHandle => data ??= new DirectoryHandle(token, { root: "data", path: "" });
+
+export const cacheFile = (path: string): FileHandle => new FileHandle(token, { root: "cache", path: joinRelative("", path) });
+
+export const fileOf = (value: unknown, name: string): FileHandle => {
+  if (value instanceof FileHandle) {
+    return value;
+  }
+  if (typeof value === "string") {
+    return dataDirectory().file(value);
+  }
+  throw new TypeError(`${name} must be a FileHandle or a path in the data directory`);
+};
+
+export const handleOfPath = (value: string): FileHandle => {
+  const absolute = value.startsWith("file://") ? decodeURIComponent(value.slice("file://".length)) : value;
+  for (const root of ["data", "cache"] as const) {
+    const prefix = `${rootPath(root)}/`;
+    if (absolute.startsWith(prefix)) {
+      return new FileHandle(token, { root, path: absolute.slice(prefix.length).replace(/\/+$/, "") });
     }
-    native.file("mkdir", this.path, Boolean(options.intermediates));
   }
-
-  createFile(name: string): File {
-    const file = new File(this, name);
-    file.create();
-    return file;
-  }
-
-  createDirectory(name: string): Directory {
-    const directory = new Directory(this, name);
-    directory.create();
-    return directory;
-  }
-
-  list(): (File | Directory)[] {
-    const entries: { name: string; directory: boolean }[] = JSON.parse(native.file("list", this.path) as string);
-    return entries.map(entry => entry.directory ? new Directory(this, entry.name) : new File(this, entry.name));
-  }
-}
-
-export const Paths = Object.freeze({
-  get document(): Directory {
-    return new Directory(native.documentDirectory);
-  },
-  get cache(): Directory {
-    return new Directory(native.cacheDirectory);
-  },
-  join: (...uris: Location[]): string => uriOf(resolve(uris)),
-  dirname: (uri: Location): string => uriOf(join(resolve([uri]), "..")),
-  basename: (uri: Location, extension?: string): string => {
-    const name = resolve([uri]).split("/").at(-1) ?? "";
-    return extension && name.endsWith(extension) ? name.slice(0, -extension.length) : name;
-  },
-  extname: (uri: Location): string => {
-    const name = resolve([uri]).split("/").at(-1) ?? "";
-    const dot = name.lastIndexOf(".");
-    return dot > 0 ? name.slice(dot) : "";
-  },
-});
-
-export const dataDirectory = (): Directory => new Directory(native.dataDirectory);
+  throw new TypeError(`${JSON.stringify(value)} is outside the directories Swipt provides`);
+};

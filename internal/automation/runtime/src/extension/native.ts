@@ -4,7 +4,6 @@ export interface Native {
   readonly swiplet: string;
   readonly languages: string;
   readonly dataDirectory: string;
-  readonly documentDirectory: string;
   readonly cacheDirectory: string;
   readonly extensionHead: string;
   start(id: string, name: string, args: string): void;
@@ -16,7 +15,6 @@ export interface Native {
   print(level: string, text: string): void;
   put(data: Uint8Array): string;
   take(key: string): Uint8Array;
-  file(operation: string, path: string, argument?: string | Uint8Array | boolean): unknown;
   random(length: number): Uint8Array;
   digest(algorithm: string, data: Uint8Array): Uint8Array;
   finish(failure: string, output: string, id?: string): void;

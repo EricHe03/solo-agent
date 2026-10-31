@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/automation"
 	"golang.org/x/sys/unix"
@@ -222,4 +223,74 @@ func copyFile(writer io.Writer, name string) error {
 	defer file.Close()
 	_, err = io.Copy(writer, file)
 	return err
+}
+
+type SwipletFileInfo struct {
+	Exists    bool
+	Name      string
+	Directory bool
+	Size      int64
+	Modified  int64
+}
+
+type SwipletFileList struct {
+	items []*SwipletFileInfo
+}
+
+func (l *SwipletFileList) Len() int32 { return int32(len(l.items)) }
+
+func (l *SwipletFileList) Get(index int32) *SwipletFileInfo { return l.items[index] }
+
+func swipletFileInfo(info automation.FileInfo) *SwipletFileInfo {
+	return &SwipletFileInfo{Exists: true, Name: info.Name, Directory: info.Directory, Size: info.Size, Modified: info.Modified.UnixMilli()}
+}
+
+func (p *Platform) StatSwipletFile(swiplet, path string) (*SwipletFileInfo, error) {
+	info, found, err := p.host.StatFile(swiplet, path)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return &SwipletFileInfo{}, nil
+	}
+	return swipletFileInfo(info), nil
+}
+
+func (p *Platform) ListSwipletFiles(swiplet, path string) (*SwipletFileList, error) {
+	files, err := p.host.ListFiles(swiplet, path)
+	if err != nil {
+		return nil, err
+	}
+	return &SwipletFileList{items: common.Map(files, swipletFileInfo)}, nil
+}
+
+func (p *Platform) ReadSwipletFile(swiplet, path string) ([]byte, error) {
+	data, err := p.host.ReadFile(swiplet, path)
+	if err != nil {
+		return nil, err
+	}
+	if data == nil {
+		data = []byte{}
+	}
+	return data, nil
+}
+
+func (p *Platform) WriteSwipletFile(swiplet, path string, data []byte) error {
+	return p.host.WriteFile(swiplet, path, data)
+}
+
+func (p *Platform) MakeSwipletDirectory(swiplet, path string) error {
+	return p.host.MakeDirectory(swiplet, path)
+}
+
+func (p *Platform) RemoveSwipletFile(swiplet, path string) error {
+	return p.host.RemoveFile(swiplet, path)
+}
+
+func (p *Platform) CopySwipletFile(swiplet, from, to string) error {
+	return p.host.CopyFile(swiplet, from, to)
+}
+
+func (p *Platform) MoveSwipletFile(swiplet, from, to string) error {
+	return p.host.MoveFile(swiplet, from, to)
 }

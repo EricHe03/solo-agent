@@ -47,9 +47,9 @@ func (e *engine) watch(ctx context.Context, kind string, args []json.RawMessage,
 			return E.Cause1(ErrInvalid, E.New("unknown state ", strconv.Quote(name)))
 		}
 		return nil
-	case "graphics.watch":
+	case "screen.watch":
 		return e.watchGraphics(ctx, call, publish, ended)
-	case "device.appEvents":
+	case "device.applicationEvents":
 		if err := call.decode(0); err != nil {
 			return err
 		}

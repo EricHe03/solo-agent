@@ -70,7 +70,6 @@ final class Platform {
         LibSwiptLog.installed
         let options = LibSwiptPlatformOptions()
         options.swipletDirectory = SwipletStore.directory.path
-        options.documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].path
         options.cacheDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].path
         options.languages = Locale.preferredLanguages.joined(separator: "\n")
         options.appBundleID = Bundle.main.bundleIdentifier ?? ""
@@ -182,6 +181,49 @@ final class Platform {
     func setServiceEnabled(_ swiplet: String, _ enabled: Bool) async throws {
         let box = UncheckedSendable(value: core)
         try await blocking { try box.value.setServiceEnabled(swiplet, enabled: enabled) }
+    }
+
+    func statSwipletFile(_ swiplet: String, path: String) async throws -> SwipletFileInfo {
+        let box = UncheckedSendable(value: core)
+        return try await blocking { SwipletFileInfo(try box.value.statSwipletFile(swiplet, path: path)) }
+    }
+
+    func listSwipletFiles(_ swiplet: String, path: String) async throws -> [SwipletFileInfo] {
+        let box = UncheckedSendable(value: core)
+        return try await blocking {
+            let list = try box.value.listSwipletFiles(swiplet, path: path)
+            return (0..<list.len()).compactMap { list.get($0) }.map(SwipletFileInfo.init)
+        }
+    }
+
+    func readSwipletFile(_ swiplet: String, path: String) async throws -> Data {
+        let box = UncheckedSendable(value: core)
+        return try await blocking { try box.value.readSwipletFile(swiplet, path: path) }
+    }
+
+    func writeSwipletFile(_ swiplet: String, path: String, data: Data) async throws {
+        let box = UncheckedSendable(value: core)
+        try await blocking { try box.value.writeSwipletFile(swiplet, path: path, data: data) }
+    }
+
+    func makeSwipletDirectory(_ swiplet: String, path: String) async throws {
+        let box = UncheckedSendable(value: core)
+        try await blocking { try box.value.makeSwipletDirectory(swiplet, path: path) }
+    }
+
+    func removeSwipletFile(_ swiplet: String, path: String) async throws {
+        let box = UncheckedSendable(value: core)
+        try await blocking { try box.value.removeSwipletFile(swiplet, path: path) }
+    }
+
+    func copySwipletFile(_ swiplet: String, from: String, to: String) async throws {
+        let box = UncheckedSendable(value: core)
+        try await blocking { try box.value.copySwipletFile(swiplet, from: from, to: to) }
+    }
+
+    func moveSwipletFile(_ swiplet: String, from: String, to: String) async throws {
+        let box = UncheckedSendable(value: core)
+        try await blocking { try box.value.moveSwipletFile(swiplet, from: from, to: to) }
     }
 
     func swiplets() -> [LibSwiptSwipletInfo] {
@@ -415,5 +457,21 @@ final class Platform {
         case .tunnel:
             developer.cloudflareNamedTunnel = tunnel
         }
+    }
+}
+
+nonisolated struct SwipletFileInfo: Sendable {
+    let exists: Bool
+    let name: String
+    let directory: Bool
+    let size: Int64
+    let modified: Int64
+
+    init(_ info: LibSwiptSwipletFileInfo) {
+        exists = info.exists
+        name = info.name
+        directory = info.directory
+        size = info.size
+        modified = info.modified
     }
 }
