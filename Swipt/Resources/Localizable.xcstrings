@@ -7193,6 +7193,22 @@
         }
       }
     },
+    "Couldn’t Open “%@”" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开“%@”"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法打開「%@」"
+          }
+        }
+      }
+    },
     "Couldn’t Publish the Swipt API" : {
       "localizations" : {
         "en" : {
@@ -23385,6 +23401,22 @@
         }
       }
     },
+    "Swiplet Error" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swiplet 出错"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swiplet 出錯"
+          }
+        }
+      }
+    },
     "Swiplets" : {
       "localizations" : {
         "zh-Hans" : {
@@ -29563,6 +29595,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已是最新版本"
+          }
+        }
+      }
+    },
+    "“%@” Error" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”出错"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」出錯"
           }
         }
       }

@@ -1,5 +1,5 @@
+import { inspect } from "../shared/inspect";
 import { invoke } from "./async";
-import { inspect } from "./format";
 import { native } from "./native";
 
 const styles = ["default", "destructive", "cancel"];

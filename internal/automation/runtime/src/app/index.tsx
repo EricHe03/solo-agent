@@ -1,7 +1,7 @@
 import { registerRootComponent, requireNativeModule, type EventSubscription } from "expo";
 import { Component, useEffect, useMemo, useSyncExternalStore, useState, type ComponentType, type ReactNode } from "react";
-import { Pressable, ScrollView, Text } from "react-native";
 
+import { inspect } from "../shared/inspect";
 import { directoryOf, type FileHost } from "./files";
 
 type ServiceStatus = "starting" | "running" | "stopped" | "failed";
@@ -27,7 +27,6 @@ interface Props {
   source: string;
   dataDirectory: string;
   assetsDirectory: string;
-  closeTitle: string;
   service: ServiceEvent;
 }
 
@@ -36,6 +35,9 @@ interface SwiptHost extends FileHost {
   setServiceEnabled(swiplet: string, enabled: boolean): Promise<void>;
   mounted(surface: string): void;
   exit(swiplet: string): void;
+  log(swiplet: string, level: string, message: string): void;
+  fail(surface: string, message: string): void;
+  report(swiplet: string, message: string): void;
   addListener(event: "service", listener: (event: ServiceEvent & { name: string }) => void): EventSubscription;
 }
 
@@ -67,6 +69,61 @@ host.addListener("service", event => {
     listener();
   }
 });
+
+const describe = (error: unknown): string => (error instanceof Error ? String(error.stack ?? `${error.name}: ${error.message}`) : `Uncaught ${inspect(error)}`);
+
+const messageOf = (error: unknown): string => (error instanceof Error ? error.message || error.name : inspect(error));
+
+const format = (value: unknown): string => (typeof value === "string" ? value : value instanceof Error ? describe(value) : inspect(value));
+
+const swipletOf = (error: unknown): string => (error instanceof Error && /\bswiplet:\/\/([^/]+)\//.exec(String(error.stack))?.[1]) || "";
+
+const report = (error: unknown) => {
+  const swiplet = swipletOf(error);
+  host.log(swiplet, "error", describe(error));
+  host.report(swiplet, messageOf(error));
+};
+
+const fail = (name: string, surface: string, error: unknown) => {
+  host.log(name, "error", describe(error));
+  host.fail(surface, messageOf(error));
+};
+
+const exceptions = (require("react-native/Libraries/Core/ExceptionsManager") as { default: { handleException(error: unknown, isFatal: boolean): void } }).default;
+
+exceptions.handleException = (error, isFatal) => {
+  if (isFatal || !(error as { isComponentError?: boolean }).isComponentError) {
+    report(error);
+  }
+};
+
+(console as { reportErrorsAsExceptions?: boolean }).reportErrorsAsExceptions = false;
+
+for (const [method, level] of [["log", "info"], ["info", "info"], ["warn", "warn"], ["error", "error"], ["debug", "debug"]] as const) {
+  const original = console[method];
+  console[method] = (...values: unknown[]) => {
+    original(...values);
+    host.log(swipletOf(new Error()), level, values.map(format).join(" "));
+  };
+}
+
+(HermesInternal as { enablePromiseRejectionTracker?: (options: { allRejections: boolean; onUnhandled: (id: number, error: unknown) => void }) => void } | null)
+  ?.enablePromiseRejectionTracker?.({ allRejections: true, onUnhandled: (_, error) => report(error) });
+
+const consoleOf = (name: string) => {
+  const print = (level: string) => (...values: unknown[]) => host.log(name, level, values.map(format).join(" "));
+  return Object.freeze({ log: print("info"), info: print("info"), warn: print("warn"), error: print("error"), debug: print("debug") });
+};
+
+const exportsOf = (specifier: string, values: Record<string, unknown>) =>
+  new Proxy({ __esModule: true, ...values }, {
+    get: (target, key) => {
+      if (typeof key === "string" && key !== "then" && !(key in target)) {
+        throw new Error(`${specifier} has no export "${key}"`);
+      }
+      return Reflect.get(target, key);
+    },
+  });
 
 const abortError = (signal: AbortSignal): unknown => signal.reason ?? Object.assign(new Error("the call was aborted"), { name: "AbortError" });
 
@@ -102,7 +159,7 @@ function interfaceModule({ name, service }: Props) {
     const current = useSyncExternalStore(subscribe, () => state.service);
     return useMemo(() => ({ ...current, setEnabled }), [current]);
   };
-  return { __esModule: true, actions: () => calls, useService, exit: () => host.exit(name) };
+  return exportsOf("@swipt/api/swiplet", { actions: () => calls, useService, exit: () => host.exit(name) });
 }
 
 const modules: Record<string, () => unknown> = {
@@ -127,13 +184,13 @@ const modules: Record<string, () => unknown> = {
 
 function load(props: Props): ComponentType {
   const own: Record<string, () => unknown> = {
-    "@swipt/api": () => ({ __esModule: true }),
+    "@swipt/api": () => exportsOf("@swipt/api", {}),
     "@swipt/api/swiplet": () => interfaceModule(props),
-    "@swipt/api/file-system": () => ({
-      __esModule: true,
-      dataDirectory: directoryOf(host, props.name, "data", props.dataDirectory),
-      assets: directoryOf(host, props.name, "assets", props.assetsDirectory),
-    }),
+    "@swipt/api/file-system": () =>
+      exportsOf("@swipt/api/file-system", {
+        dataDirectory: directoryOf(host, props.name, "data", props.dataDirectory),
+        assets: directoryOf(host, props.name, "assets", props.assetsDirectory),
+      }),
   };
   const resolve = (specifier: string) => {
     const module = own[specifier] ?? modules[specifier];
@@ -143,37 +200,32 @@ function load(props: Props): ComponentType {
     return module();
   };
   const module: { exports: { default?: ComponentType } & Record<string, unknown> } = { exports: {} };
-  new Function("require", "module", "exports", `${props.source}\n//# sourceURL=${props.file}`)(resolve, module, module.exports);
+  new Function("require", "module", "exports", "console", `${props.source}\n//# sourceURL=swiplet://${props.name}/${props.file}`)(
+    resolve,
+    module,
+    module.exports,
+    consoleOf(props.name),
+  );
   return module.exports.default ?? (module.exports as unknown as ComponentType);
 }
 
-function Failure({ name, closeTitle, error }: { name: string; closeTitle: string; error: unknown }) {
-  return (
-    <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 60 }}>
-      <Pressable onPress={() => host.exit(name)} style={{ alignSelf: "flex-start", paddingVertical: 8, marginBottom: 12 }}>
-        <Text style={{ color: "#0a84ff", fontSize: 17 }}>{closeTitle}</Text>
-      </Pressable>
-      <Text selectable style={{ color: "red", fontFamily: "Menlo", fontSize: 13 }}>
-        {String((error as Error | undefined)?.stack ?? error)}
-      </Text>
-    </ScrollView>
-  );
-}
+class Boundary extends Component<{ name: string; surface: string; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
 
-class Boundary extends Component<{ name: string; closeTitle: string; children: ReactNode }, { error: unknown }> {
-  state = { error: null as unknown };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
 
-  static getDerivedStateFromError(error: unknown) {
-    return { error };
+  componentDidCatch(error: unknown) {
+    fail(this.props.name, this.props.surface, error);
   }
 
   render() {
-    return this.state.error === null ? this.props.children : <Failure name={this.props.name} closeTitle={this.props.closeTitle} error={this.state.error} />;
+    return this.state.failed ? null : this.props.children;
   }
 }
 
 function Root(props: Props) {
-  useEffect(() => host.mounted(props.surface), [props.surface]);
   const [loaded] = useState((): { Swiplet: ComponentType } | { error: unknown } => {
     try {
       return { Swiplet: load(props) };
@@ -181,12 +233,18 @@ function Root(props: Props) {
       return { error };
     }
   });
+  useEffect(() => {
+    if ("error" in loaded) {
+      fail(props.name, props.surface, loaded.error);
+    }
+    host.mounted(props.surface);
+  }, [loaded, props.name, props.surface]);
   if ("error" in loaded) {
-    return <Failure name={props.name} closeTitle={props.closeTitle} error={loaded.error} />;
+    return null;
   }
   const { Swiplet } = loaded;
   return (
-    <Boundary name={props.name} closeTitle={props.closeTitle}>
+    <Boundary name={props.name} surface={props.surface}>
       <Swiplet />
     </Boundary>
   );

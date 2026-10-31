@@ -183,6 +183,10 @@ final class Platform {
         try await blocking { try box.value.setServiceEnabled(swiplet, enabled: enabled) }
     }
 
+    func logSwiplet(_ swiplet: String, level: Int32, message: String) {
+        core.logSwiplet(swiplet, level: level, message: message)
+    }
+
     func statSwipletFile(_ swiplet: String, root: String, path: String) async throws -> SwipletFileInfo {
         let box = UncheckedSendable(value: core)
         return try await blocking { SwipletFileInfo(try box.value.statSwipletFile(swiplet, root: root, path: path)) }

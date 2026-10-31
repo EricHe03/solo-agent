@@ -1,4 +1,5 @@
-import { framesOf, inspect, type Frame } from "./format";
+import { inspect } from "../shared/inspect";
+import { framesOf, type Frame } from "./format";
 
 const codes: Record<string, number> = {
   IndexSizeError: 1, HierarchyRequestError: 3, WrongDocumentError: 4, InvalidCharacterError: 5, NoModificationAllowedError: 7,

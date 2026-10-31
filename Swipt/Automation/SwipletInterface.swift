@@ -70,6 +70,12 @@ private final class SwipletViewController: UIViewController {
         surface.view.frame = view.bounds
         surface.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(surface.view)
+        surface.whenFailed { [name] message in
+            let title = SwipletStore.shared.titles[name] ?? name
+            ErrorAlert.shared.report(AlertState(String(localized: "Couldn’t Open “\(title)”"), errorMessage: message) {
+                SwipletHost.shared.exit(swiplet: name)
+            })
+        }
     }
 
     func show(_ entry: SwipletEntry) {
@@ -94,6 +100,8 @@ final class SwipletSurface {
     let view: RCTSurfaceHostingProxyRootView
     private var mounted = false
     private var pending: [() -> Void] = []
+    private var failure: String?
+    private var onFailure: ((String) -> Void)?
 
     fileprivate init(entry: SwipletEntry, view: RCTSurfaceHostingProxyRootView) {
         self.entry = entry
@@ -115,6 +123,20 @@ final class SwipletSurface {
         actions.forEach { $0() }
     }
 
+    func whenFailed(_ action: @escaping (String) -> Void) {
+        if let failure {
+            action(failure)
+        } else {
+            onFailure = action
+        }
+    }
+
+    fileprivate func fail(_ message: String) {
+        guard failure == nil else { return }
+        failure = message
+        onFailure?(message)
+    }
+
     func stop() {
         view.surface.stop()
     }
@@ -133,7 +155,7 @@ final class SwipletHost: SwiptHostDelegate {
     private let delegate = FactoryDelegate()
     private let factory: ExpoReactNativeFactory
     private var prepared: [String: SwipletSurface] = [:]
-    var exits: [String: () -> Void] = [:]
+    private var presented: [(name: String, exit: () -> Void)] = []
     private let surfaces = NSMapTable<NSString, SwipletSurface>.strongToWeakObjects()
 
     private init() {
@@ -180,7 +202,6 @@ final class SwipletHost: SwiptHostDelegate {
                 "source": (try? String(contentsOf: entry.url, encoding: .utf8)) ?? "",
                 "dataDirectory": SwipletStore.shared.dataDirectory(of: name)?.absoluteString ?? "",
                 "assetsDirectory": SwipletStore.shared.assetsDirectory(of: name)?.absoluteString ?? "",
-                "closeTitle": String(localized: "Close"),
                 "service": [
                     "enabled": service.enabled, "status": service.status.rawValue, "error": service.error,
                     "since": service.since.map { $0.timeIntervalSince1970 * 1000 } ?? 0,
@@ -236,12 +257,40 @@ final class SwipletHost: SwiptHostDelegate {
         try await Platform.shared.moveSwipletFile(swiplet, root: root, from: from, toRoot: toRoot, to: to)
     }
 
+    func didPresent(_ name: String, exit: @escaping () -> Void) {
+        presented.removeAll { $0.name == name }
+        presented.append((name, exit))
+    }
+
+    func didDismiss(_ name: String) {
+        presented.removeAll { $0.name == name }
+    }
+
     func exit(swiplet: String) {
-        exits[swiplet]?()
+        presented.last { $0.name == swiplet }?.exit()
+    }
+
+    func log(swiplet: String, level: String, message: String) {
+        let level = switch level {
+        case "error": LibSwiptLogLevelError
+        case "warn": LibSwiptLogLevelWarn
+        case "debug": LibSwiptLogLevelDebug
+        default: LibSwiptLogLevelInfo
+        }
+        Platform.shared.logSwiplet(swiplet, level: level, message: message)
+    }
+
+    func fail(surface: String, message: String) {
+        surfaces.object(forKey: surface as NSString)?.fail(message)
+    }
+
+    func report(swiplet: String, message: String) {
+        let name = swiplet.isEmpty ? presented.last?.name : swiplet
+        let title = name.map { String(localized: "“\(SwipletStore.shared.titles[$0] ?? $0)” Error") } ?? String(localized: "Swiplet Error")
+        ErrorAlert.shared.report(AlertState(title, errorMessage: message))
     }
 
     func surfaceDidMount(_ surface: String) {
         surfaces.object(forKey: surface as NSString)?.didMount()
-        surfaces.removeObject(forKey: surface as NSString)
     }
 }

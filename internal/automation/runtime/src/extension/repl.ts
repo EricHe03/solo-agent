@@ -1,7 +1,8 @@
+import { inspect } from "../shared/inspect";
 import { accessibility, device, image, input, screen } from "./api";
 import { createDialog } from "./dialog";
 import { failureOf } from "./errors";
-import { inspect, jsonOf, setInputColumns } from "./format";
+import { jsonOf, setInputColumns } from "./format";
 import { handleOf, RasterImage } from "./image";
 import { native } from "./native";
 

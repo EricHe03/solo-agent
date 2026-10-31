@@ -21,7 +21,7 @@ private final class SwipletPresentationController: UIHostingController<AnyView>,
 
     init(name: String, entry: SwipletEntry) {
         self.name = name
-        super.init(rootView: AnyView(SwipletInterface(name: name, entry: entry)))
+        super.init(rootView: AnyView(SwipletInterface(name: name, entry: entry).modifier(ErrorAlertPresenter(level: ErrorAlert.shared.cover()))))
         modalPresentationStyle = .fullScreen
         transitioningDelegate = self
     }
@@ -41,13 +41,14 @@ private final class SwipletPresentationController: UIHostingController<AnyView>,
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        SwipletHost.shared.exits[name] = { [weak self] in self?.presentingViewController?.dismiss(animated: true) }
+        SwipletHost.shared.didPresent(name) { [weak self] in self?.presentingViewController?.dismiss(animated: true) }
     }
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         guard isBeingDismissed else { return }
-        SwipletHost.shared.exits[name] = nil
+        SwipletHost.shared.didDismiss(name)
+        ErrorAlert.shared.uncover()
         rootView = AnyView(EmptyView())
     }
 

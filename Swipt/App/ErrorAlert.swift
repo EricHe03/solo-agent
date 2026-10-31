@@ -14,6 +14,7 @@ final class ErrorAlert {
     nonisolated private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Swipt", category: "error")
 
     private(set) var alert: AlertState?
+    private(set) var level = 0
     @PerceptionIgnored private var queued: [AlertState] = []
 
     func report(_ failure: String, error: any Error) {
@@ -36,6 +37,15 @@ final class ErrorAlert {
             }
         }
         #endif
+    }
+
+    func cover() -> Int {
+        level += 1
+        return level
+    }
+
+    func uncover() {
+        level -= 1
     }
 
     #if os(iOS)
@@ -75,11 +85,16 @@ final class ErrorAlert {
 }
 
 struct ErrorAlertPresenter: ViewModifier {
+    private let level: Int
     private let errors = ErrorAlert.shared
+
+    init(level: Int = 0) {
+        self.level = level
+    }
 
     func body(content: Content) -> some View {
         WithPerceptionTracking {
-            content.alert(Binding(get: { errors.alert }, set: { if $0 == nil { errors.dismiss() } }))
+            content.alert(Binding(get: { errors.level == level ? errors.alert : nil }, set: { if $0 == nil { errors.dismiss() } }))
         }
     }
 }

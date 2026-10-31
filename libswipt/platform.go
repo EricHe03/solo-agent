@@ -183,6 +183,10 @@ func (p *Platform) SetServiceEnabled(swiplet string, enabled bool) error {
 	return p.host.SetServiceEnabled(swiplet, enabled)
 }
 
+func (p *Platform) LogSwiplet(swiplet string, level int32, message string) {
+	p.host.Log(swiplet, log.Level(level), message)
+}
+
 func (p *Platform) ServiceState(swiplet string) *ServiceState {
 	state, err := p.host.Service(swiplet)
 	if err != nil {

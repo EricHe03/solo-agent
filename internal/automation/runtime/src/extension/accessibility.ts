@@ -1,6 +1,6 @@
+import { inspect } from "../shared/inspect";
 import { invoke } from "./async";
 import { AccessibilityElement, encode, isSelector, refOf, scripted, snapshotOf, type RawSnapshot, type Selector } from "./elements";
-import { inspect } from "./format";
 import { act, check, optionsOf, signalOf, type Options } from "./options";
 
 const defaultTimeout = 10_000;

@@ -615,25 +615,38 @@ func (e *engine) print(arguments []jsc.Value) (any, error) {
 }
 
 func (e *engine) log(level log.Level, message string) {
-	name := "info"
-	switch level {
-	case log.LevelError:
-		e.logger.Error(message)
-		name = "error"
-	case log.LevelWarn:
-		e.logger.Warn(message)
-		name = "warn"
-	case log.LevelDebug:
-		e.logger.Debug(message)
-		name = "debug"
-	default:
-		e.logger.Info(message)
-	}
+	name := writeLog(e.logger, level, message)
 	if logs := e.current.logs; logs != nil {
 		logs(LogEntry{Time: time.Now(), Level: level, Message: message})
 	}
 	if !strings.HasPrefix(e.swiplet.ID, replPrefix) {
 		e.host.timeline.record(TimelineEvent{Time: time.Now().UnixMilli(), Type: "log", Swiplet: e.swiplet.ID, Level: name, Message: message})
+	}
+}
+
+func (h *Host) Log(swiplet string, level log.Level, message string) {
+	if swiplet == "" {
+		writeLog(h.logger, level, message)
+		return
+	}
+	name := writeLog(h.logFactory.NewLogger("swiplet/"+swiplet), level, message)
+	h.timeline.record(TimelineEvent{Time: time.Now().UnixMilli(), Type: "log", Swiplet: swiplet, Level: name, Message: message})
+}
+
+func writeLog(logger log.ContextLogger, level log.Level, message string) string {
+	switch level {
+	case log.LevelError:
+		logger.Error(message)
+		return "error"
+	case log.LevelWarn:
+		logger.Warn(message)
+		return "warn"
+	case log.LevelDebug:
+		logger.Debug(message)
+		return "debug"
+	default:
+		logger.Info(message)
+		return "info"
 	}
 }
 
