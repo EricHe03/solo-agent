@@ -292,7 +292,7 @@ function sourceCommand(files, base, output, name) {
       file,
       entry: {
         ...manifest,
-        ...(prefix ? { url: new URL(path.basename(file), prefix).href } : {}),
+        url: prefix ? new URL(path.basename(file), prefix).href : path.basename(file),
         size: data.length,
         sha256: createHash("sha256").update(data).digest("hex"),
       },
@@ -404,7 +404,7 @@ const usage = `usage: swiplet create <directory>
 
   create   make a swiplet project in a new or empty directory
   build    bundle the project in this directory into dist/<swiplet.id>.swiplet
-  source   list built swiplets in a source; --url is where they are published
+  source   list built swiplets in a source; without --url they are expected next to it
 
 Type-check a project with its "check" script.`;
 
