@@ -265,7 +265,15 @@ async function buildCommand(root) {
 
 const manifestEntry = /^(?:[^/]+\/)?manifest\.json$/;
 
-function sourceCommand(files, base, output, name) {
+function sourceCommand(files, base, output, name, icon, image) {
+  let shownIcon;
+  if (icon !== undefined) {
+    const [color, ...symbol] = icon.split("/");
+    if (!color || !symbol.join("/")) {
+      throw new UsageError("--icon takes <color>/<symbol>, such as blue/sparkles");
+    }
+    shownIcon = { color, symbol: symbol.join("/") };
+  }
   let prefix;
   if (base !== undefined) {
     try {
@@ -298,7 +306,16 @@ function sourceCommand(files, base, output, name) {
       },
     });
   }
-  const listed = `${JSON.stringify({ ...(name ? { name } : {}), swiplets: [...swiplets.keys()].sort().map(id => swiplets.get(id).entry) }, null, 2)}\n`;
+  const listed = `${JSON.stringify(
+    {
+      ...(name ? { name } : {}),
+      ...(shownIcon ? { icon: shownIcon } : {}),
+      ...(image ? { image: prefix ? new URL(image, prefix).href : image } : {}),
+      swiplets: [...swiplets.keys()].sort().map(id => swiplets.get(id).entry),
+    },
+    null,
+    2,
+  )}\n`;
   if (output) {
     fs.writeFileSync(output, listed);
   } else {
@@ -400,11 +417,11 @@ function createCommand(directory) {
 
 const usage = `usage: swiplet create <directory>
        swiplet build
-       swiplet source [--name <name>] [--url <address>] [--output <file>] <swiplet>...
+       swiplet source [--name <name>] [--icon <color>/<symbol>] [--image <file>] [--url <address>] [--output <file>] <swiplet>...
 
   create   make a swiplet project in a new or empty directory
   build    bundle the project in this directory into dist/<swiplet.id>.swiplet
-  source   list built swiplets in a source; without --url they are expected next to it
+  source   list built swiplets in a source; files are expected next to it unless --url says where they are
 
 Type-check a project with its "check" script.`;
 
@@ -415,7 +432,9 @@ class UsageError extends Error {}
 try {
   let parsed;
   try {
-    parsed = parseArgs({ allowPositionals: true, options: { help: { type: "boolean", short: "h" }, name: { type: "string" }, url: { type: "string" }, output: { type: "string" } } });
+    parsed = parseArgs({ allowPositionals: true, options: {
+        help: { type: "boolean", short: "h" }, name: { type: "string" }, icon: { type: "string" }, image: { type: "string" }, url: { type: "string" }, output: { type: "string" },
+      } });
   } catch (error) {
     throw new UsageError(error.message);
   }
@@ -433,7 +452,7 @@ try {
   } else if (command === "create") {
     createCommand(rest[0]);
   } else if (command === "source") {
-    sourceCommand(rest, parsed.values.url, parsed.values.output, parsed.values.name);
+    sourceCommand(rest, parsed.values.url, parsed.values.output, parsed.values.name, parsed.values.icon, parsed.values.image);
   } else {
     await buildCommand(process.cwd());
   }

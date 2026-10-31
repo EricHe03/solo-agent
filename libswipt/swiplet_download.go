@@ -198,7 +198,7 @@ func (d *SwipletDownloader) download(link string, destination string, etag strin
 	return finish(download, archive, size, folder, link, false, destination, version, versionCode)
 }
 
-type SourceFetch struct {
+type FetchResult struct {
 	EntityTag   string
 	NotModified bool
 	Data        []byte
@@ -207,19 +207,19 @@ type SourceFetch struct {
 	ErrorMessage string
 }
 
-func (d *SwipletDownloader) FetchSource(link string, etag string) *SourceFetch {
-	fetch, err := d.fetchSource(link, etag)
+func (d *SwipletDownloader) Fetch(link string, etag string, asSource bool) *FetchResult {
+	fetched, err := d.fetch(link, etag, asSource)
 	switch {
 	case err == nil:
-		return fetch
+		return fetched
 	case E.IsTimeout(err):
-		return &SourceFetch{ErrorCode: SwipletErrorTimeout, ErrorMessage: err.Error()}
+		return &FetchResult{ErrorCode: SwipletErrorTimeout, ErrorMessage: err.Error()}
 	default:
-		return &SourceFetch{ErrorCode: SwipletErrorFailed, ErrorMessage: err.Error()}
+		return &FetchResult{ErrorCode: SwipletErrorFailed, ErrorMessage: err.Error()}
 	}
 }
 
-func (d *SwipletDownloader) fetchSource(link string, etag string) (*SourceFetch, error) {
+func (d *SwipletDownloader) fetch(link string, etag string, asSource bool) (*FetchResult, error) {
 	target, err := url.Parse(link)
 	if err != nil {
 		return nil, err
@@ -239,11 +239,11 @@ func (d *SwipletDownloader) fetchSource(link string, etag string) (*SourceFetch,
 		return nil, err
 	}
 	defer response.Body.Close()
-	fetch := &SourceFetch{EntityTag: response.Header.Get("ETag")}
+	fetched := &FetchResult{EntityTag: response.Header.Get("ETag")}
 	switch response.StatusCode {
 	case http.StatusNotModified:
-		fetch.NotModified = true
-		return fetch, nil
+		fetched.NotModified = true
+		return fetched, nil
 	case http.StatusOK:
 	default:
 		return nil, E.New(response.Status)
@@ -253,17 +253,19 @@ func (d *SwipletDownloader) fetchSource(link string, etag string) (*SourceFetch,
 		return nil, err
 	}
 	if len(data) > sourceLimit {
-		return nil, E.New("the source is larger than ", sourceLimit>>20, " MB")
+		return nil, E.New("the file is larger than ", sourceLimit>>20, " MB")
 	}
-	var listed source
-	if err = json.Unmarshal(data, &listed); err != nil {
-		return nil, E.Cause(err, "read the source")
+	if asSource {
+		var listed source
+		if err = json.Unmarshal(data, &listed); err != nil {
+			return nil, E.Cause(err, "read the source")
+		}
+		if listed.Swiplets == nil {
+			return nil, E.New("the file is not a source")
+		}
 	}
-	if listed.Swiplets == nil {
-		return nil, E.New("the file is not a source")
-	}
-	fetch.Data = data
-	return fetch, nil
+	fetched.Data = data
+	return fetched, nil
 }
 
 type sourceEntry struct {

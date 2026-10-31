@@ -30,7 +30,11 @@ struct NewSwipletView: View {
                     NavigationLink {
                         RepositoryView(url: repository.url, isImported: $isImported)
                     } label: {
-                        Text(verbatim: repository.name)
+                        HStack(spacing: 12) {
+                            SwipletIconImage(icon: repository.swipletIcon, size: 40)
+                            Text(verbatim: repository.name)
+                                .lineLimit(1)
+                        }
                     }
                 }
                 .onDelete { offsets in

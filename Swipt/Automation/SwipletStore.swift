@@ -2,6 +2,7 @@ import CoreTransferable
 import Foundation
 import LibSwipt
 import Perception
+import UIKit
 internal import SwiptHost
 import UniformTypeIdentifiers
 
@@ -149,9 +150,11 @@ final class SwipletStore {
     func addRepository(_ link: String) async throws {
         let link = link.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !repositories.contains(where: { $0.url == link }) else { throw MessageError(String(localized: "The repository is already added.")) }
-        let fetched = try await Self.fetchSource(link, etag: "")
+        let fetched = try await Self.fetch(link, etag: "", source: true)
         let index = try JSONDecoder().decode(SourceIndex.self, from: fetched.data)
-        repositories.append(Repository(url: link, name: index.name ?? Self.repositoryName(of: link), etag: fetched.etag, swiplets: index.swiplets))
+        let image = await Self.image(index.image, relativeTo: link)
+        repositories.append(
+            Repository(url: link, name: index.name ?? Self.repositoryName(of: link), icon: index.icon, image: image, etag: fetched.etag, swiplets: index.swiplets))
         repositoriesChecked[link] = .now
         saveRepositories()
     }
@@ -168,11 +171,15 @@ final class SwipletStore {
         if !force, let last = repositoriesChecked[url], Date.now.timeIntervalSince(last) < Self.updateInterval {
             return
         }
-        let fetched = try await Self.fetchSource(url, etag: repositories[index].etag)
+        let fetched = try await Self.fetch(url, etag: repositories[index].etag, source: true)
         repositoriesChecked[url] = .now
-        guard !fetched.notModified, let current = repositories.firstIndex(where: { $0.url == url }) else { return }
+        guard !fetched.notModified else { return }
         let listed = try JSONDecoder().decode(SourceIndex.self, from: fetched.data)
+        let image = await Self.image(listed.image, relativeTo: url)
+        guard let current = repositories.firstIndex(where: { $0.url == url }) else { return }
         repositories[current].name = listed.name ?? Self.repositoryName(of: url)
+        repositories[current].icon = listed.icon
+        repositories[current].image = image
         repositories[current].etag = fetched.etag
         repositories[current].swiplets = listed.swiplets
         saveRepositories()
@@ -259,14 +266,19 @@ final class SwipletStore {
         return path == "/" || path.isEmpty ? host : host + path
     }
 
-    nonisolated private static func fetchSource(_ link: String, etag: String) async throws -> SourceFetch {
+    nonisolated private static func image(_ link: String?, relativeTo base: String) async -> Data? {
+        guard let link, let url = URL(string: link, relativeTo: URL(string: base))?.absoluteString else { return nil }
+        return try? await fetch(url, etag: "", source: false).data
+    }
+
+    nonisolated private static func fetch(_ link: String, etag: String, source: Bool) async throws -> Fetched {
         let downloader = UncheckedSendable(value: LibSwiptNewSwipletDownloader()!)
         return try await withTaskCancellationHandler {
             try await blocking {
-                let fetched = downloader.value.fetchSource(link, etag: etag)!
+                let fetched = downloader.value.fetch(link, etag: etag, asSource: source)!
                 switch fetched.errorCode {
                 case LibSwiptSwipletErrorNone:
-                    return SourceFetch(etag: fetched.entityTag, notModified: fetched.notModified, data: fetched.data ?? Data())
+                    return Fetched(etag: fetched.entityTag, notModified: fetched.notModified, data: fetched.data ?? Data())
                 case LibSwiptSwipletErrorTimeout:
                     throw MessageError(String(localized: "The connection timed out."))
                 default:
@@ -414,10 +426,18 @@ nonisolated struct SwipletPreview: Identifiable, Sendable {
 nonisolated struct Repository: Codable, Identifiable, Sendable {
     var url: String
     var name: String
+    var icon: RepositorySwiplet.Icon?
+    var image: Data?
     var etag: String
     var swiplets: [RepositorySwiplet]
 
     var id: String { url }
+
+    var swipletIcon: SwipletIcon {
+        var shown = icon.map { SwipletIcon(color: $0.color, symbol: $0.symbol) } ?? .default
+        shown.image = image.flatMap(UIImage.init(data:))
+        return shown
+    }
 }
 
 nonisolated struct RepositorySwiplet: Codable, Identifiable, Sendable {
@@ -460,10 +480,12 @@ nonisolated struct RepositorySwiplet: Codable, Identifiable, Sendable {
 
 nonisolated private struct SourceIndex: Decodable {
     let name: String?
+    let icon: RepositorySwiplet.Icon?
+    let image: String?
     let swiplets: [RepositorySwiplet]
 }
 
-nonisolated private struct SourceFetch: Sendable {
+nonisolated private struct Fetched: Sendable {
     let etag: String
     let notModified: Bool
     let data: Data
