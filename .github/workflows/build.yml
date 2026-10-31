@@ -159,9 +159,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    needs:
-      - calculate_version
-      - build_ios_ipa
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
@@ -175,16 +172,34 @@ jobs:
       - name: Publish
         run: |-
           npm install -g npm@latest
-          VERSION="$(node -p "require('./api/package.json').version")-nightly.$BUILD_NUMBER"
+          BASE=$(node -p "require('./api/package.json').version")
+          CURRENT=$(npm view @swipt/api@nightly version 2> /dev/null || true)
+          NUMBER=1
+          if [[ "$CURRENT" == "$BASE-nightly."* ]]; then
+            NUMBER=$(( ${CURRENT##*.} + 1 ))
+            if [ "$(npm view "@swipt/api@$CURRENT" gitHead 2> /dev/null)" = "$GITHUB_SHA" ]; then
+              NUMBER=${CURRENT##*.}
+            fi
+          fi
+          VERSION="$BASE-nightly.$NUMBER"
           for package in api api/cli; do
             npm version "$VERSION" --no-git-tag-version --prefix "$package"
           done
           npm pkg set "peerDependencies.@swipt/api=$VERSION" --prefix api/cli
           for package in api api/cli; do
-            npm publish "./$package" --tag nightly
+            PACKAGE=$(node -p "require('./$package/package.json').name")
+            if npm view "$PACKAGE@$VERSION" version > /dev/null 2>&1; then
+              echo "$PACKAGE@$VERSION is already published"
+            else
+              npm publish "./$package" --tag nightly
+            fi
           done
-        env:
-          BUILD_NUMBER: ${{ needs.calculate_version.outputs.build_number }}
+          for package in api api/cli; do
+            PACKAGE=$(node -p "require('./$package/package.json').name")
+            case "$(npm view "$PACKAGE@latest" version 2> /dev/null)" in
+              *-*) npm dist-tag add "$PACKAGE@$VERSION" latest ;;
+            esac
+          done
   publish_nightly:
     name: Publish nightly
     if: github.ref == 'refs/heads/main' && !cancelled() && !failure()
