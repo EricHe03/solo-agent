@@ -1,3 +1,5 @@
+import dns from "node:dns";
+
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 
 import { LogService } from "./proto/logs_pb.js";
@@ -8,6 +10,8 @@ import { SystemService } from "./proto/system_pb.js";
 const largestMessage = 128 << 20;
 const contentType = "application/grpc-web+proto";
 const webSocketSubprotocol = "grpc-websockets";
+
+dns.setDefaultResultOrder("ipv4first");
 
 export const Code = {
   Canceled: 1,
@@ -111,23 +115,20 @@ function checkStatus(headers) {
   return true;
 }
 
-function requestHeaders(connection, timeoutMs) {
+function requestHeaders(connection) {
   const headers = { "content-type": contentType, "x-grpc-web": "1" };
   if (connection.token !== "") {
     headers.authorization = `Bearer ${connection.token}`;
   }
-  if (timeoutMs > 0) {
-    headers["grpc-timeout"] = `${Math.ceil(timeoutMs)}m`;
-  }
   return headers;
 }
 
-async function* invokeHTTP(connection, method, input, { signal, timeoutMs }) {
+async function* invokeHTTP(connection, method, input, { signal }) {
   let response;
   try {
     response = await fetch(`${connection.base}/${method.parent.typeName}/${method.name}`, {
       method: "POST",
-      headers: requestHeaders(connection, timeoutMs),
+      headers: requestHeaders(connection),
       body: frame(method.input, input),
       signal,
     });
@@ -164,7 +165,7 @@ async function* invokeHTTP(connection, method, input, { signal, timeoutMs }) {
   }
 }
 
-async function* invokeWebSocket(connection, method, input, { signal, timeoutMs }) {
+async function* invokeWebSocket(connection, method, input, { signal }) {
   const socket = new WebSocket(`${connection.webSocketBase}/${method.parent.typeName}/${method.name}`, [webSocketSubprotocol]);
   socket.binaryType = "arraybuffer";
   const reader = new FrameReader(method.output);
@@ -219,7 +220,7 @@ async function* invokeWebSocket(connection, method, input, { signal, timeoutMs }
   signal?.addEventListener("abort", abort, { once: true });
   try {
     await opened;
-    const headers = requestHeaders(connection, timeoutMs);
+    const headers = requestHeaders(connection);
     socket.send(Buffer.from(`${Object.entries(headers).map(([key, value]) => `${key}: ${value}\r\n`).join("")}`));
     const sender = (async () => {
       try {
@@ -277,30 +278,15 @@ function bind(service, connection) {
   for (const method of service.methods) {
     const streamsInput = method.methodKind === "client_streaming" || method.methodKind === "bidi_streaming";
     client[method.localName] = (input, options = {}) => {
-      const call = (streamsInput ? invokeWebSocket : invokeHTTP)(connection, method, input, { signal: options.signal, timeoutMs: options.timeoutMs ?? 0 });
+      const call = (streamsInput ? invokeWebSocket : invokeHTTP)(connection, method, input, { signal: options.signal });
       return method.methodKind === "unary" || method.methodKind === "client_streaming" ? single(call) : call;
     };
   }
   return client;
 }
 
-export function open({ host, token }) {
-  host ||= process.env.SWIPT_HOST ?? "";
-  token ||= process.env.SWIPT_TOKEN ?? "";
-  if (host === "") {
-    throw new UsageError('give --host or set SWIPT_HOST; "swipt devices" lists the hosts on the local network');
-  }
-  let parsed;
-  try {
-    parsed = new URL(host.includes("://") ? host : `http://${host}`);
-  } catch {
-    throw new UsageError(`--host is not a URL: ${host}`);
-  }
-  if (parsed.hostname === "" || (parsed.protocol !== "http:" && parsed.protocol !== "https:")) {
-    throw new UsageError(`--host is an http or https URL: ${host}`);
-  }
-  const base = `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
-  const connection = { token, base, webSocketBase: base.replace(/^http/, "ws") };
+export function open({ url, token }) {
+  const connection = { token, base: url, webSocketBase: url.replace(/^http/, "ws") };
   return {
     system: bind(SystemService, connection),
     logs: bind(LogService, connection),

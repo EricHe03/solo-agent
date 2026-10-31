@@ -2689,28 +2689,6 @@
         }
       }
     },
-    "CLI Usage" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CLI Usage"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CLI 使用"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CLI 使用"
-          }
-        }
-      }
-    },
     "Cache" : {
       "localizations" : {
         "ar" : {
@@ -14711,28 +14689,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "需要 Loopback VPN"
-          }
-        }
-      }
-    },
-    "MCP Usage" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "MCP Usage"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "MCP 使用"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "MCP 使用"
           }
         }
       }

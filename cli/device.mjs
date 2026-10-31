@@ -7,9 +7,9 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import { fromJson, toJson } from "@bufbuild/protobuf";
 import { ValueSchema, timestampFromMs } from "@bufbuild/protobuf/wkt";
-import Bonjour from "bonjour-service";
 
-import { UsageError, open, unauthenticated } from "./client.mjs";
+import { UsageError, unauthenticated } from "./client.mjs";
+import { attach } from "./connection.mjs";
 import { Ignorer, relativePath } from "./ignore.mjs";
 import { columns, dateTime, enumText, printLog, printScriptError, serviceText } from "./output.mjs";
 import { buildProject, loadProject } from "./project.mjs";
@@ -18,10 +18,8 @@ import { ServiceStatus, ServiceStatusSchema } from "./proto/swiplets_pb.js";
 import { sources } from "./sourcemap.mjs";
 
 const uploadChunk = 256 << 10;
-const browseLimit = 1500;
 const rebuildDelay = 300;
 const logReconnect = 2000;
-const scriptGrace = 10_000;
 
 const { version } = createRequire(import.meta.url)("./package.json");
 
@@ -41,33 +39,7 @@ function elapsed(since) {
   return `${Math.floor(seconds / 60)}m${Number((seconds % 60).toFixed(3))}s`;
 }
 
-const session = (context, run) => run(open(context.globals));
-
-export async function devices({ signal }) {
-  const bonjour = new Bonjour();
-  const found = new Map();
-  try {
-    const browser = bonjour.find({ type: "swipt" }, service => {
-      if (service.host && !found.has(service.name)) {
-        found.set(service.name, { name: service.name, host: service.host.replace(/\.$/, ""), port: service.port });
-      }
-    });
-    try {
-      await sleep(browseLimit, undefined, { signal });
-    } catch {
-      return;
-    }
-    browser.stop();
-  } finally {
-    bonjour.destroy();
-  }
-  if (found.size === 0) {
-    console.error("no device publishes Swipt on the local network; turn on Swipt › Developer › Local Network");
-    return;
-  }
-  const hostPort = service => (service.host.includes(":") ? `[${service.host}]:${service.port}` : `${service.host}:${service.port}`);
-  console.log(columns([["NAME", "HOST"], ...[...found.values()].map(service => [service.name, `http://${hostPort(service)}`])]));
-}
+const session = (context, run) => attach(context).then(run);
 
 export function printVersion() {
   console.log("swipt", version, `node ${process.versions.node}`, `${process.platform}/${process.arch}`);
@@ -436,7 +408,7 @@ export async function develop(context) {
   const project = loadProject(path.resolve(context.args[0] ?? "."));
   const root = project.root;
   sources.root = root;
-  const client = open(context.globals);
+  const client = await attach(context);
   const controller = new AbortController();
   const inner = AbortSignal.any([signal, controller.signal]);
   let fatalReject;
@@ -573,7 +545,7 @@ class ImageSink {
 }
 
 export async function js(context) {
-  const { args, options, globals } = context;
+  const { args, options, signal } = context;
   if (options.api) {
     if (args.length > 0 || options.file !== undefined || options.reset) {
       throw new UsageError("--api takes no script and no --reset");
@@ -584,7 +556,6 @@ export async function js(context) {
     return;
   }
   const { code, run } = readScript(args, options);
-  const signal = globals.timeoutMs > 0 ? AbortSignal.any([context.interrupt, AbortSignal.timeout(globals.timeoutMs + scriptGrace)]) : context.interrupt;
   await session(context, async client => {
     if (options.reset) {
       await client.repl.reset({}, { signal });
@@ -595,7 +566,7 @@ export async function js(context) {
     const script = options.file ?? "input.js";
     const images = new ImageSink(options.output);
     let failure;
-    for await (const response of client.repl.execute({ code, timeoutMs: globals.timeoutMs }, { signal })) {
+    for await (const response of client.repl.execute({ code }, { signal })) {
       switch (response.part.case) {
         case "console": {
           const output = response.part.value;

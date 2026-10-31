@@ -85,7 +85,7 @@ private struct LocalNetworkView: View {
                     let selected = hosts.contains(host) ? host : hosts[0]
                     let address = "\(selected):\(settings.localPort)"
                     let token = settings.localAuthenticates ? settings.token : nil
-                    UsageSection(title: "CLI Usage") {
+                    UsageSection(title: Text(verbatim: "Swipt API")) {
                         Picker("Host", selection: Binding(get: { selected }, set: { host = $0 })) {
                             ForEach(hosts, id: \.self) { host in
                                 Text(verbatim: host).tag(host)
@@ -93,9 +93,9 @@ private struct LocalNetworkView: View {
                         }
                         .pickerStyle(.menu)
                     } items: { revealed in
-                        cliUsage(host: "http://\(address)", token: token, revealed: revealed)
+                        apiUsage(scheme: "http", address: address, token: token, revealed: revealed)
                     }
-                    UsageSection(title: "MCP Usage") {
+                    UsageSection(title: Text(verbatim: "MCP")) {
                     } items: { revealed in
                         mcpUsage(scheme: "http", address: address, token: token, revealed: revealed)
                     }
@@ -181,11 +181,11 @@ private struct CloudflareView: View {
                 let hostname = settings.cloudflarePublicHostname
                 if !hostname.isEmpty {
                     let address = { (revealed: Bool) in "\(maskedHost(hostname, revealed: revealed))\(settings.cloudflarePathPrefix)" }
-                    UsageSection(title: "CLI Usage") {
+                    UsageSection(title: Text(verbatim: "Swipt API")) {
                     } items: { revealed in
-                        cliUsage(host: "https://\(address(revealed))", token: settings.token, revealed: revealed)
+                        apiUsage(scheme: "https", address: address(revealed), token: settings.token, revealed: revealed)
                     }
-                    UsageSection(title: "MCP Usage") {
+                    UsageSection(title: Text(verbatim: "MCP")) {
                     } items: { revealed in
                         mcpUsage(scheme: "https", address: address(revealed), token: settings.token, revealed: revealed)
                     }
@@ -262,18 +262,22 @@ private func maskedHost(_ host: String, revealed: Bool) -> String {
     revealed || !host.hasSuffix(".trycloudflare.com") ? host : "***" + host.drop { $0 != "." }
 }
 
-private func cliUsage(host: String, token: String?, revealed: Bool) -> [UsageItem] {
-    var items = [UsageItem(label: String(localized: "Host"), text: host)]
-    if let token {
-        items.append(UsageItem(label: String(localized: "Token"), text: revealed ? token : maskedToken(token)))
-    }
-    return items
+private func apiURL(scheme: String, address: String, token: String?, revealed: Bool) -> String {
+    let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+    let credentials = token.map { (revealed ? $0.addingPercentEncoding(withAllowedCharacters: unreserved)! : maskedToken($0)) + "@" } ?? ""
+    return "\(scheme)://\(credentials)\(address)"
+}
+
+private func apiUsage(scheme: String, address: String, token: String?, revealed: Bool) -> [UsageItem] {
+    let url = apiURL(scheme: scheme, address: address, token: token, revealed: revealed)
+    return [
+        UsageItem(label: String(localized: "URL"), text: url),
+        UsageItem(label: "Swipt CLI", text: "swipt connect \(url)"),
+    ]
 }
 
 private func mcpUsage(scheme: String, address: String, token: String?, revealed: Bool) -> [UsageItem] {
-    let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
-    let credentials = token.map { (revealed ? $0.addingPercentEncoding(withAllowedCharacters: unreserved)! : maskedToken($0)) + "@" } ?? ""
-    let url = "\(scheme)://\(credentials)\(address)\(LibSwiptAPIMCPPath)"
+    let url = apiURL(scheme: scheme, address: address, token: token, revealed: revealed) + LibSwiptAPIMCPPath
     let name = Platform.shared.hostLabel
     return [
         UsageItem(label: String(localized: "URL"), text: url),
@@ -288,7 +292,7 @@ private struct UsageItem {
 }
 
 private struct UsageSection<Leading: View>: View {
-    let title: LocalizedStringKey
+    let title: Text
     @ViewBuilder let leading: Leading
     let items: (_ revealed: Bool) -> [UsageItem]
     @State private var isRevealed = false
@@ -308,7 +312,7 @@ private struct UsageSection<Leading: View>: View {
                 }
             } header: {
                 HStack {
-                    Text(title)
+                    title
                     Spacer()
                     Button {
                         isRevealed.toggle()

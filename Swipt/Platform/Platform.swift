@@ -57,7 +57,7 @@ final class Platform {
     @PerceptionIgnored private var cloudflareGeneration = 0
     @PerceptionIgnored private var cloudflareError: String?
     @PerceptionIgnored private let apiAdvertiser = BonjourAdvertiser()
-    @PerceptionIgnored private var advertisedPort: Int?
+    @PerceptionIgnored private var advertised: APIAdvertisement?
     @PerceptionIgnored private var dialogs: [Int64: Task<Void, Never>] = [:]
     @PerceptionIgnored private var reportedServices: Set<String> = []
     @PerceptionIgnored private var wasActive = false
@@ -371,37 +371,45 @@ final class Platform {
         } onChange: { [weak self] in
             DispatchQueue.main.async { self?.observeAPI() }
         }
-        let port = options.flatMap { $0.localNetwork ? Int($0.port) : nil }
+        let advertisement = options.flatMap {
+            $0.localNetwork ? APIAdvertisement(port: Int($0.port), authenticates: $0.localNetworkAuthenticates) : nil
+        }
         let box = UncheckedSendable(value: (core, options))
         Self.queue.async { [weak self] in
             do {
                 try box.value.0.setAPI(box.value.1)
-                DispatchQueue.main.async { self?.advertiseAPI(port: port) }
+                DispatchQueue.main.async { self?.advertiseAPI(advertisement) }
             } catch {
                 let message = error.localizedDescription
                 DispatchQueue.main.async {
-                    self?.advertiseAPI(port: nil)
+                    self?.advertiseAPI(nil)
                     self?.apiFailed(message)
                 }
             }
         }
     }
 
-    private func advertiseAPI(port: Int?) {
-        guard port != advertisedPort else { return }
-        advertisedPort = port
-        guard let port else {
+    private struct APIAdvertisement: Equatable {
+        let port: Int
+        let authenticates: Bool
+    }
+
+    private func advertiseAPI(_ advertisement: APIAdvertisement?) {
+        guard advertisement != advertised else { return }
+        advertised = advertisement
+        guard let advertisement else {
             apiAdvertiser.stop()
             return
         }
-        let error = apiAdvertiser.start(name: name, type: LibSwiptAPIServiceType, port: port, txt: [:])
+        let error = apiAdvertiser.start(
+            name: name, type: LibSwiptAPIServiceType, port: advertisement.port, txt: advertisement.authenticates ? ["auth": "1"] : [:])
         if error != kDNSServiceErr_NoError {
             advertisingFailed(error)
         }
     }
 
     private func advertisingFailed(_ errorCode: DNSServiceErrorType) {
-        advertisedPort = nil
+        advertised = nil
         apiFailed(String(localized: "Bonjour advertising failed (error \(errorCode))."))
     }
 

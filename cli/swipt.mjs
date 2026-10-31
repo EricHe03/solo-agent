@@ -3,15 +3,14 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 
 import { Code, RpcError, UsageError } from "./client.mjs";
+import * as connection from "./connection.mjs";
 import * as device from "./device.mjs";
 import { FalseResult } from "./output.mjs";
 import { buildProject, createCommand, sourceCommand } from "./project.mjs";
 import { sources } from "./sourcemap.mjs";
 
 const globalOptions = {
-  host: { type: "string", value: "URL", help: "Swipt URL (SWIPT_HOST)" },
-  token: { type: "string", value: "TOKEN", help: "API token (SWIPT_TOKEN)" },
-  timeout: { type: "string", value: "DURATION", help: "time limit" },
+  device: { type: "string", short: "d", value: "NAME|URL", help: "the device to use (SWIPT_DEVICE)" },
   help: { type: "boolean", short: "h", help: "help" },
 };
 
@@ -73,7 +72,9 @@ const commands = [
     args: [0, Infinity],
     run: ({ args }) => sourceCommand(process.cwd(), args),
   },
-  { name: "devices", short: "List the devices that publish Swipt on the local network", args: [0, 0], run: device.devices },
+  { name: "devices", short: "List the devices, adding the ones found on the local network", args: [0, 0], run: connection.devices },
+  { name: "connect", use: "connect URL", short: "Add a device by its URL; needed when it is remote or requires a token", args: [1, 1], run: connection.connect },
+  { name: "disconnect", use: "disconnect NAME", short: "Forget a device", args: [1, 1], run: connection.disconnect },
   { name: "info", short: "Show the device and its connection", args: [0, 0], run: device.info },
   { name: "version", short: "Print the version", args: [0, 0], run: device.printVersion },
   { name: "swiplets", use: "swiplets [ID]", short: "List the swiplets or show one", args: [0, 1], options: projectOption, run: device.swiplets },
@@ -168,7 +169,7 @@ function usage(trail) {
   }
   const options = { ...trail.reduce((found, it) => ({ ...found, ...it.options }), {}), ...globalOptions };
   lines.push("", "options:");
-  lines.push(...columns(Object.entries(options).map(([option, it]) => [`  --${option}${it.value ? ` ${it.value}` : ""}`, it.help])).split("\n"));
+  lines.push(...columns(Object.entries(options).map(([option, it]) => [`  ${it.short ? `-${it.short}, ` : ""}--${option}${it.value ? ` ${it.value}` : ""}`, it.help])).split("\n"));
   return lines.join("\n");
 }
 
@@ -221,29 +222,22 @@ function resolve(argv) {
   return { trail, help, args, values: parsed.values };
 }
 
-function printError(error, { host, timeout, timedOut }, operation) {
+function printError(error, target, operation) {
   let exit = 1;
   let message = error.message;
   if (error instanceof UsageError) {
     exit = 2;
-  } else if (timedOut) {
-    message = `the command ran past --timeout ${timeout}`;
   } else if (error instanceof RpcError) {
     switch (error.code) {
       case Code.Unavailable:
         exit = 5;
-        message = `Swipt at ${host} is unreachable: ${message}`;
+        message = `Swipt at ${target.url} is unreachable: ${message}`;
         break;
       case Code.Unauthenticated:
-        message += "; copy the token from Swipt › Developer";
+        message += `; connect with the URL from Swipt › Developer: swipt connect ${connection.withToken(target.url)}`;
         break;
       case Code.Unimplemented:
-        message = `Swipt at ${host} does not have this command; update Swipt`;
-        break;
-      case Code.DeadlineExceeded:
-        if (timeout) {
-          message = `the command ran past --timeout ${timeout}`;
-        }
+        message = `Swipt at ${target.url} does not have this command; update Swipt`;
         break;
     }
   }
@@ -259,8 +253,7 @@ async function main() {
   const interrupted = () => interrupt.abort();
   process.once("SIGINT", interrupted);
   process.once("SIGTERM", interrupted);
-  let timeout;
-  const state = { host: "", timeout: undefined, timedOut: false };
+  const target = { url: "" };
   try {
     const resolved = resolve(process.argv.slice(2));
     if (resolved.help) {
@@ -269,28 +262,17 @@ async function main() {
     }
     const command = resolved.trail.at(-1);
     const values = command.parse ? command.parse(resolved.values) : resolved.values;
-    state.host = values.host ?? process.env.SWIPT_HOST ?? "";
-    state.timeout = values.timeout;
-    const timeoutMs = parseDuration(values.timeout, "--timeout");
-    if (timeoutMs > 0) {
-      timeout = AbortSignal.timeout(timeoutMs);
-      timeout.addEventListener("abort", () => {
-        state.timedOut = true;
-      });
-    }
     if (values.project !== undefined) {
       sources.root = path.resolve(values.project);
     }
-    const globals = { host: values.host ?? "", token: values.token ?? "", timeoutMs };
-    const signal = timeout ? AbortSignal.any([interrupt.signal, timeout]) : interrupt.signal;
-    await command.run({ args: resolved.args, options: values, globals, signal, interrupt: interrupt.signal, printError: (error, operation) => printError(error, state, operation) });
+    await command.run({ args: resolved.args, options: values, target, signal: interrupt.signal, printError: (error, operation) => printError(error, target, operation) });
   } catch (error) {
     if (error instanceof FalseResult) {
       process.exitCode = 1;
     } else if (interrupt.signal.aborted) {
       process.exitCode = 130;
     } else {
-      process.exitCode = printError(error, state);
+      process.exitCode = printError(error, target);
     }
   } finally {
     process.off("SIGINT", interrupted);
