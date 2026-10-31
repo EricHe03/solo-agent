@@ -30,10 +30,11 @@ struct NewSwipletView: View {
                     NavigationLink {
                         RepositoryView(url: repository.url, isImported: $isImported)
                     } label: {
-                        HStack(spacing: 12) {
-                            SwipletIconImage(icon: repository.swipletIcon, size: 40)
+                        Label {
                             Text(verbatim: repository.name)
                                 .lineLimit(1)
+                        } icon: {
+                            SwipletIconImage(icon: repository.swipletIcon, size: 29)
                         }
                     }
                 }
