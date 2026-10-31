@@ -15,7 +15,7 @@ proto_install:
 
 RUNTIME := internal/automation/runtime
 RUNTIME_BUNDLE := build/runtime/main.jsbundle
-RUNTIME_BUNDLE_INPUTS := $(shell find $(RUNTIME)/src/app $(RUNTIME)/patches -type f) $(RUNTIME)/package.json $(RUNTIME)/app.json package.json bun.lock
+RUNTIME_BUNDLE_INPUTS := $(shell find $(RUNTIME)/src/app $(RUNTIME)/src/shared $(RUNTIME)/patches -type f) $(RUNTIME)/package.json $(RUNTIME)/app.json package.json bun.lock
 
 lib_react:
 	bun install --frozen-lockfile
