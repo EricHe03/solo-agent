@@ -36,11 +36,11 @@ struct AutomationView: View {
                 SwipletHost.shared.prepare(swiplets.interfaces)
             }
             .task { await swiplets.checkForUpdates(of: swiplets.ids) }
-            .confirmationDialog(
+            .alert(
                 "Delete “\(swipletToDelete.map { swiplets.titles[$0] ?? $0 } ?? "")”?",
-                isPresented: Binding(get: { swipletToDelete != nil }, set: { if !$0 { swipletToDelete = nil } }),
-                titleVisibility: .visible
+                isPresented: Binding(get: { swipletToDelete != nil }, set: { if !$0 { swipletToDelete = nil } })
             ) {
+                Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) {
                     if let swipletToDelete {
                         Task {
