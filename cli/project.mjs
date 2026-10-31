@@ -272,7 +272,7 @@ export async function buildProject(root) {
   const archive = path.join(dist, `${manifest.id}.swiplet`);
   fs.rmSync(archive, { force: true });
   fs.rmSync(path.join(dist, `${manifest.id}.zip`), { force: true });
-  execFileSync("zip", ["-qr", "-n", storedSuffixes, archive, manifest.id, "-x", "*.map"], { cwd: dist });
+  execFileSync("zip", ["-qr", "-n", storedSuffixes, archive, ...fs.readdirSync(folder), "-x", "*.map"], { cwd: folder });
   return { id: manifest.id, archive, digest: folderDigest(folder) };
 }
 
