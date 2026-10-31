@@ -265,71 +265,104 @@ async function buildCommand(root) {
 
 const manifestEntry = /^(?:[^/]+\/)?manifest\.json$/;
 
-function sourceCommand(files, base, output, name, localizedNames, icon, image) {
-  const names = {};
-  for (const entry of localizedNames ?? []) {
-    const [language, ...rest] = entry.split("=");
-    if (!language || rest.length === 0 || !rest.join("=")) {
-      throw new UsageError("--localized-name takes <language>=<name>, such as zh-Hans=示例");
+function loadSource(root) {
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  const config = manifest.source ?? {};
+  for (const field of ["name", "image", "url"]) {
+    if (config[field] !== undefined && typeof config[field] !== "string") {
+      throw new Error(`"source.${field}" in package.json must be a string`);
     }
-    names[language] = rest.join("=");
   }
-  let shownIcon;
-  if (icon !== undefined) {
-    const [color, ...symbol] = icon.split("/");
-    if (!color || !symbol.join("/")) {
-      throw new UsageError("--icon takes <color>/<symbol>, such as blue/sparkles");
-    }
-    shownIcon = { color, symbol: symbol.join("/") };
+  const localizedNames = config.localizedNames ?? {};
+  if (localizedNames === null || typeof localizedNames !== "object" || !Object.values(localizedNames).every(name => typeof name === "string")) {
+    throw new Error('"source.localizedNames" in package.json must map languages to names');
+  }
+  if (config.icon !== undefined && (typeof config.icon?.color !== "string" || typeof config.icon?.symbol !== "string")) {
+    throw new Error('"source.icon" in package.json must have a color and a symbol');
   }
   let prefix;
-  if (base !== undefined) {
+  if (config.url !== undefined) {
     try {
-      prefix = new URL(base.endsWith("/") ? base : `${base}/`);
+      prefix = new URL(config.url.endsWith("/") ? config.url : `${config.url}/`);
     } catch {
-      throw new UsageError(`--url ${JSON.stringify(base)} is not an absolute URL`);
+      throw new Error('"source.url" in package.json is not an absolute URL');
     }
+  }
+  const workspaces = Array.isArray(manifest.workspaces) ? manifest.workspaces : manifest.workspaces?.packages ?? [];
+  return { root, config, localizedNames, prefix, workspaces };
+}
+
+function workspaceSwiplets(source) {
+  const files = [];
+  for (const pattern of source.workspaces) {
+    for (const directory of fs.globSync(pattern, { cwd: source.root }).sort()) {
+      const project = path.join(source.root, directory, "package.json");
+      if (!fs.existsSync(project)) {
+        continue;
+      }
+      const id = JSON.parse(fs.readFileSync(project, "utf8")).swiplet?.id;
+      if (typeof id !== "string") {
+        continue;
+      }
+      const built = path.join(source.root, directory, "dist", `${id}.swiplet`);
+      if (!fs.existsSync(built)) {
+        throw new Error(`${path.relative(source.root, built)} is missing; build ${directory} first`);
+      }
+      files.push(built);
+    }
+  }
+  return files;
+}
+
+function readSwiplet(file) {
+  const entry = execFileSync("unzip", ["-Z1", file], { encoding: "utf8" }).split("\n").filter(name => manifestEntry.test(name)).sort((a, b) => a.length - b.length)[0];
+  if (entry === undefined) {
+    throw new Error(`${file} has no manifest.json`);
+  }
+  const manifest = JSON.parse(execFileSync("unzip", ["-p", file, entry], { encoding: "utf8" }));
+  if (typeof manifest.id !== "string" || !idPattern.test(manifest.id)) {
+    throw new Error(`${file} has no valid swiplet id in its manifest`);
+  }
+  return { file, manifest, data: fs.readFileSync(file) };
+}
+
+function sourceCommand(root, given) {
+  const source = loadSource(root);
+  const files = given.length > 0 ? given.map(file => path.resolve(file)) : workspaceSwiplets(source);
+  if (files.length === 0) {
+    throw new Error("package.json lists no workspaces with swiplets; name the swiplets to list");
   }
   const swiplets = new Map();
-  for (const file of files) {
-    const entry = execFileSync("unzip", ["-Z1", file], { encoding: "utf8" }).split("\n").filter(name => manifestEntry.test(name)).sort((a, b) => a.length - b.length)[0];
-    if (entry === undefined) {
-      throw new Error(`${file} has no manifest.json`);
+  for (const read of files.map(readSwiplet)) {
+    const { id } = read.manifest;
+    if (swiplets.has(id)) {
+      throw new Error(`${id} is both ${swiplets.get(id).file} and ${read.file}`);
     }
-    const manifest = JSON.parse(execFileSync("unzip", ["-p", file, entry], { encoding: "utf8" }));
-    if (typeof manifest.id !== "string" || !idPattern.test(manifest.id)) {
-      throw new Error(`${file} has no valid swiplet id in its manifest`);
-    }
-    if (swiplets.has(manifest.id)) {
-      throw new Error(`${manifest.id} is both ${swiplets.get(manifest.id).file} and ${file}`);
-    }
-    const data = fs.readFileSync(file);
-    swiplets.set(manifest.id, {
-      file,
-      entry: {
-        ...manifest,
-        url: prefix ? new URL(path.basename(file), prefix).href : path.basename(file),
-        size: data.length,
-        sha256: createHash("sha256").update(data).digest("hex"),
-      },
-    });
+    swiplets.set(id, read);
   }
-  const listed = `${JSON.stringify(
-    {
-      ...(name ? { name } : {}),
-      ...(Object.keys(names).length > 0 ? { localizedNames: names } : {}),
-      ...(shownIcon ? { icon: shownIcon } : {}),
-      ...(image ? { image: prefix ? new URL(image, prefix).href : image } : {}),
-      swiplets: [...swiplets.keys()].sort().map(id => swiplets.get(id).entry),
-    },
-    null,
-    2,
-  )}\n`;
-  if (output) {
-    fs.writeFileSync(output, listed);
-  } else {
-    process.stdout.write(listed);
+  const image = source.config.image === undefined ? undefined : { name: path.basename(source.config.image), data: fs.readFileSync(path.resolve(root, source.config.image)) };
+  const located = name => (source.prefix ? new URL(name, source.prefix).href : name);
+  const dist = path.join(root, "dist");
+  fs.rmSync(dist, { recursive: true, force: true });
+  fs.mkdirSync(dist, { recursive: true });
+  const entries = [...swiplets.keys()].sort().map(id => {
+    const { manifest, data } = swiplets.get(id);
+    const name = `${id}.swiplet`;
+    fs.writeFileSync(path.join(dist, name), data);
+    return { ...manifest, url: located(name), size: data.length, sha256: createHash("sha256").update(data).digest("hex") };
+  });
+  if (image) {
+    fs.writeFileSync(path.join(dist, image.name), image.data);
   }
+  const index = {
+    ...(source.config.name ? { name: source.config.name } : {}),
+    ...(Object.keys(source.localizedNames).length > 0 ? { localizedNames: source.localizedNames } : {}),
+    ...(source.config.icon ? { icon: { color: source.config.icon.color, symbol: source.config.icon.symbol } } : {}),
+    ...(image ? { image: located(image.name) } : {}),
+    swiplets: entries,
+  };
+  fs.writeFileSync(path.join(dist, "swiplets.json"), `${JSON.stringify(index, null, 2)}\n`);
+  console.log(path.relative(process.cwd(), path.join(dist, "swiplets.json")));
 }
 
 const idOf = name => name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^[._-]+/, "").slice(0, 128).replace(/[._-]+$/, "") || "swiplet";
@@ -426,26 +459,23 @@ function createCommand(directory) {
 
 const usage = `usage: swiplet create <directory>
        swiplet build
-       swiplet source [--name <name>] [--localized-name <language>=<name>]... [--icon <color>/<symbol>] [--image <file>]
-                      [--url <address>] [--output <file>] <swiplet>...
+       swiplet source [<swiplet>...]
 
   create   make a swiplet project in a new or empty directory
   build    bundle the project in this directory into dist/<swiplet.id>.swiplet
-  source   list built swiplets in a source; files are expected next to it unless --url says where they are
+  source   gather the built swiplets of this directory's workspaces, or the given ones, into dist/
+           with a swiplets.json described by "source" in package.json
 
 Type-check a project with its "check" script.`;
 
-const commands = { create: 1, build: 0, source: -1 };
+const commands = { create: 1, build: 0, source: null };
 
 class UsageError extends Error {}
 
 try {
   let parsed;
   try {
-    parsed = parseArgs({ allowPositionals: true, options: {
-        help: { type: "boolean", short: "h" }, name: { type: "string" }, "localized-name": { type: "string", multiple: true }, icon: { type: "string" },
-        image: { type: "string" }, url: { type: "string" }, output: { type: "string" },
-      } });
+    parsed = parseArgs({ allowPositionals: true, options: { help: { type: "boolean", short: "h" } } });
   } catch (error) {
     throw new UsageError(error.message);
   }
@@ -456,14 +486,12 @@ try {
     throw new UsageError("a command is missing");
   } else if (!Object.hasOwn(commands, command)) {
     throw new UsageError(`unknown command ${JSON.stringify(command)}`);
-  } else if (commands[command] < 0 ? rest.length === 0 : rest.length !== commands[command]) {
-    throw new UsageError(
-      commands[command] === 0 ? `${command} takes no arguments` : commands[command] < 0 ? `${command} takes one or more swiplets` : `${command} takes one directory`,
-    );
+  } else if (commands[command] !== null && rest.length !== commands[command]) {
+    throw new UsageError(commands[command] === 0 ? `${command} takes no arguments` : `${command} takes one directory`);
   } else if (command === "create") {
     createCommand(rest[0]);
   } else if (command === "source") {
-    sourceCommand(rest, parsed.values.url, parsed.values.output, parsed.values.name, parsed.values["localized-name"], parsed.values.icon, parsed.values.image);
+    sourceCommand(process.cwd(), rest);
   } else {
     await buildCommand(process.cwd());
   }
