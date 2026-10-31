@@ -48,6 +48,7 @@ jobs:
           git archive 'nightly^{commit}' api | tar -x -C build
           npm install -g npm@latest
           for package in api api/cli; do
+            cp LICENSE "build/$package/"
             PACKAGE=$(node -p "const p = require('./build/$package/package.json'); p.name + '@' + p.version")
             if npm view "$PACKAGE" version > /dev/null 2>&1; then
               echo "$PACKAGE is already published"

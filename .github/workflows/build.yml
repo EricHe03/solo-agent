@@ -187,6 +187,7 @@ jobs:
           done
           npm pkg set "peerDependencies.@swipt/api=$VERSION" --prefix api/cli
           for package in api api/cli; do
+            cp LICENSE "$package/"
             PACKAGE=$(node -p "require('./$package/package.json').name")
             if npm view "$PACKAGE@$VERSION" version > /dev/null 2>&1; then
               echo "$PACKAGE@$VERSION is already published"
