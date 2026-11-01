@@ -106,3 +106,5 @@ export declare function actions<E extends Extension<any, any>>(): ActionCalls<E>
 export declare function useService<E extends Extension<any, true>>(): ServiceHandle;
 
 export declare function exit(): void;
+
+export declare function preferredLocalizations(localizations: readonly string[]): string[];

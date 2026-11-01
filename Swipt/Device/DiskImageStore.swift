@@ -51,7 +51,7 @@ final class DiskImageStore {
             LibSwiptDiskImageImported(try Self.directory.get().path, &imported, &error)
             if let error { throw error }
         } catch {
-            ErrorAlert.shared.report("Couldn’t Check the Developer Disk Image", error: error)
+            ErrorAlert.shared.report(String(localized: "Couldn’t Check the Developer Disk Image"), error: error)
         }
         isImported = imported.boolValue
     }

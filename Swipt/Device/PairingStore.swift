@@ -28,7 +28,7 @@ final class PairingStore {
         } catch CocoaError.fileReadNoSuchFile {
             return
         } catch {
-            ErrorAlert.shared.report("Couldn’t Read the Pairing Record", error: error)
+            ErrorAlert.shared.report(String(localized: "Couldn’t Read the Pairing Record"), error: error)
             return
         }
         do {

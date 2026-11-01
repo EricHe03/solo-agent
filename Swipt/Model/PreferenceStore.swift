@@ -21,7 +21,7 @@ final class PreferenceStore {
         do {
             item = try database.read { try Item.fetchOne($0, key: name) }
         } catch {
-            ErrorAlert.shared.report("Couldn’t Read Settings", error: error)
+            ErrorAlert.shared.report(String(localized: "Couldn’t Read Settings"), error: error)
             return nil
         }
         guard let item else { return nil }
@@ -41,7 +41,7 @@ final class PreferenceStore {
             try database.write { try Item(name: name, data: data).save($0) }
             return true
         } catch {
-            ErrorAlert.shared.report("Couldn’t Save Settings", error: error)
+            ErrorAlert.shared.report(String(localized: "Couldn’t Save Settings"), error: error)
             return false
         }
     }
@@ -50,7 +50,7 @@ final class PreferenceStore {
         do {
             _ = try database.write { try Item.deleteOne($0, key: name) }
         } catch {
-            ErrorAlert.shared.report("Couldn’t Save Settings", error: error)
+            ErrorAlert.shared.report(String(localized: "Couldn’t Save Settings"), error: error)
         }
     }
 }

@@ -367,20 +367,21 @@ func (e *engine) dropWork() {
 
 func (e *engine) natives() map[string]jsc.Function {
 	return map[string]jsc.Function{
-		"start":       e.startOperation,
-		"cancel":      e.cancelOperation,
-		"failure":     e.takeFailure,
-		"value":       e.value,
-		"subscribe":   e.subscribe,
-		"unsubscribe": e.unsubscribe,
-		"print":       e.print,
-		"put":         e.put,
-		"take":        e.take,
-		"random":      e.random,
-		"digest":      e.digest,
-		"finish":      e.finish,
-		"show":        e.show,
-		"match":       e.match,
+		"start":                  e.startOperation,
+		"cancel":                 e.cancelOperation,
+		"failure":                e.takeFailure,
+		"value":                  e.value,
+		"subscribe":              e.subscribe,
+		"unsubscribe":            e.unsubscribe,
+		"print":                  e.print,
+		"put":                    e.put,
+		"take":                   e.take,
+		"random":                 e.random,
+		"digest":                 e.digest,
+		"finish":                 e.finish,
+		"show":                   e.show,
+		"match":                  e.match,
+		"preferredLocalizations": e.preferredLocalizations,
 	}
 }
 

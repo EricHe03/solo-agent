@@ -147,6 +147,7 @@ function describeExtension(source) {
       defineAction: definition => definition,
       actions: loading("actions"),
       useService: loading("useService"),
+      preferredLocalizations: localizations => (localizations.includes("en") ? ["en"] : localizations.slice(0, 1)),
     },
     "@swipt/api/file-system": {
       get dataDirectory() {

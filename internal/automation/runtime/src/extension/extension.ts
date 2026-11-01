@@ -3,7 +3,7 @@ import { createDialog, type Dialog } from "./dialog";
 import { DOMException, failureOf } from "./errors";
 import { AbortController } from "./events";
 import { assets, dataDirectory } from "./files";
-import { getCalendars, getLocales } from "./localization";
+import { getCalendars, getLocales, preferredLocalizations } from "./localization";
 import { native } from "./native";
 
 type Caller = "app" | "shortcuts" | "api";
@@ -87,7 +87,7 @@ export function defineExtension(definition: ExtensionDefinition) {
 
 const modules: Record<string, () => object> = {
   "@swipt/api": () => ({ __esModule: true }),
-  "@swipt/api/swiplet": () => ({ __esModule: true, defineExtension, defineAction }),
+  "@swipt/api/swiplet": () => ({ __esModule: true, defineExtension, defineAction, preferredLocalizations }),
   "@swipt/api/file-system": () => ({
     __esModule: true,
     get dataDirectory() {

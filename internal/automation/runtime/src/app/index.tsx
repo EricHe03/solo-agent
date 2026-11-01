@@ -35,6 +35,7 @@ interface SwiptHost extends FileHost {
   setServiceEnabled(swiplet: string, enabled: boolean): Promise<void>;
   mounted(surface: string): void;
   exit(swiplet: string): void;
+  preferredLocalizations(localizations: string[]): string[];
   log(swiplet: string, level: string, message: string): void;
   fail(surface: string, message: string): void;
   report(swiplet: string, message: string): void;
@@ -127,6 +128,13 @@ const exportsOf = (specifier: string, values: Record<string, unknown>) =>
 
 const abortError = (signal: AbortSignal): unknown => signal.reason ?? Object.assign(new Error("the call was aborted"), { name: "AbortError" });
 
+const preferredLocalizations = (localizations: readonly string[]): string[] => {
+  if (!Array.isArray(localizations) || !localizations.every(localization => typeof localization === "string")) {
+    throw new TypeError("the localizations must be an array of strings");
+  }
+  return host.preferredLocalizations([...localizations]);
+};
+
 function interfaceModule({ name, service }: Props) {
   const state = stateOf(name);
   state.service = serviceOf(service);
@@ -159,7 +167,7 @@ function interfaceModule({ name, service }: Props) {
     const current = useSyncExternalStore(subscribe, () => state.service);
     return useMemo(() => ({ ...current, setEnabled }), [current]);
   };
-  return exportsOf("@swipt/api/swiplet", { actions: () => calls, useService, exit: () => host.exit(name) });
+  return exportsOf("@swipt/api/swiplet", { actions: () => calls, useService, exit: () => host.exit(name), preferredLocalizations });
 }
 
 const modules: Record<string, () => unknown> = {

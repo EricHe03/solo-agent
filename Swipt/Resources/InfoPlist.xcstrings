@@ -17,50 +17,50 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "يتصل Swipt بخدمات المطورين على هذا الجهاز."
+            "state" : "translated",
+            "value" : "يتصل Swipt بخدمات المطور على هذا الجهاز، وإذا قمت بنشر واجهة API الخاصة به، فإنه يقبل الاتصالات على الشبكة المحلية."
           }
         },
         "bg" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt се свързва с услугите за разработчици на това устройство."
+            "state" : "translated",
+            "value" : "Swipt се свързва с услугите за разработчици на това устройство, а ако публикувате неговия API, приема и връзки от локалната мрежа."
           }
         },
         "bn" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt এই ডিভাইসের ডেভেলপার পরিষেবাগুলোর সাথে কানেক্ট করে।"
+            "state" : "translated",
+            "value" : "Swipt এই ডিভাইসের ডেভেলপার পরিষেবাগুলোর সাথে কানেক্ট করে, এবং আপনি এর API পাবলিশ করলে স্থানীয় নেটওয়ার্কে কানেকশন গ্রহণ করে।"
           }
         },
         "ca" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "L’app Swipt es connecta als serveis per a desenvolupadors d’aquest dispositiu."
+            "state" : "translated",
+            "value" : "L’app Swipt es connecta als serveis de desenvolupador d’aquest dispositiu i, si en publiques l’API, accepta connexions a la xarxa local."
           }
         },
         "cs" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Aplikace Swipt se připojuje ke službám pro vývojáře na tomto zařízení."
+            "state" : "translated",
+            "value" : "Aplikace Swipt se připojuje k vývojářským službám na tomto zařízení, a pokud zveřejníte její API, přijímá i připojení z místní sítě."
           }
         },
         "da" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt opretter forbindelse til udviklertjenester på denne enhed."
+            "state" : "translated",
+            "value" : "Swipt opretter forbindelse til udviklertjenester på denne enhed og accepterer forbindelser på det lokale netværk, hvis du udgiver appens API."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt verbindet sich mit den Entwicklerdiensten dieses Geräts."
+            "state" : "translated",
+            "value" : "Swipt verbindet sich mit den Entwicklerdiensten auf diesem Gerät und nimmt Verbindungen im lokalen Netzwerk an, wenn du die API veröffentlichst."
           }
         },
         "el" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Το Swipt συνδέεται στις υπηρεσίες προγραμματιστών αυτής της συσκευής."
+            "state" : "translated",
+            "value" : "Το Swipt συνδέεται στις υπηρεσίες προγραμματιστή αυτής της συσκευής και, αν δημοσιεύσετε το API του, δέχεται συνδέσεις στο τοπικό δίκτυο."
           }
         },
         "en" : {
@@ -71,242 +71,242 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt se conecta a los servicios para desarrolladores de este dispositivo."
+            "state" : "translated",
+            "value" : "Swipt se conecta a los servicios de desarrollador de este dispositivo y, si publicas su API, acepta conexiones en la red local."
           }
         },
         "es-419" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt se conecta a los servicios para desarrolladores de este dispositivo."
+            "state" : "translated",
+            "value" : "Swipt se conecta a los servicios de desarrollador de este dispositivo y, si publicas su API, acepta conexiones en la red local."
           }
         },
         "fi" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt muodostaa yhteyden tämän laitteen kehittäjäpalveluihin."
+            "state" : "translated",
+            "value" : "Swipt muodostaa yhteyden tämän laitteen kehittäjäpalveluihin ja ottaa vastaan yhteyksiä lähiverkosta, jos julkaiset sen API:n."
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt se connecte aux services pour développeurs de cet appareil."
+            "state" : "translated",
+            "value" : "Swipt se connecte aux services de développeur de cet appareil et, si vous publiez son API, accepte les connexions sur le réseau local."
           }
         },
         "fr-CA" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "L’app Swipt se connecte aux services pour développeurs de cet appareil."
+            "state" : "translated",
+            "value" : "L’app Swipt se connecte aux services de développeur de cet appareil et, si vous publiez son API, elle accepte les connexions sur le réseau local."
           }
         },
         "gu" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt આ ડિવાઇસ પરની ડેવલપર સેવાઓ સાથે કનેક્ટ થાય છે."
+            "state" : "translated",
+            "value" : "Swipt આ ડિવાઇસ પરની ડેવલપર સેવાઓ સાથે કનેક્ટ થાય છે અને, જો તમે તેનું API પબ્લિશ કરો, તો સ્થાનિક નેટવર્ક પરનાં કનેક્શન સ્વીકારે છે."
           }
         },
         "he" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "‏Swipt מתחבר לשירותי המפתחים במכשיר הזה."
+            "state" : "translated",
+            "value" : "‏Swipt מתחבר לשירותי המפתחים במכשיר הזה, ואם ה-API שלו מפורסם, הוא גם מקבל חיבורים ברשת המקומית."
           }
         },
         "hi" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt इस डिवाइस की डेवलपर सेवाओं से कनेक्ट होता है।"
+            "state" : "translated",
+            "value" : "Swipt इस डिवाइस पर डेवलपर सेवाओं से कनेक्ट होता है। अगर आप इसका API प्रकाशित करते हैं, तो यह स्थानीय नेटवर्क पर कनेक्शन भी स्वीकार करता है।"
           }
         },
         "hr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Aplikacija Swipt povezuje se s uslugama za razvojne programere na ovom uređaju."
+            "state" : "translated",
+            "value" : "Aplikacija Swipt povezuje se s uslugama za programere na ovom uređaju, a ako objavite njezin API, prihvaća i veze s lokalne mreže."
           }
         },
         "hu" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "A Swipt csatlakozik az eszköz fejlesztői szolgáltatásaihoz."
+            "state" : "translated",
+            "value" : "A Swipt az eszközön futó fejlesztői szolgáltatásokhoz csatlakozik, és ha Ön közzéteszi az API-ját, a helyi hálózatról érkező kapcsolatokat is fogad."
           }
         },
         "id" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt terhubung ke layanan pengembang di perangkat ini."
+            "state" : "translated",
+            "value" : "Swipt terhubung ke layanan pengembang di perangkat ini dan menerima koneksi di jaringan lokal jika Anda memublikasikan API-nya."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt si connette ai servizi per sviluppatori di questo dispositivo."
+            "state" : "translated",
+            "value" : "Swipt si connette ai servizi per sviluppatori su questo dispositivo e, se ne pubblichi l’API, accetta connessioni sulla rete locale."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swiptは、このデバイスのデベロッパサービスに接続します。許可した場合は、ローカルネットワーク上のペアリング済みのコンピュータからの接続も受け付けます。"
+            "state" : "translated",
+            "value" : "Swiptは、このデバイス上のデベロッパサービスに接続します。また、APIを公開している場合は、ローカルネットワークからの接続を受け付けます。"
           }
         },
         "kk" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt осы құрылғыдағы әзірлеуші қызметтеріне қосылады."
+            "state" : "translated",
+            "value" : "Swipt осы құрылғыдағы әзірлеуші қызметтеріне қосылады, ал оның API интерфейсін жарияласаңыз, жергілікті желідегі қосылымдарды да қабылдайды."
           }
         },
         "kn" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt ಈ ಸಾಧನದ ಡೆವಲಪರ್ ಸೇವೆಗಳಿಗೆ ಸಂಪರ್ಕಗೊಳ್ಳುತ್ತದೆ."
+            "state" : "translated",
+            "value" : "Swipt ಆ್ಯಪ್ ಈ ಸಾಧನದಲ್ಲಿರುವ ಡೆವಲಪರ್ ಸೇವೆಗಳಿಗೆ ಕನೆಕ್ಟ್ ಆಗುತ್ತದೆ ಮತ್ತು ನೀವು ಅದರ API ಅನ್ನು ಪ್ರಕಟಿಸಿದರೆ, ಸ್ಥಳೀಯ ನೆಟ್‌ವರ್ಕ್‌ನಲ್ಲಿನ ಕನೆಕ್ಷನ್‌ಗಳನ್ನು ಸ್ವೀಕರಿಸುತ್ತದೆ."
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt는 이 기기의 개발자 서비스에 연결합니다."
+            "state" : "translated",
+            "value" : "Swipt는 이 기기의 개발자 서비스에 연결하며, 사용자가 API를 게시하는 경우 로컬 네트워크에서 들어오는 연결을 수락합니다."
           }
         },
         "lt" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "„Swipt” prisijungia prie šio įrenginio kūrėjų paslaugų."
+            "state" : "translated",
+            "value" : "„Swipt” jungiasi prie šiame įrenginyje veikiančių kūrėjo paslaugų, o jei paskelbsite programos API, priima ir ryšius iš vietinio tinklo."
           }
         },
         "ml" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt ഈ ഡിവൈസിലെ ഡെവലപ്പർ സേവനങ്ങളിലേക്ക് കണക്റ്റ് ചെയ്യുന്നു."
+            "state" : "translated",
+            "value" : "Swipt ഈ ഡിവൈസിലെ ഡെവലപ്പർ സർവീസുകളിലേക്ക് കണക്റ്റ് ചെയ്യുന്നു. നിങ്ങൾ അതിന്റെ API പ്രസിദ്ധീകരിച്ചാൽ, ലോക്കൽ നെറ്റ്‌വർക്കിലെ കണക്ഷനുകളും സ്വീകരിക്കും."
           }
         },
         "mr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt या डिव्हाइसवरील डेव्हलपर सेवांशी कनेक्ट होते."
+            "state" : "translated",
+            "value" : "Swipt या डिव्हाइसवरील डेव्हलपर सेवांशी कनेक्ट होते आणि तुम्ही त्याचे API प्रकाशित केल्यास स्थानिक नेटवर्कवरील कनेक्शन स्वीकारते."
           }
         },
         "ms" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt bersambung ke perkhidmatan pembangun pada peranti ini."
+            "state" : "translated",
+            "value" : "Swipt menyambung ke perkhidmatan pembangun pada peranti ini dan, jika anda menerbitkan API-nya, menerima sambungan pada rangkaian setempat."
           }
         },
         "nb" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt kobler til utviklertjenestene på denne enheten."
+            "state" : "translated",
+            "value" : "Swipt kobler til utviklertjenester på denne enheten og tar imot tilkoblinger på det lokale nettverket hvis du publiserer API-et."
           }
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt maakt verbinding met de ontwikkelaarsdiensten op dit apparaat."
+            "state" : "translated",
+            "value" : "Swipt maakt verbinding met ontwikkelaarsdiensten op dit apparaat en accepteert verbindingen op het lokale netwerk als je de API publiceert."
           }
         },
         "or" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt ଏହି ଡିଭାଇସ୍‌ର ଡେଭେଲପର୍ ସେବା ସହ ସଂଯୋଗ କରେ।"
+            "state" : "translated",
+            "value" : "Swipt ଏହି ଡିଭାଇସ୍‌ରେ ଥିବା ଡେଭଲପର୍ ସେବା ସହ ସଂଯୋଗ କରେ ଏବଂ ଯଦି ଆପଣ ଏହାର API ପ୍ରକାଶ କରନ୍ତି, ତେବେ ସ୍ଥାନୀୟ ନେଟ୍‌ୱର୍କ୍‌ରେ ସଂଯୋଗ ଗ୍ରହଣ କରେ।"
           }
         },
         "pa" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt ਇਸ ਡਿਵਾਈਸ ਦੀਆਂ ਡਿਵੈਲਪਰ ਸੇਵਾਵਾਂ ਨਾਲ ਕਨੈਕਟ ਹੁੰਦੀ ਹੈ।"
+            "state" : "translated",
+            "value" : "Swipt ਇਸ ਡਿਵਾਈਸ 'ਤੇ ਡਿਵੈਲਪਰ ਸੇਵਾਵਾਂ ਨਾਲ ਕਨੈਕਟ ਕਰਦੀ ਹੈ। ਜੇ ਤੁਸੀਂ ਇਸਦਾ API ਪ੍ਰਕਾਸ਼ਿਤ ਕਰਦੇ ਹੋ, ਤਾਂ ਇਹ ਸਥਾਨਕ ਨੈੱਟਵਰਕ 'ਤੇ ਕਨੈਕਸ਼ਨ ਵੀ ਸਵੀਕਾਰ ਕਰਦੀ ਹੈ।"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Aplikacja Swipt łączy się z usługami deweloperskimi tego urządzenia."
+            "state" : "translated",
+            "value" : "Aplikacja Swipt łączy się z usługami deweloperskimi na tym urządzeniu, a jeśli opublikujesz jej API, przyjmuje także połączenia z sieci lokalnej."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "O Swipt se conecta aos serviços para desenvolvedores deste dispositivo."
+            "state" : "translated",
+            "value" : "O Swipt se conecta aos serviços de desenvolvedor neste dispositivo e, se você publicar a API dele, aceita conexões na rede local."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "O Swipt liga-se aos serviços para programadores deste dispositivo."
+            "state" : "translated",
+            "value" : "O Swipt liga‑se aos serviços de programador neste dispositivo e, se publicar a respetiva API, aceita ligações na rede local."
           }
         },
         "ro" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Aplicația Swipt se conectează la serviciile pentru dezvoltatori ale acestui dispozitiv."
+            "state" : "translated",
+            "value" : "Aplicația Swipt se conectează la serviciile pentru dezvoltatori de pe acest dispozitiv și, dacă publicați API-ul aplicației, acceptă conexiuni în rețeaua locală."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt подключается к службам разработчика на этом устройстве."
+            "state" : "translated",
+            "value" : "Swipt подключается к службам разработчика на этом устройстве и, если Вы опубликуете его API, принимает подключения из локальной сети."
           }
         },
         "sk" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Apka Swipt sa pripája k vývojárskym službám tohto zariadenia."
+            "state" : "translated",
+            "value" : "Apka Swipt sa pripája k vývojárskym službám v tomto zariadení. Ak zverejníte jej API, prijíma aj pripojenia z lokálnej siete."
           }
         },
         "sl" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Aplikacija Swipt se poveže s storitvami za razvijalce v tej napravi."
+            "state" : "translated",
+            "value" : "Aplikacija Swipt se povezuje s storitvami za razvijalce v tej napravi. Če objavite njen API, sprejema tudi povezave v lokalnem omrežju."
           }
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt ansluter till utvecklartjänsterna på den här enheten."
+            "state" : "translated",
+            "value" : "Swipt ansluter till utvecklartjänster på den här enheten och tar emot anslutningar i det lokala nätverket om du publicerar dess API."
           }
         },
         "ta" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt இந்தச் சாதனத்தின் டெவெலப்பர் சேவைகளுடன் இணைகிறது."
+            "state" : "translated",
+            "value" : "Swipt இந்தச் சாதனத்தில் உள்ள டெவலப்பர் சேவைகளுடன் இணைகிறது. நீங்கள் அதன் APIஐ வெளியிட்டால், உள்ளக நெட்வொர்க்கில் இருந்து வரும் இணைப்புகளையும் ஏற்கும்."
           }
         },
         "te" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt ఈ డివైజ్‌లోని డెవలపర్ సర్వీస్‌లకు కనెక్ట్ అవుతుంది."
+            "state" : "translated",
+            "value" : "Swipt ఈ డివైజ్‌లోని డెవలపర్ సర్వీస్‌లకు కనెక్ట్ అవుతుంది. మీరు దాని APIని పబ్లిష్ చేస్తే, లోకల్ నెట్‌వర్క్‌లోని కనెక్షన్‌లను కూడా అంగీకరిస్తుంది."
           }
         },
         "th" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt จะเชื่อมต่อกับบริการสำหรับนักพัฒนาบนอุปกรณ์นี้"
+            "state" : "translated",
+            "value" : "Swipt จะเชื่อมต่อกับบริการนักพัฒนาบนอุปกรณ์นี้ และหากคุณเผยแพร่ API ของ Swipt ก็จะยอมรับการเชื่อมต่อบนเครือข่ายในพื้นที่ด้วย"
           }
         },
         "tr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt, bu aygıttaki geliştirici hizmetlerine bağlanır."
+            "state" : "translated",
+            "value" : "Swipt bu aygıttaki geliştirici servislerine bağlanır ve API’sini yayımlarsanız yerel ağdaki bağlantıları kabul eder."
           }
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Програма Swipt підключається до служб для розробників на цьому пристрої."
+            "state" : "translated",
+            "value" : "Програма Swipt підʼєднується до служб розробника на цьому пристрої, а якщо ви опублікуєте її API, також приймає зʼєднання з локальної мережі."
           }
         },
         "ur" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "‏Swipt اس ڈیوائس پر ڈیولپر سروسز سے منسلک ہوتی ہے۔"
+            "state" : "translated",
+            "value" : "‏Swipt اس ڈیوائس پر ڈیولپر سروسز سے کنکٹ ہوتا ہے، اور اگر آپ اس کا API شائع کرتے ہیں تو یہ مقامی نیٹ ورک پر کنکشنز بھی قبول کرتا ہے۔"
           }
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt kết nối với các dịch vụ dành cho nhà phát triển trên thiết bị này."
+            "state" : "translated",
+            "value" : "Swipt kết nối với các dịch vụ nhà phát triển trên thiết bị này và chấp nhận các kết nối trên mạng cục bộ nếu bạn công bố API của ứng dụng."
           }
         },
         "zh-HK" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Swipt 會連線至此裝置上的開發者服務；如果你允許，它亦會接受區域網絡上已配對電腦的連線。"
+            "state" : "translated",
+            "value" : "Swipt 會連接此裝置上的開發者服務；如果你發佈其 API，它亦會接受來自本地網絡的連線。"
           }
         },
         "zh-Hans" : {

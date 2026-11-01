@@ -105,6 +105,10 @@ public final class SwiptHostModule: Module {
       }
     }
 
+    Function("preferredLocalizations") { (localizations: [String]) -> [String] in
+      Bundle.preferredLocalizations(from: localizations, forPreferences: Locale.preferredLanguages)
+    }
+
     Function("log") { (swiplet: String, level: String, message: String) in
       Task { @MainActor in
         Self.delegate?.log(swiplet: swiplet, level: level, message: message)
