@@ -171,7 +171,6 @@ declare namespace accessibility {
 declare namespace input {
   export interface TapOptions extends CallOptions {
     readonly count?: number;
-    readonly holdMs?: number;
   }
 
   export type KeyboardKey = "return" | "backspace" | "forwardDelete" | "tab" | "escape" | "space" | "left" | "right" | "up" | "down"

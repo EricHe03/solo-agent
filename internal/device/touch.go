@@ -21,7 +21,7 @@ const (
 	dragSteps     = 6
 	dragStep      = 10 * time.Millisecond
 	dragHold      = 40 * time.Millisecond
-	tapHold       = 40 * time.Millisecond
+	tapHold       = 1 * time.Millisecond
 	doubleTapGap  = 80 * time.Millisecond
 	pinchGap      = 200.0
 	pinchOverlap  = 1.0

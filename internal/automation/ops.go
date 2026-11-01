@@ -258,16 +258,14 @@ func (o *strict) UnmarshalJSON(data []byte) error {
 }
 
 type touchOptions struct {
-	Count  *int     `json:"count"`
-	HoldMs *float64 `json:"holdMs"`
+	Count *int `json:"count"`
 }
 
-func (o touchOptions) values() (int, time.Duration, error) {
+func (o touchOptions) values() (int, error) {
 	if o.Count != nil && *o.Count < 1 {
-		return 0, 0, E.Cause1(ErrInvalid, E.New("count must be at least 1"))
+		return 0, E.Cause1(ErrInvalid, E.New("count must be at least 1"))
 	}
-	hold, err := duration("holdMs", o.HoldMs)
-	return common.PtrValueOrDefault(o.Count), hold, err
+	return common.PtrValueOrDefault(o.Count), nil
 }
 
 func numeric(value reflect.Type) bool {
@@ -342,11 +340,11 @@ func deviceTap(ctx context.Context, phone *device.Phone, call *operation) error 
 	if err := call.decode(1, &at, &strict{&options}); err != nil {
 		return err
 	}
-	count, hold, err := options.values()
+	count, err := options.values()
 	if err != nil {
 		return err
 	}
-	return phone.TapPoint(ctx, device.Point(at), count, hold)
+	return phone.TapPoint(ctx, device.Point(at), count)
 }
 
 func deviceGesture(ctx context.Context, phone *device.Phone, call *operation) error {

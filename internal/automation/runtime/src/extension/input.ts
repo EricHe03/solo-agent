@@ -2,7 +2,7 @@ import { act, check, optionsOf, point, type Options } from "./options";
 
 const button = (name: string) => (options?: Options) => act("input.button", [name], check(options, []));
 
-export const tap = (at: unknown, options?: Options) => act("input.tap", [point(at, "the point"), optionsOf(options, ["count", "holdMs"])], options);
+export const tap = (at: unknown, options?: Options) => act("input.tap", [point(at, "the point"), optionsOf(options, ["count"])], options);
 export const swipe = (from: unknown, to: unknown, options?: Options) =>
   act("input.swipe", [point(from, "from"), point(to, "to"), optionsOf(options, ["durationMs"])], options);
 export const drag = (from: unknown, to: unknown, options?: Options) =>

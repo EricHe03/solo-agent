@@ -19,7 +19,6 @@ import (
 // delivery jitter.
 const (
 	touchFrame    = 20 * time.Millisecond
-	touchRest     = 150 * time.Millisecond
 	swipeDuration = 250 * time.Millisecond
 	dragDuration  = 600 * time.Millisecond
 	easeSteps     = 12
@@ -93,7 +92,7 @@ func DragPath(from, to Point, duration, press time.Duration) ([][]TouchSample, e
 		eased := 1 - math.Pow(1-progress, 3)
 		path = append(path, TouchSample{from.X + (to.X-from.X)*eased, from.Y + (to.Y-from.Y)*eased, press + time.Duration(progress*float64(duration))})
 	}
-	return [][]TouchSample{append(path, TouchSample{to.X, to.Y, press + duration + touchRest})}, nil
+	return [][]TouchSample{append(path, TouchSample{to.X, to.Y, press + duration})}, nil
 }
 
 func pinchPath(geometry phoneGeometry, center Point, scale float64, duration time.Duration) ([][]TouchSample, error) {
@@ -121,7 +120,7 @@ func pinchPath(geometry phoneGeometry, center Point, scale float64, duration tim
 		return []TouchSample{
 			{center.X + sign*start, center.Y, 0},
 			{center.X + sign*end, center.Y, duration},
-			{center.X + sign*end, center.Y, duration + touchRest},
+			{center.X + sign*end, center.Y, duration},
 		}
 	}
 	return [][]TouchSample{finger(-1), finger(1)}, nil

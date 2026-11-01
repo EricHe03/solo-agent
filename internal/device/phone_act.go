@@ -388,13 +388,13 @@ func (p *Phone) requireScreen(ctx context.Context, c *conn) error {
 	return nil
 }
 
-func (p *Phone) TapPoint(ctx context.Context, at Point, count int, hold time.Duration) error {
+func (p *Phone) TapPoint(ctx context.Context, at Point, count int) error {
 	return p.act(ctx, action{name: "tap " + pointText(at), unlocked: true, input: func(ctx context.Context, c *conn, geometry phoneGeometry) error {
 		if err := geometry.check(at); err != nil {
 			return err
 		}
 		return p.gesture(ctx, c, func(input *hid.Client) error {
-			return tap(ctx, geometry, input, at, count, hold)
+			return tap(ctx, geometry, input, at, count, 0)
 		})
 	}})
 }
