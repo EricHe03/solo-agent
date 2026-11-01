@@ -517,6 +517,13 @@ func (p *Phone) Unlock(ctx context.Context) error {
 		return E.New("no unlock passcode is configured")
 	}
 	return p.act(ctx, action{name: "unlock", input: func(ctx context.Context, c *conn, _ phoneGeometry) error {
+		locked, err := c.lockState.locked(ctx, c.device)
+		if err != nil {
+			return E.Cause(err, "read the lock state")
+		}
+		if !locked {
+			return nil
+		}
 		grant, err := p.connection.input.acquire(ctx, c)
 		if err != nil {
 			return err
