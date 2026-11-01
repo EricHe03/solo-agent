@@ -89,7 +89,7 @@ nonisolated enum GraphicsCalls {
             return try difference(model.node(at: arguments.double("from") ?? 0), model.node(at: arguments.double("to") ?? 0),
                                   threshold: arguments.int("threshold") ?? defaultThreshold, token: token)
         case "video.find":
-            return try recordingFind(call, engine, token)
+            return try recordingFind(call, engine, context, token)
         case "video.export":
             return try ["path": video(call).export(arguments, token: token)]
         default:
@@ -383,6 +383,9 @@ nonisolated enum GraphicsCalls {
         let arguments: Arguments
         var comparison: Comparison?
         var previous: Raster?
+        var probed: Raster?
+        var probedAt: Double?
+        var resting = true
         var frames = 0
         var probes = 0
         var probing: Double = 0
@@ -396,10 +399,21 @@ nonisolated enum GraphicsCalls {
             frames += 1
             let compared = nowMilliseconds()
             let plane = try comparison!.plane(node, token)
-            let changed = try previous.map { try comparison!.changed($0, plane) } ?? true
+            let fresh = try probed.map { try comparison!.changed($0, plane) } ?? true
+            let settled = try !fresh || previous.map { try !comparison!.changed($0, plane) } ?? true
             previous = plane
             comparing += nowMilliseconds() - compared
-            guard changed else { return nil }
+            guard fresh else {
+                resting = true
+                return nil
+            }
+            let time = node.time ?? nowMilliseconds()
+            let due = probedAt.map { time - $0 >= 2 * last } ?? true
+            let rested = resting
+            resting = false
+            guard settled || rested || due else { return nil }
+            probed = plane
+            probedAt = time
             let started = nowMilliseconds()
             defer {
                 last = nowMilliseconds() - started
@@ -409,7 +423,7 @@ nonisolated enum GraphicsCalls {
             return try probe(node, targets, arguments, token)
         }
 
-        func trace(_ context: LibSwiptGraphicsContext, started: Double, hit: ScreenHit?, frame: Frame) {
+        func trace(_ context: LibSwiptGraphicsContext, _ name: String, started: Double, hit: ScreenHit?, frameTime: Double?) {
             guard context.tracing() else { return }
             let now = nowMilliseconds()
             let described = targets.map { target in
@@ -420,9 +434,12 @@ nonisolated enum GraphicsCalls {
             }.joined(separator: ", ")
             var detail = "\(described) in \(arguments.rect("region").map { "\(rectJSON($0).map { Int($0) })" } ?? "the screen"): compared \(frames) frames in \(Int(comparing)) ms, probed \(probes) in \(Int(probing)) ms, last \(Int(last)) ms"
             if let hit {
-                detail += ", matched target \(hit.target) in a frame from \(Int(now - frame.time)) ms ago"
+                detail += ", matched target \(hit.target)"
+                if let frameTime {
+                    detail += " in a frame from \(Int(now - frameTime)) ms ago"
+                }
             }
-            context.trace("screen.find", detail: detail, startedMs: started, durationMs: now - started)
+            context.trace(name, detail: detail, startedMs: started, durationMs: now - started)
         }
     }
 
@@ -447,30 +464,34 @@ nonisolated enum GraphicsCalls {
             try token.check()
             let node = ImageNode.frame(frame)
             if let hit = try search.check(node, token) {
-                search.trace(context, started: started, hit: hit, frame: frame)
+                search.trace(context, "screen.find", started: started, hit: hit, frameTime: frame.time)
                 return matchJSON(hit, node, engine)
             }
             guard timeout != 0, let next = try feed.frame(after: sequence, until: limit, token: token) else {
-                search.trace(context, started: started, hit: nil, frame: frame)
+                search.trace(context, "screen.find", started: started, hit: nil, frameTime: frame.time)
                 return NSNull()
             }
             (frame, sequence) = next
         }
     }
 
-    private static func recordingFind(_ call: PreparedCall, _ engine: GraphicsEngine, _ token: CancelToken) throws -> Any {
+    private static func recordingFind(_ call: PreparedCall, _ engine: GraphicsEngine, _ context: LibSwiptGraphicsContext, _ token: CancelToken) throws -> Any {
+        let started = nowMilliseconds()
         let model = try video(call)
         let arguments = call.arguments
         var search = ScreenSearch(targets: try screenTargets(call, objectsFrom: 1), arguments: arguments)
-        var found: [String: Any]?
+        var result: [String: Any]?
+        var found: ScreenHit?
         try model.scan(from: arguments.double("from") ?? 0, to: arguments.double("to") ?? model.duration, token: token) { frame in
             let node = ImageNode.frame(frame)
             guard let hit = try search.check(node, token) else { return true }
-            found = matchJSON(hit, node, engine)
-            found!["time"] = rounded(frame.time)
+            found = hit
+            result = matchJSON(hit, node, engine)
+            result!["time"] = rounded(frame.time)
             return false
         }
-        return found ?? NSNull()
+        search.trace(context, "recording.find", started: started, hit: found, frameTime: nil)
+        return result ?? NSNull()
     }
 
     private static func decode(_ call: PreparedCall, _ engine: GraphicsEngine) throws -> Any {
