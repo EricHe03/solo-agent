@@ -288,7 +288,7 @@ func (s *Connection) startFeedStream(ctx context.Context) (*deviceStream, error)
 	m.access.Lock()
 	m.lastStart = time.Now()
 	m.access.Unlock()
-	video, err := a.display.StartVideo(ctx, display.StreamOptions{SessionID: uuid.New(), Mode: display.ModeCoreDevice})
+	video, err := a.display.StartVideo(ctx, display.StreamOptions{SessionID: uuid.New(), Mode: display.ModeRemoteDesktop})
 	if err != nil {
 		m.access.Lock()
 		m.failures++
