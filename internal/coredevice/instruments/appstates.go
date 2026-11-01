@@ -97,44 +97,56 @@ func (a *AppStates) Close() error {
 	return a.conn.Close()
 }
 
-// runningProcessWithPid: answers the dictionary runningProcesses lists for
-// the process, which holds foregroundRunning when its task is running and
-// scheduled and its endowment namespaces hold the one tested (24B5110a
-// DVTInstrumentsFoundation 0x262bdb224, 0x262bdab28..0x262bdab80): an app
-// kept it under SpringBoard's paste prompt and in the app switcher, and lost
-// it on going to the home screen (iPhone18,2, iOS 27.2 24B115).
-func ForegroundProcesses(ctx context.Context, device *coredevice.Device, pids []uint64) ([]uint64, error) {
+type DeviceInfo struct {
+	conn *dtx.Conn
+}
+
+func DialDeviceInfo(ctx, owner context.Context, device *coredevice.Device) (*DeviceInfo, error) {
 	conn, err := device.DialService(ctx, serviceName)
 	if err != nil {
 		return nil, E.Cause(err, "instruments: connect")
 	}
-	dtxConn, err := dtx.NewConn(ctx, conn, func(dtx.Event) (any, bool) {
+	dtxConn, err := dtx.NewConn(owner, conn, func(dtx.Event) (any, bool) {
 		return nil, true
 	})
 	if err != nil {
 		conn.Close()
 		return nil, E.Cause(err, "instruments: initialize DTX")
 	}
-	defer dtxConn.Close()
 	err = dtxConn.Notify(ctx, 0, "_notifyOfPublishedCapabilities:", map[string]any{
 		"com.apple.private.DTXBlockCompression": int64(0), "com.apple.private.DTXConnection": int64(1),
 	})
 	if err != nil {
+		dtxConn.Close()
 		return nil, E.Cause(err, "instruments: announce capabilities")
 	}
 	if _, err = dtxConn.Invoke(ctx, 0, "_requestChannelWithCode:identifier:", dtx.Int32(deviceInfoChannel), deviceInfoService); err != nil {
+		dtxConn.Close()
 		return nil, E.Cause(err, "instruments: open ", deviceInfoService)
 	}
-	var foreground []uint64
-	for _, pid := range pids {
-		value, err := dtxConn.Invoke(ctx, deviceInfoChannel, "runningProcessWithPid:", int64(pid))
-		if err != nil {
-			return nil, E.Cause(err, "instruments: read process ", pid)
-		}
-		fields, _ := value.(map[string]any)
-		if running, _ := fields["foregroundRunning"].(bool); running {
-			foreground = append(foreground, pid)
-		}
+	return &DeviceInfo{conn: dtxConn}, nil
+}
+
+// runningProcessWithPid: answers the dictionary runningProcesses lists for
+// the process, which holds foregroundRunning when its task is running and
+// scheduled and its endowment namespaces hold the one tested (24B5110a
+// DVTInstrumentsFoundation 0x262bdb224, 0x262bdab28..0x262bdab80): an app
+// kept it under SpringBoard's paste prompt and in the app switcher, and lost
+// it on going to the home screen (iPhone18,2, iOS 27.2 24B115).
+func (d *DeviceInfo) Foreground(ctx context.Context, pid uint64) (bool, error) {
+	value, err := d.conn.Invoke(ctx, deviceInfoChannel, "runningProcessWithPid:", int64(pid))
+	if err != nil {
+		return false, E.Cause(err, "instruments: read process ", pid)
 	}
-	return foreground, nil
+	fields, _ := value.(map[string]any)
+	running, _ := fields["foregroundRunning"].(bool)
+	return running, nil
+}
+
+func (d *DeviceInfo) Err() error {
+	return d.conn.Err()
+}
+
+func (d *DeviceInfo) Close() error {
+	return d.conn.Close()
 }
