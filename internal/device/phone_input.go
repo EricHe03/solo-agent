@@ -14,8 +14,11 @@ import (
 	"github.com/swipt-automation/swipt/internal/coredevice/hid"
 )
 
+// dtuhidd drops a position-only digitizer event that arrives within 16 ms of
+// the last event it produced (DDI 27B48 0x100040458); 20 ms leaves room for
+// delivery jitter.
 const (
-	touchFrame    = 16 * time.Millisecond
+	touchFrame    = 20 * time.Millisecond
 	touchRest     = 150 * time.Millisecond
 	swipeDuration = 250 * time.Millisecond
 	dragDuration  = 600 * time.Millisecond
