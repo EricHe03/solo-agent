@@ -287,6 +287,8 @@ nonisolated final class Frame: @unchecked Sendable {
     let geometry: ScreenGeometry
     let cropWidth: Int
     let cropHeight: Int
+    private let quarterLock = NSLock()
+    private var quarterPlane: Raster?
 
     init(pixelBuffer: CVPixelBuffer, time: Double, turns: Int, geometry: ScreenGeometry) {
         self.pixelBuffer = pixelBuffer
@@ -311,9 +313,38 @@ nonisolated final class Frame: @unchecked Sendable {
         try native().rotated(quarterTurns: turns)
     }
 
-    func plane(width: Int, height: Int) throws -> Raster {
-        let small = turns % 2 == 0 ? (width, height) : (height, width)
-        return try native().resized(width: small.0, height: small.1).grayscale().rotated(quarterTurns: turns)
+    func quarter() throws -> Raster {
+        try quarterLock.withLock {
+            if let quarterPlane {
+                return quarterPlane
+            }
+            let made = try Frame.quartered(pixelBuffer, width: max(cropWidth / 4, 1), height: max(cropHeight / 4, 1)).grayscale().rotated(quarterTurns: turns)
+            quarterPlane = made
+            return made
+        }
+    }
+
+    private static let scaling = LockedState<VTPixelTransferSession?>(initialState: nil)
+
+    private static func quartered(_ source: CVPixelBuffer, width: Int, height: Int) throws -> Raster {
+        var made: CVPixelBuffer?
+        let attributes: [CFString: Any] = [kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary]
+        guard CVPixelBufferCreate(nil, max(CVPixelBufferGetWidth(source) / 4, width), max(CVPixelBufferGetHeight(source) / 4, height), kCVPixelFormatType_32BGRA, attributes as CFDictionary, &made) == kCVReturnSuccess, let made else {
+            throw GraphicsError("Error", "graphics: allocate the scaled frame")
+        }
+        let status = scaling.withLock { session -> OSStatus in
+            if session == nil {
+                var created: VTPixelTransferSession?
+                guard VTPixelTransferSessionCreate(allocator: nil, pixelTransferSessionOut: &created) == noErr else { return -1 }
+                session = created
+            }
+            return VTPixelTransferSessionTransferImage(session!, from: source, to: made)
+        }
+        guard status == noErr else {
+            throw GraphicsError("Error", "graphics: scale the frame (\(status))")
+        }
+        let storage = try RasterStorage(pixelBuffer: made)
+        return Raster(storage: storage, data: storage.base, width: width, height: height, rowBytes: CVPixelBufferGetBytesPerRow(made), channels: 4)
     }
 }
 

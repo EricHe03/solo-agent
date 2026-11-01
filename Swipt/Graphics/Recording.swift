@@ -240,7 +240,7 @@ nonisolated final class RecordingSession: @unchecked Sendable {
             }
             guard let next else { return }
             do {
-                let plane = try next.0.plane(width: max(next.0.pixelWidth / 4, 1), height: max(next.0.pixelHeight / 4, 1))
+                let plane = try next.0.quarter()
                 try tracker.push(plane, time: next.0.time - next.1)
             } catch {
                 lock.withLock { failures.append(GraphicsError(error).message) }

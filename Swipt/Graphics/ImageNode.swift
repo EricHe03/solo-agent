@@ -93,6 +93,15 @@ nonisolated final class ImageNode: @unchecked Sendable {
         CGRect(x: 0, y: 0, width: pixelWidth, height: pixelHeight).applying(transform)
     }
 
+    var screenFrame: Frame? {
+        lock.withLock {
+            if parent == nil, case .frame(let frame) = source {
+                return frame
+            }
+            return nil
+        }
+    }
+
     var estimatedBytes: Int {
         pixelWidth * pixelHeight * (gray ? 1 : 4)
     }

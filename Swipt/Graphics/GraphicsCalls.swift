@@ -183,6 +183,7 @@ nonisolated enum GraphicsCalls {
         let width: Int
         let height: Int
         let threshold: Int
+        let shared: Bool
 
         init(_ node: ImageNode, region: CGRect?, threshold: Int) throws {
             let area = region ?? node.frame
@@ -194,13 +195,20 @@ nonisolated enum GraphicsCalls {
             width = max(Int(pixels.width / factor), 1)
             height = max(Int(pixels.height / factor), 1)
             self.threshold = threshold
+            shared = factor == 4 && node.screenFrame != nil
         }
 
         func plane(_ node: ImageNode, _ token: CancelToken) throws -> Raster {
-            let raster = try node.raster(token)
             guard let pixels = node.pixelRect(space: region) else {
                 throw GraphicsError.range("the region lies outside the screen")
             }
+            if shared, let frame = node.screenFrame {
+                let quarter = try frame.quarter()
+                let x = min(Int(pixels.minX) / 4, quarter.width - width)
+                let y = min(Int(pixels.minY) / 4, quarter.height - height)
+                return quarter.view(x: max(x, 0), y: max(y, 0), width: min(width, quarter.width), height: min(height, quarter.height))
+            }
+            let raster = try node.raster(token)
             return try raster.view(x: Int(pixels.minX), y: Int(pixels.minY), width: Int(pixels.width), height: Int(pixels.height))
                 .resized(width: width, height: height).grayscale()
         }
