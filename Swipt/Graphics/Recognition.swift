@@ -51,6 +51,37 @@ nonisolated enum Recognition {
         }
     }
 
+    static func warm() {
+        DispatchQueue.global(qos: .utility).async {
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            request.recognitionLanguages = deviceLanguages(request)
+            restrict(request)
+            if let image = try? Raster(width: 64, height: 32, channels: 4).cgImage() {
+                try? VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
+            }
+        }
+    }
+
+    static func deviceLanguages(_ request: VNRecognizeTextRequest) -> [String] {
+        guard let supported = try? request.supportedRecognitionLanguages(), !supported.isEmpty else { return [] }
+        var chosen: [String] = []
+        for preferred in Locale.preferredLanguages + ["en-US"] {
+            let language = Locale(identifier: preferred).language
+            let match = supported.first { $0 == preferred }
+                ?? supported.first { Locale(identifier: $0).language.languageCode == language.languageCode && Locale(identifier: $0).language.script == language.script }
+                ?? supported.first { Locale(identifier: $0).language.languageCode == language.languageCode }
+            if let match, !chosen.contains(match) {
+                chosen.append(match)
+            }
+        }
+        // Vision pairs Chinese with English only (Recognizing Text in Images, Apple Developer Documentation).
+        if let chinese = chosen.first(where: { $0.hasPrefix("zh") }) {
+            return chosen.contains("en-US") ? [chinese, "en-US"] : [chinese]
+        }
+        return chosen
+    }
+
     static func shape(_ observation: VNRectangleObservation, _ place: (CGPoint) -> CGPoint) -> [String: Any] {
         let corners = [observation.topLeft, observation.topRight, observation.bottomRight, observation.bottomLeft].map(place)
         let xs = corners.map(\.x)
@@ -75,9 +106,7 @@ nonisolated enum Recognition {
         if let correction = arguments.bool("correction") {
             request.usesLanguageCorrection = correction
         }
-        if let languages = arguments.strings("languages") {
-            request.recognitionLanguages = languages
-        }
+        request.recognitionLanguages = arguments.strings("languages") ?? deviceLanguages(request)
         if let detect = arguments.bool("detectLanguage") {
             request.automaticallyDetectsLanguage = detect
         }

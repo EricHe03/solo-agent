@@ -21,6 +21,7 @@ nonisolated final class Graphics: NSObject, LibSwiptGraphicsHandlerProtocol, @un
 
     func attach(_ device: LibSwiptDevice) {
         ScreenFeed.shared.attach(device)
+        Recognition.warm()
     }
 
     func entry() -> Int64 {
