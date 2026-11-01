@@ -17,7 +17,7 @@ nonisolated enum GraphicsCalls {
         case "screen.waitForStable":
             return try waitForStable(call, engine, token)
         case "screen.find":
-            return try screenFind(call, engine, token)
+            return try screenFind(call, engine, context, token)
         case "decode":
             return try decode(call, engine)
         case "encode":
@@ -375,15 +375,46 @@ nonisolated enum GraphicsCalls {
         let arguments: Arguments
         var comparison: Comparison?
         var previous: Raster?
+        var frames = 0
+        var probes = 0
+        var probing: Double = 0
+        var comparing: Double = 0
+        var last: Double = 0
 
         mutating func check(_ node: ImageNode, _ token: CancelToken) throws -> ScreenHit? {
             if comparison == nil {
                 comparison = try Comparison(node, region: arguments.rect("region"), threshold: defaultThreshold)
             }
+            frames += 1
+            let compared = nowMilliseconds()
             let plane = try comparison!.plane(node, token)
             let changed = try previous.map { try comparison!.changed($0, plane) } ?? true
             previous = plane
-            return changed ? try probe(node, targets, arguments, token) : nil
+            comparing += nowMilliseconds() - compared
+            guard changed else { return nil }
+            let started = nowMilliseconds()
+            defer {
+                last = nowMilliseconds() - started
+                probing += last
+                probes += 1
+            }
+            return try probe(node, targets, arguments, token)
+        }
+
+        func trace(_ context: LibSwiptGraphicsContext, started: Double, hit: ScreenHit?, frame: Frame) {
+            guard context.tracing() else { return }
+            let now = nowMilliseconds()
+            let described = targets.map { target in
+                switch target {
+                case .image(let image): "image \(image.pixelWidth)x\(image.pixelHeight)"
+                case .text(let expression): "text /\(expression.pattern)/"
+                }
+            }.joined(separator: ", ")
+            var detail = "\(described) in \(arguments.rect("region").map { "\(rectJSON($0).map { Int($0) })" } ?? "the screen"): compared \(frames) frames in \(Int(comparing)) ms, probed \(probes) in \(Int(probing)) ms, last \(Int(last)) ms"
+            if let hit {
+                detail += ", matched target \(hit.target) in a frame from \(Int(now - frame.time)) ms ago"
+            }
+            context.trace("screen.find", detail: detail, startedMs: started, durationMs: now - started)
         }
     }
 
@@ -394,7 +425,8 @@ nonisolated enum GraphicsCalls {
         ]
     }
 
-    private static func screenFind(_ call: PreparedCall, _ engine: GraphicsEngine, _ token: CancelToken) throws -> Any {
+    private static func screenFind(_ call: PreparedCall, _ engine: GraphicsEngine, _ context: LibSwiptGraphicsContext, _ token: CancelToken) throws -> Any {
+        let started = nowMilliseconds()
         let arguments = call.arguments
         var search = ScreenSearch(targets: try screenTargets(call, objectsFrom: 0), arguments: arguments)
         let timeout = arguments.values["timeoutMs"] == nil ? 0 : arguments.timeout()
@@ -407,12 +439,11 @@ nonisolated enum GraphicsCalls {
             try token.check()
             let node = ImageNode.frame(frame)
             if let hit = try search.check(node, token) {
+                search.trace(context, started: started, hit: hit, frame: frame)
                 return matchJSON(hit, node, engine)
             }
-            if timeout == 0 {
-                return NSNull()
-            }
-            guard let next = try feed.frame(after: sequence, until: limit, token: token) else {
+            guard timeout != 0, let next = try feed.frame(after: sequence, until: limit, token: token) else {
+                search.trace(context, started: started, hit: nil, frame: frame)
                 return NSNull()
             }
             (frame, sequence) = next

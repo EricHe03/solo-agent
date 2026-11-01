@@ -334,18 +334,21 @@ func (p *Phone) act(ctx context.Context, do action) error {
 		return err
 	}
 	defer done()
+	connected := time.Now()
 	if do.unlocked {
 		if err = p.requireScreen(ctx, c); err != nil {
 			return err
 		}
 	}
+	checked := time.Now()
 	geometry, err := c.readGeometry(ctx)
 	if err != nil {
 		return err
 	}
 	prepared := time.Now()
 	err = do.input(ctx, c, geometry)
-	p.connection.trace(prepared, do.name, "prepared in "+prepared.Sub(began).String(), time.Since(prepared))
+	p.connection.trace(prepared, do.name, "prepared in "+prepared.Sub(began).String()+": connection "+connected.Sub(began).String()+
+		", lock and backlight "+checked.Sub(connected).String()+", geometry "+prepared.Sub(checked).String(), time.Since(prepared))
 	c.events.publish(Event{Kind: EventInput})
 	c.front.acted()
 	if err != nil {
@@ -360,12 +363,16 @@ func (p *Phone) act(ctx context.Context, do action) error {
 }
 
 func (p *Phone) gesture(ctx context.Context, c *conn, send func(input *hid.Client) error) error {
+	asked := time.Now()
 	grant, err := p.connection.input.acquire(ctx, c)
 	if err != nil {
 		return err
 	}
 	defer grant.release()
-	return grant.send(send)
+	granted := time.Now()
+	err = grant.send(send)
+	p.connection.trace(granted, "gesture", "input queue "+granted.Sub(asked).String(), time.Since(granted))
+	return err
 }
 
 func (p *Phone) requireScreen(ctx context.Context, c *conn) error {

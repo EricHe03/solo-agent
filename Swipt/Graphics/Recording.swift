@@ -75,7 +75,18 @@ nonisolated final class RecordingSession: @unchecked Sendable {
         var writer: SegmentWriter
     }
 
+    private struct FeedWindow {
+        var start: Double
+        var frames = 0
+        var decoded: Double = 0
+
+        var event: [String: Any] {
+            ["time": start, "type": "feed", "frames": frames, "decodedMs": rounded(decoded)]
+        }
+    }
+
     static let keyFrameInterval: Double = 2
+    static let feedInterval: Double = 250
 
     let url: URL
     let requested: Double
@@ -98,6 +109,8 @@ nonisolated final class RecordingSession: @unchecked Sendable {
     private var queued: Frame?
     private var busy = false
     private var clockDeltas: [Double] = []
+    private var window: FeedWindow?
+    private var feed: [[String: Any]] = []
 
     private init(url: URL, geometry: ScreenGeometry, timeline: LibSwiptGraphicsTimeline?) {
         self.url = url
@@ -195,6 +208,14 @@ nonisolated final class RecordingSession: @unchecked Sendable {
     private func observe(_ frame: Frame) {
         let start: Bool = lock.withLock {
             guard !stopped, let origin, frame.time >= origin else { return false }
+            if let window, frame.time >= window.start + RecordingSession.feedInterval {
+                feed.append(window.event)
+                self.window = nil
+            }
+            var current = window ?? FeedWindow(start: frame.time)
+            current.frames += 1
+            current.decoded = max(current.decoded, nowMilliseconds() - frame.time)
+            window = current
             queued = frame
             if busy {
                 return false
@@ -278,14 +299,14 @@ nonisolated final class RecordingSession: @unchecked Sendable {
     }
 
     private func save(_ timeline: String) throws -> VideoModel {
-        let (origin, last, segments, failures, deltas) = lock.withLock { (origin, last, segments, failures, clockDeltas.sorted()) }
+        let (origin, last, segments, failures, deltas, feed) = lock.withLock { (origin, last, segments, failures, clockDeltas.sorted(), feed + (window.map { [$0.event] } ?? [])) }
         guard let origin, !segments.isEmpty else {
             throw GraphicsError.unavailable("graphics: the recording got no frames; the screen may be off or another app may hold it")
         }
         if let failure = failures.first, segments.allSatisfy({ $0.writer.end == .zero }) {
             throw GraphicsError("Error", "graphics: \(failure)")
         }
-        let events = (try? JSONSerialization.jsonObject(with: Data(timeline.utf8))) as? [[String: Any]] ?? []
+        let events = ((try? JSONSerialization.jsonObject(with: Data(timeline.utf8))) as? [[String: Any]] ?? []) + feed
         let foreground = events.filter { $0["type"] as? String == "foreground" }.compactMap { event -> (Double, String)? in
             guard let time = (event["time"] as? NSNumber)?.doubleValue, let app = event["app"] as? String else { return nil }
             return (time, app)
@@ -303,7 +324,7 @@ nonisolated final class RecordingSession: @unchecked Sendable {
             var shifted = event
             shifted["time"] = rounded(time - origin)
             return shifted
-        }
+        }.sorted { ($0["time"] as! Double) < ($1["time"] as! Double) }
         let metadata: [String: Any] = [
             "version": 1, "start": origin, "duration": rounded(duration), "scale": geometry.scale,
             "clockOffset": rounded(deltas.isEmpty ? 0 : deltas[deltas.count / 2]),

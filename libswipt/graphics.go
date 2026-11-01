@@ -53,6 +53,14 @@ type GraphicsContext struct {
 	call *automation.GraphicsCall
 }
 
+func (c *GraphicsContext) Tracing() bool {
+	return c.call.Tracing()
+}
+
+func (c *GraphicsContext) Trace(name string, detail string, startedMs float64, durationMs float64) {
+	c.call.Trace(time.UnixMilli(int64(startedMs)), name, detail, time.Duration(durationMs*float64(time.Millisecond)))
+}
+
 func (c *GraphicsContext) Cancelled() bool {
 	return c.call.Context().Err() != nil
 }

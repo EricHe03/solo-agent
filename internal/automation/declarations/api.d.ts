@@ -255,10 +255,11 @@ declare namespace screen {
   }
 
   export type TimelineEvent =
-    | { readonly time: number; readonly type: "operation"; readonly name: string; readonly arguments?: readonly unknown[]; readonly durationMs?: number; readonly error?: string }
+    | { readonly time: number; readonly type: "operation"; readonly name: string; readonly arguments?: readonly unknown[]; readonly durationMs?: number; readonly error?: string; readonly message?: string; readonly swiplet?: string }
     | { readonly time: number; readonly type: "action"; readonly swiplet: string; readonly action: string; readonly caller: "app" | "shortcuts" | "api" }
     | { readonly time: number; readonly type: "foreground"; readonly app: string }
-    | { readonly time: number; readonly type: "log"; readonly swiplet: string; readonly level: "error" | "warn" | "info" | "debug"; readonly message: string };
+    | { readonly time: number; readonly type: "log"; readonly swiplet: string; readonly level: "error" | "warn" | "info" | "debug"; readonly message: string }
+    | { readonly time: number; readonly type: "feed"; readonly frames: number; readonly decodedMs: number };
 
   export interface ScreenRecording {
     readonly file: FileHandle;

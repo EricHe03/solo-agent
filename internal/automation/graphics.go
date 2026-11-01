@@ -56,6 +56,17 @@ func (c *GraphicsCall) Screenshot() ([]byte, float64, error) {
 	return phone.Capture(c.ctx)
 }
 
+func (c *GraphicsCall) Tracing() bool {
+	return c.call.engine.host.timeline.active()
+}
+
+func (c *GraphicsCall) Trace(at time.Time, name, detail string, duration time.Duration) {
+	c.call.engine.host.timeline.record(TimelineEvent{
+		Time: at.UnixMilli(), Type: "operation", Name: "trace." + name, Message: detail,
+		DurationMs: float64(duration.Microseconds()) / 1000, Swiplet: c.call.engine.swiplet.ID,
+	})
+}
+
 func (c *GraphicsCall) WatchTimeline() *TimelineWatch {
 	return c.call.engine.host.watchTimeline()
 }
