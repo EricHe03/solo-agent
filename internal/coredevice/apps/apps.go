@@ -22,6 +22,8 @@ const (
 	launchFeature    = "com.apple.coredevice.feature.launchapplication"
 	processesFeature = "com.apple.coredevice.feature.listprocesses"
 	signalFeature    = "com.apple.coredevice.feature.sendsignaltoprocess"
+
+	errorCodeProcessUnknown = 10004
 )
 
 type App struct {
@@ -150,13 +152,19 @@ func Launch(ctx context.Context, device *coredevice.Device, bundleID, payloadURL
 		return E.Cause(err, "apps: launch ", bundleID)
 	}
 	defer conn.Close()
-	_, err = coredevice.InvokeFeature(ctx, conn, uuid.NewString(), launchFeature, "", map[string]any{
+	input := map[string]any{
 		"applicationSpecifier": map[string]any{
 			"bundleIdentifier": map[string]any{"_0": bundleID},
 		},
 		"options":               options,
 		"standardIOIdentifiers": map[string]any{},
-	})
+	}
+	_, err = coredevice.InvokeFeature(ctx, conn, uuid.NewString(), launchFeature, "", input)
+	// Relaunching an app whose previous process is still exiting fails with CoreDeviceError 10004, "The process
+	// identifier of the launched application could not be determined" (iPhone18,2, iOS 27.2 24B115).
+	if featureError, isFeatureError := errors.AsType[*coredevice.FeatureError](err); isFeatureError && terminateExisting && featureError.Code == errorCodeProcessUnknown {
+		_, err = coredevice.InvokeFeature(ctx, conn, uuid.NewString(), launchFeature, "", input)
+	}
 	if err != nil {
 		return E.Cause(err, "apps: launch ", bundleID)
 	}
