@@ -51,8 +51,9 @@ func init() {
 		"input.button":                  screenAction(deviceButton),
 		"accessibility.snapshot":        uiSnapshot,
 		"accessibility.find":            uiFind,
-		"accessibility.tap":             screenAction(uiTap),
-		"accessibility.locate":          screenAction(uiLocate),
+		"accessibility.changed":         uiChanged,
+		"accessibility.setText":         screenAction(uiSetText),
+		"accessibility.perform":         screenAction(uiPerform),
 		"fs.stat":                       fsStat,
 		"fs.list":                       fsList,
 		"fs.read":                       fsRead,
@@ -525,72 +526,65 @@ func uiSnapshot(ctx context.Context, call *operation) (any, error) {
 }
 
 func uiFind(ctx context.Context, call *operation) (any, error) {
-	if len(call.args) == 0 {
-		return nil, E.Cause1(ErrInvalid, E.New("argument 1 is missing"))
-	}
-	selector, err := device.ParseSelector(call.args[0])
-	if err != nil {
-		return nil, err
-	}
-	phone, err := call.screen(ctx)
-	if err != nil {
-		return nil, err
-	}
-	view, err := phone.Snapshot(ctx, device.SnapshotOptions{App: selector.App()})
-	if err != nil {
-		return nil, err
-	}
-	return call.engine.snapshots.keep(view), nil
-}
-
-func uiTap(ctx context.Context, phone *device.Phone, call *operation) error {
-	var ref string
-	var options touchOptions
-	if err := call.decode(1, &ref, &strict{&options}); err != nil {
-		return err
-	}
-	count, hold, err := options.values()
-	if err != nil {
-		return err
-	}
-	return phone.TapElement(ctx, ref, count, hold)
-}
-
-func uiLocate(ctx context.Context, phone *device.Phone, call *operation) error {
 	var encoded []json.RawMessage
-	var options struct {
-		Action string   `json:"action"`
-		Each   bool     `json:"each"`
-		Count  *int     `json:"count"`
-		HoldMs *float64 `json:"holdMs"`
-		Text   *string  `json:"text"`
-		Name   *string  `json:"name"`
-	}
-	var timeoutMs *float64
-	if err := call.decode(2, &encoded, &options, &timeoutMs); err != nil {
-		return err
+	if err := call.decode(1, &encoded); err != nil {
+		return nil, err
 	}
 	selectors := make([]*device.Selector, 0, len(encoded))
 	for _, data := range encoded {
 		selector, err := device.ParseSelector(data)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		selectors = append(selectors, selector)
 	}
-	act := device.ElementAction{Kind: options.Action, Text: common.PtrValueOrDefault(options.Text), Name: common.PtrValueOrDefault(options.Name), Each: options.Each}
-	if options.Action == "tap" {
-		var err error
-		if act.Count, act.Hold, err = (touchOptions{Count: options.Count, HoldMs: options.HoldMs}).values(); err != nil {
-			return err
-		}
+	phone, err := call.screen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	view, seen, err := phone.Find(ctx, selectors)
+	if err != nil {
+		return nil, err
+	}
+	var found any
+	if view != nil {
+		found = call.engine.snapshots.keep(view)
+	}
+	return map[string]any{"snapshot": found, "seen": seen}, nil
+}
+
+func uiChanged(ctx context.Context, call *operation) (any, error) {
+	var seen uint64
+	var timeoutMs *float64
+	if err := call.decode(1, &seen, &timeoutMs); err != nil {
+		return nil, err
 	}
 	timeout := time.Duration(-1)
 	if timeoutMs != nil {
 		if *timeoutMs < 0 {
-			return E.Cause1(ErrInvalid, E.New("timeoutMs must not be negative"))
+			return nil, E.Cause1(ErrInvalid, E.New("timeoutMs must not be negative"))
 		}
 		timeout = milliseconds(*timeoutMs)
 	}
-	return phone.Locate(ctx, selectors, act, timeout)
+	phone, err := call.screen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return nil, phone.Changed(ctx, seen, timeout)
+}
+
+func uiSetText(ctx context.Context, phone *device.Phone, call *operation) error {
+	var ref, text string
+	if err := call.decode(2, &ref, &text); err != nil {
+		return err
+	}
+	return phone.SetText(ctx, ref, text)
+}
+
+func uiPerform(ctx context.Context, phone *device.Phone, call *operation) error {
+	var ref, name string
+	if err := call.decode(2, &ref, &name); err != nil {
+		return err
+	}
+	return phone.Perform(ctx, ref, name)
 }

@@ -29,6 +29,7 @@ type axJob struct {
 	ctx      context.Context
 	key      string
 	action   bool
+	low      bool
 	gen      uint64
 	run      axRun
 	started  bool
@@ -75,16 +76,25 @@ func (w *axWorker) do(ctx context.Context, action bool, gen uint64, run func(ctx
 }
 
 func (w *axWorker) read(ctx context.Context, key string, run axRun) (any, error) {
+	return w.queued(ctx, key, false, run)
+}
+
+func (w *axWorker) readLow(ctx context.Context, key string, run axRun) (any, error) {
+	return w.queued(ctx, key, true, run)
+}
+
+func (w *axWorker) queued(ctx context.Context, key string, low bool, run axRun) (any, error) {
 	w.access.Lock()
 	index := slices.IndexFunc(w.queue, func(job *axJob) bool { return job.key == key && !job.started })
 	var job *axJob
 	if index >= 0 {
 		job = w.queue[index]
 		job.interest++
+		job.low = job.low && low
 		w.access.Unlock()
 	} else {
 		w.access.Unlock()
-		job = w.enqueue(&axJob{ctx: w.conn.ctx, key: key, interest: 1, run: run, done: make(chan struct{})})
+		job = w.enqueue(&axJob{ctx: w.conn.ctx, key: key, low: low, interest: 1, run: run, done: make(chan struct{})})
 	}
 	return w.await(ctx, job)
 }
@@ -123,8 +133,9 @@ func (w *axWorker) next() *axJob {
 	for {
 		w.access.Lock()
 		if len(w.queue) > 0 {
-			job := w.queue[0]
-			w.queue = w.queue[1:]
+			index := max(slices.IndexFunc(w.queue, func(job *axJob) bool { return !job.low }), 0)
+			job := w.queue[index]
+			w.queue = slices.Delete(w.queue, index, index+1)
 			job.started = true
 			w.access.Unlock()
 			return job

@@ -1,5 +1,4 @@
 import type { CallOptions, Point, Rect } from "./index";
-import type { TapOptions } from "./input";
 
 export type AccessibilityTrait = "button" | "link" | "image" | "playsSound" | "keyboardKey" | "staticText" | "summaryElement"
   | "updatesFrequently" | "searchField" | "startsMediaSession" | "adjustable" | "allowsDirectInteraction"
@@ -49,10 +48,6 @@ export interface AccessibilitySnapshot {
 type TextField = "role" | "class" | "label" | "value" | "identifier" | "placeholder" | "hint" | "url" | "app";
 type Flag = "disabled" | "focused" | "selected" | "expanded" | "secure" | "partial" | "offScreen" | "inert" | "remote";
 
-export type AccessibilityQuery = { traits?: AccessibilityTrait[]; within?: AccessibilityQuery; parent?: AccessibilityQuery; has?: AccessibilityQuery; not?: AccessibilityQuery; index?: number }
-  & { [field in TextField]?: string | RegExp }
-  & { [field in Flag]?: boolean };
-
 export type AccessibilitySelector =
   | ({ traits?: AccessibilityTrait[]; within?: AccessibilitySelector | AccessibilityElement; parent?: AccessibilitySelector | AccessibilityElement; has?: AccessibilitySelector | AccessibilityElement; not?: AccessibilitySelector | AccessibilityElement; index?: number }
     & { [field in TextField]?: string | RegExp }
@@ -64,20 +59,15 @@ export interface SnapshotOptions extends CallOptions {
   readonly full?: boolean;
 }
 
-export interface LocatorOptions extends CallOptions {
-  /** 10000 when omitted; Infinity waits without a limit. */
+export interface FindOptions extends CallOptions {
+  /** Omitted or 0 reads once; a positive number or Infinity reads until a match, and answers null at the limit. */
   readonly timeoutMs?: number;
+  /** Reads again as soon as a read ends. Without it, a read waits for the device's next screen push, which comes 0.75 s after a change at the soonest and not at all for a change that adds or removes no element. */
+  readonly poll?: boolean;
+  readonly pollTimeoutMs?: number;
 }
 
-export interface AccessibilityLocator {
-  tap(options?: LocatorOptions & TapOptions): Promise<void>;
-  /** Taps each element as it comes to match, once while it stays matched, and resolves when the app in front at the call leaves the front, at once if the query names only other apps. */
-  tapEach(options?: TapOptions): Promise<void>;
-  setText(text: string, options?: LocatorOptions): Promise<void>;
-  perform(action: AccessibilityAction | (string & {}), options?: LocatorOptions): Promise<void>;
-}
-
-export declare function locator(query: AccessibilityQuery | readonly AccessibilityQuery[]): AccessibilityLocator;
 export declare function snapshot(options?: SnapshotOptions): Promise<AccessibilitySnapshot>;
-export declare function find(selector: AccessibilitySelector, options?: CallOptions): Promise<AccessibilityElement | null>;
-export declare function tap(element: AccessibilityElement, options?: TapOptions): Promise<void>;
+export declare function find(selector: AccessibilitySelector | readonly AccessibilitySelector[], options?: FindOptions): Promise<AccessibilityElement | null>;
+export declare function setText(element: AccessibilityElement, text: string, options?: CallOptions): Promise<void>;
+export declare function perform(element: AccessibilityElement, action: AccessibilityAction | (string & {}), options?: CallOptions): Promise<void>;

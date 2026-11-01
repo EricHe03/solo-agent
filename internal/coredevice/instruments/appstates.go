@@ -2,6 +2,7 @@ package instruments
 
 import (
 	"context"
+	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/coredevice"
@@ -22,6 +23,7 @@ type AppState struct {
 	Path  string
 	PID   uint64
 	State string
+	At    time.Time
 }
 
 type AppStates struct {
@@ -38,7 +40,7 @@ func DialAppStates(ctx, owner context.Context, device *coredevice.Device) (*AppS
 	dtxConn, err := dtx.NewConn(owner, conn, func(event dtx.Event) (any, bool) {
 		if event.Selector == "applicationStateNotification:" && len(event.Arguments) > 0 {
 			if fields, ok := event.Arguments[0].(map[string]any); ok {
-				state := AppState{}
+				state := AppState{At: time.Now()}
 				state.Name, _ = fields["appName"].(string)
 				state.Path, _ = fields["execName"].(string)
 				state.State, _ = fields["state_description"].(string)

@@ -282,12 +282,6 @@ func (s *Selector) Fields() []string {
 	return fields
 }
 
-func (s *Selector) References() bool {
-	return slices.ContainsFunc(s.fields, func(field selectorField) bool {
-		return field.element != "" || field.relation != nil && field.relation.References()
-	})
-}
-
 func (s *Selector) App() string {
 	for _, field := range s.fields {
 		if field.name == "app" && !field.text.regular {

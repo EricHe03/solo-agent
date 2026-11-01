@@ -20,7 +20,6 @@ export interface Native {
   digest(algorithm: string, data: Uint8Array): Uint8Array;
   finish(failure: string, output: string, id?: string): void;
   show(image: Uint8Array): void;
-  selector(json: string): { scripted?: boolean; failure?: string };
   match(snapshot: string, scope: string, json: string, mode: "one" | "all", call: (kind: string, id: string, value: string) => string): { elements?: Raw[]; failure?: string; thrown?: boolean };
   readonly graphics?: GraphicsNative;
 }

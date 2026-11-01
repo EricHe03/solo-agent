@@ -3,7 +3,6 @@ package device
 import (
 	"context"
 	"errors"
-	"fmt"
 	"maps"
 	"math"
 	"slices"
@@ -28,130 +27,6 @@ const launchLimit = 3500 * time.Millisecond
 // device reports the change within 150 ms (iPad17,1, iPadOS 27.2 24B115).
 const focusLimit = 500 * time.Millisecond
 
-const settleLimit = 3 * time.Second
-
-var (
-	errExpired = E.New("the wait expired")
-	errLeft    = E.New("the app left the front")
-)
-
-type pendingError struct {
-	message string
-	gone    bool
-	retry   bool
-}
-
-func (e *pendingError) Error() string {
-	return e.message
-}
-
-type ElementAction struct {
-	Kind  string
-	Count int
-	Hold  time.Duration
-	Text  string
-	Name  string
-	Each  bool
-}
-
-type query struct {
-	selectors []*Selector
-	each      bool
-	options   accessibility.ApplicationOptions
-	apps      []string
-	anyApp    bool
-	keys      map[bool]string
-}
-
-func newQuery(selectors []*Selector, act ElementAction) (*query, error) {
-	if len(selectors) == 0 {
-		return nil, E.Extend(ErrInvalid, "a locator needs a selector")
-	}
-	q := &query{selectors: selectors, each: act.Each}
-	var fields []string
-	for _, selector := range selectors {
-		if selector.Scripted() {
-			return nil, E.Extend(ErrInvalid, selector.String(), " holds a function or a regular expression only JavaScript can run, which a locator cannot")
-		}
-		if selector.References() {
-			return nil, E.Extend(ErrInvalid, selector.String(), " refers to an element of a snapshot, which a locator cannot")
-		}
-		fields = append(fields, selector.Fields()...)
-		switch app := selector.App(); app {
-		case springboardBundleID:
-		case "":
-			q.anyApp = true
-		default:
-			q.apps = append(q.apps, app)
-		}
-	}
-	switch act.Kind {
-	case "tap", "setText":
-	case "perform":
-		if _, standard := phoneActions[act.Name]; !standard {
-			fields = append(fields, "actions")
-		}
-	default:
-		return nil, E.Extend(ErrInvalid, "unknown element action ", strconv.Quote(act.Kind))
-	}
-	q.options = accessibility.ApplicationOptions{
-		Attributes: accessibility.SnapshotAttributes(fields),
-		Modal:      slices.Contains(fields, "inert"),
-		Focused:    slices.Contains(fields, "focused"),
-	}
-	q.keys = make(map[bool]string)
-	for _, system := range []bool{false, true} {
-		q.keys[system] = fmt.Sprint("query:", system, ":", q.options.Modal, ":", q.options.Focused, ":", q.options.Attributes)
-	}
-	return q, nil
-}
-
-func (q *query) String() string {
-	return strings.Join(common.Map(q.selectors, (*Selector).String), " or ")
-}
-
-func (q *query) match(read func(system bool) (*PhoneModel, error)) ([]*PhoneNode, error) {
-	views := make(map[bool]*View)
-	var found []*PhoneNode
-	for _, selector := range q.selectors {
-		system := selector.App() == springboardBundleID
-		view, known := views[system]
-		if !known {
-			model, err := read(system)
-			if err != nil {
-				return nil, err
-			}
-			if model != nil {
-				view = NewView(model, true)
-			}
-			views[system] = view
-		}
-		if view == nil {
-			continue
-		}
-		if !q.each {
-			element, err := view.Find("", selector, nil)
-			if err != nil {
-				return nil, err
-			}
-			if element != nil {
-				return []*PhoneNode{element.node}, nil
-			}
-			continue
-		}
-		elements, err := view.FindAll("", selector, nil)
-		if err != nil {
-			return nil, err
-		}
-		for _, element := range elements {
-			if !slices.Contains(found, element.node) {
-				found = append(found, element.node)
-			}
-		}
-	}
-	return found, nil
-}
-
 func (p *Phone) readApplication(ctx context.Context, c *conn, client *accessibility.RemoteClient, geometry phoneGeometry, options accessibility.ApplicationOptions) (*PhoneModel, error) {
 	started := time.Now()
 	screen, err := client.ReadApplication(ctx, options)
@@ -164,392 +39,12 @@ func (p *Phone) readApplication(ctx context.Context, c *conn, client *accessibil
 	return p.model(c, geometry, screen, started, options.PID == 0), nil
 }
 
-func (p *Phone) find(ctx context.Context, c *conn, q *query) ([]*PhoneNode, frontApplication, error) {
-	geometry, err := c.readGeometry(ctx)
-	if err != nil {
-		return nil, frontApplication{}, err
-	}
-	var front frontApplication
-	nodes, err := q.match(func(system bool) (*PhoneModel, error) {
-		options, key := q.options, q.keys[system]
-		if system {
-			pid, err := c.springboardPID(ctx)
-			if err != nil {
-				return nil, err
-			}
-			options.PID = pid
-		} else if !q.anyApp {
-			app, err := c.front.get(ctx)
-			if err != nil {
-				return nil, err
-			}
-			if front = app; !slices.Contains(q.apps, front.bundleID) {
-				return nil, nil
-			}
-			options.PID = app.pid
-			key += ":" + strconv.FormatUint(app.pid, 10)
-		}
-		value, err := c.ax.read(ctx, key, func(ctx context.Context, client *accessibility.RemoteClient) (any, error) {
-			return p.readApplication(ctx, c, client, geometry, options)
-		})
-		if err != nil {
-			return nil, err
-		}
-		model := value.(*PhoneModel)
-		if !system {
-			front = frontApplication{pid: model.Root.AX.Ref.PID, bundleID: model.BundleID}
-		}
-		return model, nil
-	})
-	return nodes, front, err
-}
-
-type locateState struct {
-	reason   string
-	revealed map[accessibility.ElementRef]bool
-	app      string
-	tapped   map[accessibility.ElementRef]bool
-}
-
-func (p *Phone) Locate(ctx context.Context, selectors []*Selector, act ElementAction, timeout time.Duration) error {
-	q, err := newQuery(selectors, act)
-	if err != nil {
-		return err
-	}
-	waiting := ctx
-	var deadline time.Time
-	if timeout >= 0 {
-		deadline = time.Now().Add(timeout)
-		var cancel context.CancelFunc
-		waiting, cancel = context.WithDeadline(ctx, deadline)
-		defer cancel()
-	}
-	state := &locateState{
-		reason: "the device did not connect", revealed: make(map[accessibility.ElementRef]bool), tapped: make(map[accessibility.ElementRef]bool),
-	}
-	for {
-		c, release, err := p.connection.acquire(waiting)
-		if err == nil {
-			operation, cancel := c.operation(ctx)
-			if q.each {
-				err = p.watch(operation, c, q, act, state)
-			} else {
-				err = p.locate(operation, c, q, act, deadline, state)
-			}
-			cancel()
-			release()
-		}
-		switch {
-		case err == nil:
-			return nil
-		case ctx.Err() != nil:
-			return ctx.Err()
-		case errors.Is(err, errExpired), waiting.Err() != nil:
-			return E.Extend(ErrTimeout, state.reason, "; gave up after ", timeout)
-		case c != nil && c.ctx.Err() != nil:
-		default:
-			return err
-		}
-	}
-}
-
-func (p *Phone) locate(ctx context.Context, c *conn, q *query, act ElementAction, deadline time.Time, state *locateState) error {
-	changed, stop := c.events.watch(true)
-	defer stop()
-	if !q.anyApp {
-		defer c.front.watch(func(ForegroundApp) {})()
-	}
-	var expire <-chan time.Time
-	if !deadline.IsZero() {
-		timer := time.NewTimer(time.Until(deadline))
-		defer timer.Stop()
-		expire = timer.C
-	}
-	var delay time.Duration
-	for {
-		seen := c.events.screen.Load()
-		nodes, front, err := p.find(ctx, c, q)
-		retry := false
-		switch {
-		case err == nil && len(nodes) == 0:
-			state.reason = "nothing matched " + q.String()
-			if front.bundleID != "" {
-				state.reason += "; " + front.bundleID + " is in front"
-			}
-		case err == nil:
-			err = p.attempt(ctx, c, q, act, nodes[0], front.pid, seen, state)
-			pending, isPending := errors.AsType[*pendingError](err)
-			switch {
-			case err == nil:
-				return nil
-			case !isPending:
-				return err
-			}
-			state.reason, retry = pending.message, pending.retry
-		case transient(err), errors.Is(err, ErrStalled):
-			state.reason, retry = err.Error(), true
-		default:
-			return err
-		}
-		var again <-chan time.Time
-		var timer *time.Timer
-		if retry {
-			delay = min(max(delay*2, pollFirst), pollLongest)
-			timer = time.NewTimer(delay)
-			again = timer.C
-		} else {
-			delay = 0
-		}
-		var ended error
-		select {
-		case <-changed:
-		case <-again:
-		case <-expire:
-			ended = errExpired
-		case <-ctx.Done():
-			ended = ctx.Err()
-		}
-		if timer != nil {
-			timer.Stop()
-		}
-		if ended != nil {
-			return ended
-		}
-	}
-}
-
-func (p *Phone) watch(ctx context.Context, c *conn, q *query, act ElementAction, state *locateState) error {
-	changed, stop := c.events.watch(true)
-	defer stop()
-	defer c.front.watch(func(ForegroundApp) {})()
-	quiet := time.Now().Add(settleLimit)
-	var delay time.Duration
-	for {
-		retry, err := p.tapNew(ctx, c, q, act, state)
-		switch {
-		case errors.Is(err, errLeft):
-			return nil
-		case err == nil:
-		case transient(err), errors.Is(err, ErrStalled):
-			retry = true
-		default:
-			return err
-		}
-		var again <-chan time.Time
-		var timer *time.Timer
-		if retry && time.Now().Before(quiet) {
-			delay = min(max(delay*2, pollFirst), pollLongest)
-			timer = time.NewTimer(min(delay, time.Until(quiet)))
-			again = timer.C
-		} else {
-			delay = 0
-		}
-		select {
-		case <-changed:
-			quiet = time.Now().Add(settleLimit)
-		case <-again:
-		case <-ctx.Done():
-		}
-		if timer != nil {
-			timer.Stop()
-		}
-		if err = ctx.Err(); err != nil {
-			return err
-		}
-	}
-}
-
-func (p *Phone) tapNew(ctx context.Context, c *conn, q *query, act ElementAction, state *locateState) (bool, error) {
-	seen := c.events.screen.Load()
-	front, err := c.front.get(ctx)
-	if err != nil {
-		return false, err
-	}
-	if state.app == "" {
-		state.app = front.bundleID
-		if len(q.apps) > 0 && !q.anyApp && !slices.Contains(q.apps, state.app) {
-			return false, errLeft
-		}
-	}
-	if front.bundleID != state.app {
-		return false, errLeft
-	}
-	nodes, read, err := p.find(ctx, c, q)
-	if err != nil {
-		return false, err
-	}
-	if read.bundleID != "" && read.bundleID != state.app {
-		return false, errLeft
-	}
-	present := make(map[accessibility.ElementRef]bool, len(nodes))
-	for _, node := range nodes {
-		present[node.AX.Ref] = true
-	}
-	maps.DeleteFunc(state.tapped, func(ref accessibility.ElementRef, _ bool) bool { return !present[ref] })
-	retry := false
-	for _, node := range nodes {
-		switch {
-		case state.tapped[node.AX.Ref]:
-			continue
-		case slices.ContainsFunc(nodes, func(other *PhoneNode) bool {
-			return state.tapped[other.AX.Ref] && (other.Contains(node) || node.Contains(other))
-		}):
-			state.tapped[node.AX.Ref] = true
-			continue
-		case !node.Shown() || node.Covered:
-			continue
-		}
-		err = p.attempt(ctx, c, q, act, node, read.pid, seen, state)
-		if err == nil {
-			state.tapped[node.AX.Ref] = true
-			return retry, nil
-		}
-		pending, isPending := errors.AsType[*pendingError](err)
-		if !isPending {
-			return retry, err
-		}
-		retry = retry || pending.retry
-	}
-	return retry, nil
-}
-
-func (p *Phone) attempt(ctx context.Context, c *conn, q *query, act ElementAction, found *PhoneNode, app, seen uint64, state *locateState) error {
-	geometry, err := c.readGeometry(ctx)
-	if err != nil {
-		return err
-	}
-	grant, err := p.connection.input.acquire(ctx, c)
-	if err != nil {
-		return err
-	}
-	defer grant.release()
-	s := &axSession{phone: p, conn: c, geometry: geometry, grant: grant, revealed: state.revealed}
-	err = c.ax.do(ctx, true, 0, func(ctx context.Context, client *accessibility.RemoteClient) error {
-		s.client = client
-		target := found
-		if c.events.screen.Load() != seen || found.model.generation != c.ax.current() {
-			nodes, err := q.match(func(system bool) (*PhoneModel, error) {
-				options := q.options
-				if system {
-					pid, err := c.springboardPID(ctx)
-					if err != nil {
-						return nil, err
-					}
-					options.PID = pid
-				} else if !q.anyApp {
-					options.PID = app
-				}
-				return p.readApplication(ctx, c, client, geometry, options)
-			})
-			if err != nil {
-				return err
-			}
-			target = common.Find(nodes, func(node *PhoneNode) bool { return !q.each || node.AX.Ref == found.AX.Ref })
-			if target == nil {
-				return &pendingError{message: "nothing matched " + q.String()}
-			}
-			if q.each && (!target.Shown() || target.Covered) {
-				return &pendingError{message: describeElement(target.AX) + " left the screen"}
-			}
-		}
-		switch act.Kind {
-		case "tap":
-			at, err := s.aim(ctx, target)
-			if err != nil {
-				return err
-			}
-			return s.tap(ctx, at, act.Count, act.Hold)
-		case "setText":
-			return s.setText(ctx, target, act.Text)
-		}
-		return s.perform(ctx, target, act.Name)
-	})
-	if s.acted {
-		c.events.publish(Event{Kind: EventInput})
-		c.front.acted()
-	} else if errors.Is(err, ErrStalled) {
-		return &pendingError{message: err.Error(), retry: true}
-	}
-	return err
-}
-
-func (p *Phone) TapElement(ctx context.Context, ref string, count int, hold time.Duration) error {
-	parsed, err := parseRef(ref)
-	if err != nil {
-		return err
-	}
-	c, ctx, done, err := p.begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer done()
-	if err = p.requireScreen(ctx, c); err != nil {
-		return err
-	}
-	geometry, err := c.readGeometry(ctx)
-	if err != nil {
-		return err
-	}
-	springboard, err := c.springboardPID(ctx)
-	if err != nil {
-		return err
-	}
-	grant, err := p.connection.input.acquire(ctx, c)
-	if err != nil {
-		return err
-	}
-	defer grant.release()
-	s := &axSession{phone: p, conn: c, geometry: geometry, grant: grant, revealed: make(map[accessibility.ElementRef]bool)}
-	err = c.ax.do(ctx, true, 0, func(ctx context.Context, client *accessibility.RemoteClient) error {
-		s.client = client
-		node := c.nodes.find(parsed, c.ax.current())
-		deadline := time.Now().Add(settleLimit)
-		var delay time.Duration
-		for {
-			if node == nil {
-				model, err := p.readScreen(ctx, c, client, geometry, springboard, SnapshotOptions{})
-				if err != nil {
-					return err
-				}
-				if node = model.Node(parsed); node == nil {
-					return E.Extend(ErrNotFound, "the element is no longer on the screen; ", model.BundleID, " is in front")
-				}
-			}
-			at, err := s.aim(ctx, node)
-			if err == nil {
-				return s.tap(ctx, at, count, hold)
-			}
-			pending, isPending := errors.AsType[*pendingError](err)
-			if !isPending || !pending.retry || time.Now().After(deadline) {
-				return err
-			}
-			delay = min(max(delay*2, pollFirst), pollLongest)
-			if err = sleep(ctx, delay); err != nil {
-				return err
-			}
-			node = nil
-		}
-	})
-	if s.acted {
-		c.events.publish(Event{Kind: EventInput})
-		c.front.acted()
-	}
-	if pending, isPending := errors.AsType[*pendingError](err); isPending {
-		if pending.gone {
-			return E.Extend(ErrNotFound, pending.message)
-		}
-		return E.New(pending.message)
-	}
-	return err
-}
-
 type axSession struct {
 	phone    *Phone
 	conn     *conn
 	client   *accessibility.RemoteClient
 	geometry phoneGeometry
 	grant    *hidGrant
-	revealed map[accessibility.ElementRef]bool
 	acted    bool
 }
 
@@ -558,125 +53,6 @@ func (s *axSession) tap(ctx context.Context, at Point, count int, hold time.Dura
 	return s.grant.send(func(input *hid.Client) error {
 		return tap(ctx, s.geometry, input, at, count, hold)
 	})
-}
-
-func (s *axSession) aim(ctx context.Context, target *PhoneNode) (Point, error) {
-	name := describeElement(target.AX)
-	switch {
-	case !target.HasFrame():
-		return Point{}, E.New(name, " has no position on the screen; perform one of its actions instead")
-	case !target.AX.Enabled:
-		return Point{}, &pendingError{message: name + " is disabled", retry: true}
-	case !target.Shown() || target.Covered:
-		return Point{}, s.reveal(ctx, target)
-	}
-	at := target.Point
-	for attempt := 0; ; attempt++ {
-		batch := &accessibility.Batch{}
-		mapped := batch.Mapped(target.AX)
-		attributes := batch.Attributes(target.AX)
-		hit := batch.HitTest(s.geometry.digitizer(at))
-		if err := s.client.Run(ctx, batch); err != nil {
-			return Point{}, err
-		}
-		switch {
-		case mapped.Code == 0 && !mapped.Value:
-			return Point{}, &pendingError{message: name + " is gone", gone: true, retry: true}
-		case mapped.Code != 0 || attributes.Code != 0:
-			return Point{}, &pendingError{message: name + " did not answer", gone: true, retry: true}
-		case !attributes.Value.Enabled:
-			return Point{}, &pendingError{message: name + " is disabled", retry: true}
-		case !equalFrame(attributes.Value.Frame, target.AX.Frame):
-			return Point{}, &pendingError{message: name + " is moving", retry: true}
-		case hit.Code != 0:
-			return Point{}, &pendingError{message: "the device does not tell which element is at " + pointText(at), retry: true}
-		}
-		node := target.model.Node(hit.Value.Ref)
-		if hit.Value.Ref == target.AX.Ref || node != nil && target.Contains(node) {
-			return at, nil
-		}
-		read := &accessibility.Batch{}
-		element := read.Attributes(hit.Value)
-		if err := s.client.Run(ctx, read); err != nil {
-			return Point{}, err
-		}
-		if element.Code == 0 && (lands(target, element.Value) || sameWindow(target, element.Value)) {
-			return at, nil
-		}
-		if attempt == 0 && node != nil && node.Shown() {
-			if piece := common.MaxBy(target.Visible.subtract(node.Visible), Rect.area); piece.area() > 0 {
-				at = piece.Center()
-				continue
-			}
-		}
-		if target.Inert {
-			return Point{}, &pendingError{message: name + " is behind a modal view, as a sheet or an alert", retry: true}
-		}
-		return Point{}, &pendingError{message: "a tap at " + pointText(at) + " would reach " + describeElement(element.Value) + ", not " + name, retry: true}
-	}
-}
-
-func lands(target *PhoneNode, hit accessibility.Element) bool {
-	node := target.model.Node(hit.Ref)
-	return hit.Ref == target.AX.Ref || node != nil && (target.Contains(node) || hit.AccessibilityElement && node.Contains(target)) ||
-		node == nil && within(target.AX.Frame, hit.Frame)
-}
-
-// Within the window on top, the hit test answered the status bar view of
-// Damai's navigation bar, listed before the launch ad's skip button over it,
-// where a touch reached the button (iPhone18,2, iOS 27.2 24B115).
-func sameWindow(target *PhoneNode, hit accessibility.Element) bool {
-	context := hit.Context
-	if node := target.model.Node(hit.Ref); node != nil {
-		context = node.context()
-	}
-	if own := target.context(); context != 0 && own != 0 {
-		return context == own
-	}
-	return hit.Ref.PID == target.AX.Ref.PID
-}
-
-func equalFrame(first, second *accessibility.LayoutFrame) bool {
-	return first == nil && second == nil || first != nil && second != nil && *first == *second
-}
-
-// UIKit answers a page scroll action with the content offset still animating
-// (24B5110a UIKit.axbundle 0x189ff2200, 0x189ff2ea4), and the translator folds
-// the page-scrolled notification into a later tree push instead of forwarding
-// it (24B5110a AccessibilityPlatformTranslation 0x253fe623c); a tap on a list
-// still scrolling only stops it, while web content can answer its old frame
-// twice (iPhone18,2, iOS 27.2 24B115).
-func (s *axSession) reveal(ctx context.Context, target *PhoneNode) error {
-	name := describeElement(target.AX)
-	state := "off screen"
-	if target.Covered {
-		state = "covered by the keyboard or a banner"
-	}
-	if s.revealed[target.AX.Ref] {
-		return &pendingError{message: name + " stayed " + state + " after scrolling it into view"}
-	}
-	s.revealed[target.AX.Ref] = true
-	batch := &accessibility.Batch{}
-	perform := batch.Perform(target.AX, accessibility.ActionScrollToVisible)
-	s.acted = true
-	if err := s.client.Run(ctx, batch); err != nil {
-		return err
-	}
-	if err := perform.Err("scroll the element into view"); err != nil {
-		return err
-	}
-	if !perform.Value {
-		return &pendingError{message: name + " is " + state + ", and its scroll view refused to scroll it into view"}
-	}
-	return &pendingError{message: "scrolled " + name + " into view", retry: true}
-}
-
-// The keyboard's candidate bar lists each candidate as an element the
-// snapshot shows, while the hit test answers the label inside it, which the
-// snapshot does not (iPhone18,2, iOS 27.2 24B115).
-func within(outer, inner *accessibility.LayoutFrame) bool {
-	return outer != nil && inner != nil && inner.X >= outer.X-1 && inner.Y >= outer.Y-1 &&
-		inner.X+inner.Width <= outer.X+outer.Width+1 && inner.Y+inner.Height <= outer.Y+outer.Height+1
 }
 
 func pointText(at Point) string {
@@ -707,16 +83,24 @@ var phoneActions = map[string]uint64{
 
 func (s *axSession) perform(ctx context.Context, target *PhoneNode, name string) error {
 	number, standard := phoneActions[name]
-	custom := common.Find(target.AX.Actions, func(candidate accessibility.CustomAction) bool { return candidate.Name == name })
+	actions := target.AX.Actions
+	if !standard && actions == nil {
+		read := &accessibility.Batch{}
+		attributes := read.Attributes(target.AX)
+		if err := s.client.Run(ctx, read); err != nil {
+			return err
+		}
+		if err := attributes.Err("read the element's actions"); err != nil {
+			return err
+		}
+		actions = attributes.Value.Actions
+	}
+	custom := common.Find(actions, func(candidate accessibility.CustomAction) bool { return candidate.Name == name })
 	if !standard && custom.Identifier == "" {
-		names := append(slices.Sorted(maps.Keys(phoneActions)), common.Map(target.AX.Actions, func(it accessibility.CustomAction) string { return it.Name })...)
+		names := append(slices.Sorted(maps.Keys(phoneActions)), common.Map(actions, func(it accessibility.CustomAction) string { return it.Name })...)
 		return E.Extend(ErrInvalid, describeElement(target.AX), " has no action ", strconv.Quote(name), "; its actions are ", strings.Join(names, ", "))
 	}
-	if !target.AX.Enabled {
-		return &pendingError{message: describeElement(target.AX) + " is disabled", retry: true}
-	}
 	batch := &accessibility.Batch{}
-	mapped := batch.Mapped(target.AX)
 	var perform *accessibility.Result[bool]
 	if standard {
 		perform = batch.Perform(target.AX, number)
@@ -726,12 +110,6 @@ func (s *axSession) perform(ctx context.Context, target *PhoneNode, name string)
 	s.acted = true
 	if err := s.client.Run(ctx, batch); err != nil {
 		return err
-	}
-	if err := mapped.Err("check the element"); err != nil {
-		return err
-	}
-	if !mapped.Value {
-		return &pendingError{message: describeElement(target.AX) + " is gone", gone: true, retry: true}
 	}
 	if err := perform.Err("perform " + strconv.Quote(name)); err != nil {
 		return err
@@ -807,11 +185,13 @@ func (s *axSession) focus(ctx context.Context, target *PhoneNode) (*PhoneNode, e
 	if before != nil && *before == target.AX.Ref {
 		return target, nil
 	}
-	at, err := s.aim(ctx, target)
-	if err != nil {
-		return nil, err
+	switch {
+	case !target.Shown():
+		return nil, E.New(describeElement(target.AX), " has no position on the screen")
+	case target.Covered:
+		return nil, E.New(describeElement(target.AX), " is covered by the keyboard or a banner")
 	}
-	if err = s.tap(ctx, at, 1, 0); err != nil {
+	if err = s.tap(ctx, target.Point, 1, 0); err != nil {
 		return nil, err
 	}
 	var focused *accessibility.ElementRef
@@ -941,12 +321,14 @@ func (s *axSession) empty(ctx context.Context, target *PhoneNode) (bool, error) 
 }
 
 type action struct {
+	name     string
 	unlocked bool
 	input    func(ctx context.Context, c *conn, geometry phoneGeometry) error
 	check    func(ctx context.Context, c *conn) error
 }
 
 func (p *Phone) act(ctx context.Context, do action) error {
+	began := time.Now()
 	c, ctx, done, err := p.begin(ctx)
 	if err != nil {
 		return err
@@ -961,7 +343,9 @@ func (p *Phone) act(ctx context.Context, do action) error {
 	if err != nil {
 		return err
 	}
+	prepared := time.Now()
 	err = do.input(ctx, c, geometry)
+	p.connection.trace(prepared, do.name, "prepared in "+prepared.Sub(began).String(), time.Since(prepared))
 	c.events.publish(Event{Kind: EventInput})
 	c.front.acted()
 	if err != nil {
@@ -985,7 +369,7 @@ func (p *Phone) gesture(ctx context.Context, c *conn, send func(input *hid.Clien
 }
 
 func (p *Phone) requireScreen(ctx context.Context, c *conn) error {
-	locked, err := c.lockState.locked(ctx, c.device)
+	locked, err := c.lockState.recent(ctx)
 	if err != nil {
 		return E.Cause(err, "read the lock state")
 	}
@@ -1014,7 +398,7 @@ func (p *Phone) TapPoint(ctx context.Context, at Point, count int, hold time.Dur
 }
 
 func (p *Phone) Touch(ctx context.Context, fingers [][]TouchSample) error {
-	return p.act(ctx, action{unlocked: true, input: func(ctx context.Context, c *conn, geometry phoneGeometry) error {
+	return p.act(ctx, action{name: "touch", unlocked: true, input: func(ctx context.Context, c *conn, geometry phoneGeometry) error {
 		if err := checkFingers(geometry, fingers); err != nil {
 			return err
 		}
@@ -1025,7 +409,7 @@ func (p *Phone) Touch(ctx context.Context, fingers [][]TouchSample) error {
 }
 
 func (p *Phone) Pinch(ctx context.Context, center Point, scale float64, duration time.Duration) error {
-	return p.act(ctx, action{unlocked: true, input: func(ctx context.Context, c *conn, geometry phoneGeometry) error {
+	return p.act(ctx, action{name: "pinch", unlocked: true, input: func(ctx context.Context, c *conn, geometry phoneGeometry) error {
 		fingers, err := pinchPath(geometry, center, scale, duration)
 		if err != nil {
 			return err
@@ -1041,7 +425,7 @@ func (p *Phone) Key(ctx context.Context, combo string) error {
 	if err != nil {
 		return E.Cause1(ErrInvalid, err)
 	}
-	return p.act(ctx, action{unlocked: true, input: func(ctx context.Context, c *conn, _ phoneGeometry) error {
+	return p.act(ctx, action{name: "key " + combo, unlocked: true, input: func(ctx context.Context, c *conn, _ phoneGeometry) error {
 		return p.gesture(ctx, c, func(input *hid.Client) error {
 			return pressKeys(ctx, input, usages)
 		})
@@ -1068,6 +452,7 @@ func (p *Phone) Button(ctx context.Context, name string) error {
 		}
 	}
 	return p.act(ctx, action{
+		name: "button " + name,
 		input: func(ctx context.Context, c *conn, _ phoneGeometry) error {
 			return p.gesture(ctx, c, func(input *hid.Client) error {
 				for index, button := range buttons {
@@ -1090,6 +475,7 @@ func (p *Phone) Button(ctx context.Context, name string) error {
 func (p *Phone) Launch(ctx context.Context, bundleID, url string, restart, animated bool) error {
 	var started time.Time
 	return p.act(ctx, action{
+		name:     "launch " + bundleID,
 		unlocked: true,
 		input: func(ctx context.Context, c *conn, _ phoneGeometry) error {
 			started = time.Now()
@@ -1123,7 +509,7 @@ func (p *Phone) Unlock(ctx context.Context) error {
 	if settings.AutoUnlockPasscode == "" {
 		return E.New("no unlock passcode is configured")
 	}
-	return p.act(ctx, action{input: func(ctx context.Context, c *conn, _ phoneGeometry) error {
+	return p.act(ctx, action{name: "unlock", input: func(ctx context.Context, c *conn, _ phoneGeometry) error {
 		grant, err := p.connection.input.acquire(ctx, c)
 		if err != nil {
 			return err

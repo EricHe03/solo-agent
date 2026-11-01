@@ -2,6 +2,8 @@ package device
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -40,6 +42,7 @@ type frontApplication struct {
 	pid      uint64
 	bundleID string
 	at       time.Time
+	via      string
 }
 
 func (a frontApplication) app() bool {
@@ -63,15 +66,13 @@ type foreground struct {
 	kick      chan struct{}
 	bundles   map[string]string
 	paths     map[uint64]string
-	existing  map[uint64]bool
-	fronted   map[uint64]bool
 	probes    map[uint64]time.Time
 }
 
 func newForeground(c *conn) *foreground {
 	return &foreground{
 		conn: c, listeners: make(map[int]func(ForegroundApp)), kick: make(chan struct{}, 1), paths: make(map[uint64]string),
-		fronted: make(map[uint64]bool), probes: make(map[uint64]time.Time),
+		probes: make(map[uint64]time.Time),
 	}
 }
 
@@ -86,7 +87,7 @@ func (f *foreground) get(ctx context.Context) (frontApplication, error) {
 }
 
 func (f *foreground) read(ctx context.Context) (frontApplication, error) {
-	value, err := f.conn.ax.read(ctx, "frontmost", func(ctx context.Context, client *accessibility.RemoteClient) (any, error) {
+	value, err := f.conn.ax.readLow(ctx, "frontmost", func(ctx context.Context, client *accessibility.RemoteClient) (any, error) {
 		seen := time.Now()
 		batch := &accessibility.Batch{}
 		front := batch.Frontmost()
@@ -108,12 +109,13 @@ func (f *foreground) read(ctx context.Context) (frontApplication, error) {
 			}
 			bundleID = bundle.Value
 		}
-		return frontApplication{pid: front.Value.Ref.PID, bundleID: bundleID, at: seen}, nil
+		return frontApplication{pid: front.Value.Ref.PID, bundleID: bundleID, at: seen, via: "frontmost"}, nil
 	})
 	if err != nil {
 		return frontApplication{}, err
 	}
 	front := value.(frontApplication)
+	f.conn.connection.trace(front.at, "frontmost", front.bundleID+" pid "+strconv.FormatUint(front.pid, 10), time.Since(front.at))
 	f.access.Lock()
 	f.frontmost = front.pid
 	f.access.Unlock()
@@ -152,14 +154,15 @@ func (f *foreground) beneath(ctx context.Context, springboard frontApplication) 
 		}
 		return springboard
 	}
+	f.conn.connection.trace(springboard.at, "beneath", "probed "+fmt.Sprint(pids)+", foreground "+fmt.Sprint(shown), time.Since(springboard.at))
 	switch {
 	case len(shown) == 0:
 		return springboard
 	case shown[0] == current.pid:
-		return frontApplication{pid: current.pid, bundleID: current.bundleID, at: springboard.at}
+		return frontApplication{pid: current.pid, bundleID: current.bundleID, at: springboard.at, via: "beneath"}
 	}
 	if bundleID := f.bundleOf(shown[0]); bundleID != "" {
-		return frontApplication{pid: shown[0], bundleID: bundleID, at: springboard.at}
+		return frontApplication{pid: shown[0], bundleID: bundleID, at: springboard.at, via: "beneath"}
 	}
 	return springboard
 }
@@ -207,16 +210,15 @@ func (f *foreground) saw(front frontApplication) frontApplication {
 	}
 	pid := front.pid
 	changed := pid != f.current.pid || front.bundleID != f.current.bundleID
-	launched := changed && f.existing != nil && !f.existing[pid] && !f.fronted[pid]
 	f.current = front
-	f.fronted[pid] = true
 	if path := f.paths[pid]; path != "" && f.bundles != nil {
 		f.bundles[path] = front.bundleID
 	}
 	if !changed {
 		return front
 	}
-	app := ForegroundApp{BundleID: front.bundleID, PID: pid, Launched: launched, At: front.at}
+	f.conn.connection.trace(front.at, "foreground", front.bundleID+" pid "+strconv.FormatUint(pid, 10)+" via "+front.via, time.Since(front.at))
+	app := ForegroundApp{BundleID: front.bundleID, PID: pid, At: front.at}
 	f.conn.events.publish(Event{Kind: EventForeground, PID: app.PID, BundleID: app.BundleID})
 	for _, listener := range f.listeners {
 		listener(app)
@@ -307,9 +309,6 @@ func (f *foreground) track(ctx context.Context, stopped chan struct{}) {
 	if err := f.loadBundles(ctx); err != nil && ctx.Err() == nil {
 		f.conn.logger.Debug(E.Cause(err, "list apps"))
 	}
-	if err := f.loadExisting(ctx); err != nil && ctx.Err() == nil {
-		f.conn.logger.Debug(E.Cause(err, "list processes"))
-	}
 	var pushes <-chan instruments.AppState
 	var pushesDone <-chan struct{}
 	states, err := instruments.DialAppStates(ctx, ctx, f.conn.device)
@@ -323,19 +322,37 @@ func (f *foreground) track(ctx context.Context, stopped chan struct{}) {
 		pushes, pushesDone = states.States(), states.Done()
 	}
 	backlog := time.Now().Add(appStatesBacklog)
-	f.confirm(ctx, 0)
 	confirm := time.NewTimer(time.Hour)
 	confirm.Stop()
 	defer confirm.Stop()
+	confirmed := make(chan struct{}, 1)
+	confirming := true
+	go func() {
+		f.confirm(ctx, 0)
+		confirmed <- struct{}{}
+	}()
 	var delay time.Duration
 	for {
 		select {
+		case <-confirmed:
+			confirming = false
+			f.access.Lock()
+			pending, until := f.pending, f.until
+			f.access.Unlock()
+			if pending != 0 || time.Now().Before(until) {
+				confirm.Reset(min(max(delay*2, pollFirst), pollLongest))
+			}
+			continue
 		case state := <-pushes:
-			relevant := f.record(state)
-			if time.Now().Before(backlog) {
+			relevant, launched := f.record(state)
+			if state.At.Before(backlog) {
 				continue
 			}
 			f.conn.events.publish(Event{Kind: EventAppState, PID: state.PID, Name: state.State})
+			f.conn.connection.trace(state.At, "appState", "pid "+strconv.FormatUint(state.PID, 10)+" "+state.State+" "+f.bundleOf(state.PID), time.Since(state.At))
+			if launched {
+				f.launched(state)
+			}
 			if relevant {
 				f.trigger(frontBurst)
 			}
@@ -350,11 +367,18 @@ func (f *foreground) track(ctx context.Context, stopped chan struct{}) {
 		case <-ctx.Done():
 			return
 		}
+		if confirming {
+			continue
+		}
 		f.access.Lock()
 		pending, until := f.pending, f.until
 		f.pending = 0
 		f.access.Unlock()
-		f.confirm(ctx, pending)
+		confirming = true
+		go func() {
+			f.confirm(ctx, pending)
+			confirmed <- struct{}{}
+		}()
 		if left := time.Until(until); left > 0 {
 			delay = min(max(delay*2, pollFirst), pollLongest)
 			confirm.Reset(min(delay, left))
@@ -365,7 +389,7 @@ func (f *foreground) track(ctx context.Context, stopped chan struct{}) {
 func (f *foreground) confirm(ctx context.Context, pushed uint64) {
 	if pushed != 0 {
 		if bundleID := f.bundleOf(pushed); bundleID != "" && bundleID != springboardBundleID {
-			f.saw(frontApplication{pid: pushed, bundleID: bundleID, at: time.Now()})
+			f.saw(frontApplication{pid: pushed, bundleID: bundleID, at: time.Now(), via: "push"})
 			f.markTracked()
 			return
 		}
@@ -408,30 +432,10 @@ func (f *foreground) loadBundles(ctx context.Context) error {
 	return nil
 }
 
-func (f *foreground) loadExisting(ctx context.Context) error {
-	f.access.Lock()
-	loaded := f.existing != nil
-	f.access.Unlock()
-	if loaded {
-		return nil
-	}
-	processes, err := apps.Processes(ctx, f.conn.device)
-	if err != nil {
-		return err
-	}
-	existing := make(map[uint64]bool, len(processes))
-	for _, process := range processes {
-		existing[process.PID] = true
-	}
-	f.access.Lock()
-	f.existing = existing
-	f.access.Unlock()
-	return nil
-}
-
-func (f *foreground) record(state instruments.AppState) (relevant bool) {
+func (f *foreground) record(state instruments.AppState) (relevant, launched bool) {
 	f.access.Lock()
 	defer f.access.Unlock()
+	_, known := f.paths[state.PID]
 	switch {
 	case state.State == "Terminated":
 		delete(f.paths, state.PID)
@@ -440,13 +444,23 @@ func (f *foreground) record(state instruments.AppState) (relevant bool) {
 		f.paths[state.PID] = state.Path
 	}
 	if state.PID == f.current.pid {
-		return true
+		return true, false
 	}
 	if state.State != "Running" || f.bundles[state.Path] == "" {
-		return false
+		return false, false
 	}
 	f.probes[state.PID] = time.Now().Add(frontBurst)
-	return true
+	return true, !known
+}
+
+func (f *foreground) launched(state instruments.AppState) {
+	f.access.Lock()
+	defer f.access.Unlock()
+	app := ForegroundApp{BundleID: f.bundles[state.Path], PID: state.PID, Launched: true, At: time.Now()}
+	f.conn.connection.trace(app.At, "launch", app.BundleID+" pid "+strconv.FormatUint(app.PID, 10), 0)
+	for _, listener := range f.listeners {
+		listener(app)
+	}
 }
 
 func (f *foreground) waitFor(ctx context.Context, bundleID string, deadline time.Time) (string, error) {
@@ -520,7 +534,11 @@ func (p *Phone) WatchApps(ctx context.Context, emit func(AppEvent)) error {
 		})
 		if last.PID == 0 {
 			if front, err := c.front.get(operation); err == nil {
-				last = ForegroundApp{BundleID: front.bundleID, PID: front.pid}
+				access.Lock()
+				if len(queued) == 0 {
+					last = ForegroundApp{BundleID: front.bundleID, PID: front.pid}
+				}
+				access.Unlock()
 			}
 		}
 		for operation.Err() == nil {
@@ -534,17 +552,17 @@ func (p *Phone) WatchApps(ctx context.Context, emit func(AppEvent)) error {
 			queued = nil
 			access.Unlock()
 			for _, app := range arrived {
+				if app.Launched {
+					emit(AppEvent{Kind: "launch", BundleID: app.BundleID, PID: app.PID, Time: app.At})
+					continue
+				}
 				if app.PID == last.PID {
 					continue
 				}
 				if last.PID != 0 {
 					emit(AppEvent{Kind: "background", BundleID: last.BundleID, PID: last.PID, Time: app.At})
 				}
-				kind := "foreground"
-				if app.Launched {
-					kind = "launch"
-				}
-				emit(AppEvent{Kind: kind, BundleID: app.BundleID, PID: app.PID, Time: app.At})
+				emit(AppEvent{Kind: "foreground", BundleID: app.BundleID, PID: app.PID, Time: app.At})
 				last = app
 			}
 		}

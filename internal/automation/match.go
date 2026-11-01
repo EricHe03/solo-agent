@@ -59,18 +59,6 @@ func (c scriptCallbacks) call(kind string, id int, value string) (bool, error) {
 	return answer == "true", nil
 }
 
-func (e *engine) selector(arguments []jsc.Value) (any, error) {
-	values, err := texts(arguments, 1)
-	if err != nil {
-		return nil, err
-	}
-	selector, err := device.ParseSelector([]byte(values[0]))
-	if err != nil {
-		return map[string]string{"failure": FailureOf(err)}, nil
-	}
-	return map[string]bool{"scripted": selector.Scripted()}, nil
-}
-
 func (e *engine) match(arguments []jsc.Value) (any, error) {
 	values, err := texts(arguments, 4)
 	if err != nil {

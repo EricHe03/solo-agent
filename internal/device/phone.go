@@ -398,15 +398,11 @@ func (m *PhoneModel) convert(space axSpace, node *accessibility.TreeNode, parent
 type SnapshotOptions struct {
 	Front bool
 	Raw   bool
-	App   string
 }
 
 func (o SnapshotOptions) key() string {
-	switch {
-	case o.Front:
+	if o.Front {
 		return "front"
-	case o.App != "":
-		return "screen:" + o.App
 	}
 	return "screen"
 }
@@ -440,9 +436,7 @@ func (p *Phone) readScreen(ctx context.Context, c *conn, client *accessibility.R
 	if options.Front {
 		screen, err = client.ReadApplication(ctx, accessibility.ApplicationOptions{Focused: true, Expand: true})
 	} else {
-		screen, err = client.ReadScreen(ctx, springboard, func(front accessibility.Element) bool {
-			return options.App == "" || c.front.knownBundle(front.Ref.PID) != options.App
-		})
+		screen, err = client.ReadScreen(ctx, springboard, nil)
 		if errors.Is(err, accessibility.ErrNoApplication) {
 			c.springboard.Store(0)
 		}
@@ -459,7 +453,7 @@ func (p *Phone) model(c *conn, geometry phoneGeometry, screen *accessibility.Scr
 	p.logger.Debug("read ", len(model.nodes), " nodes of ", model.BundleID, " in ", time.Since(started), ", rounds ", fmt.Sprint(screen.Rounds))
 	c.ax.answered(screen.App.Ref.PID)
 	if front {
-		c.front.observed(frontApplication{pid: screen.App.Ref.PID, bundleID: screen.BundleID, at: started})
+		c.front.observed(frontApplication{pid: screen.App.Ref.PID, bundleID: screen.BundleID, at: started, via: "tree"})
 	}
 	return model
 }

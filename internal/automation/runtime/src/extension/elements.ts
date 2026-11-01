@@ -178,18 +178,13 @@ export const isSelector = (value: unknown): value is Selector =>
 
 export interface Encoded {
   value: unknown;
-  predicates: number;
-  references: number;
   holes: ((value: string, home?: AccessibilitySnapshot) => boolean)[];
 }
 
 export const encode = (selector: Selector): Encoded => {
   const holes: Encoded["holes"] = [];
-  let predicates = 0;
-  let references = 0;
   const convert = (value: unknown): unknown => {
     if (typeof value === "function") {
-      predicates++;
       holes.push((argument, home) => {
         const element = home === undefined ? undefined : wrap(JSON.parse(argument) as Raw, undefined, home, undefined);
         return element !== undefined && Boolean((value as (element: AccessibilityElement) => unknown)(element));
@@ -205,7 +200,6 @@ export const encode = (selector: Selector): Encoded => {
         holes.push(text => text.search(field) >= 0);
         out[key] = { $regex: field.source, $flags: field.flags, $id: holes.length - 1 };
       } else if (relations.includes(key) && field instanceof AccessibilityElement) {
-        references++;
         out[key] = { $element: refOf(field) };
       } else if (relations.includes(key) && isSelector(field)) {
         out[key] = convert(field);
@@ -215,16 +209,7 @@ export const encode = (selector: Selector): Encoded => {
     }
     return out;
   };
-  const value = convert(selector);
-  return { value, predicates, references, holes };
-};
-
-export const scripted = (encoded: Encoded): boolean => {
-  const answer = native.selector(JSON.stringify(encoded.value));
-  if (answer.failure !== undefined) {
-    throw errorFrom(JSON.parse(answer.failure));
-  }
-  return encoded.predicates > 0 || answer.scripted === true;
+  return { value: convert(selector), holes };
 };
 
 const search = (home: AccessibilitySnapshot, scope: string, selector: Selector, mode: "one" | "all"): AccessibilityElement[] => {

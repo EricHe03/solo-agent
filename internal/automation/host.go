@@ -96,6 +96,17 @@ func New(options Options) *Host {
 	}
 	h.ctx, h.cancel = context.WithCancelCause(context.Background())
 	h.lease = &foregroundLease{host: h}
+	if phone := options.Device; phone != nil {
+		phone.Trace(func(trace device.Trace) {
+			if !h.timeline.active() {
+				return
+			}
+			h.timeline.record(TimelineEvent{
+				Time: trace.At.UnixMilli(), Type: "operation", Name: "trace." + trace.Name, Message: trace.Detail,
+				DurationMs: float64(trace.Duration.Microseconds()) / 1000,
+			})
+		})
+	}
 	return h
 }
 

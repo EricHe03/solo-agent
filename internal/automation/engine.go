@@ -380,7 +380,6 @@ func (e *engine) natives() map[string]jsc.Function {
 		"digest":      e.digest,
 		"finish":      e.finish,
 		"show":        e.show,
-		"selector":    e.selector,
 		"match":       e.match,
 	}
 }

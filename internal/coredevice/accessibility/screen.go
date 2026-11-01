@@ -141,6 +141,7 @@ type ApplicationOptions struct {
 	Modal      bool
 	Focused    bool
 	Expand     bool
+	Wanted     func(bundleID string) bool
 }
 
 // An app that read the pasteboard while launching answered no snapshot until
@@ -161,12 +162,28 @@ func (c *RemoteClient) ReadApplication(ctx context.Context, options ApplicationO
 		if err := app.Err("read the application"); err != nil {
 			return nil, err
 		}
+		var bundle *Result[string]
+		if options.Wanted != nil {
+			check := &Batch{}
+			bundle = check.BundleID(app.Value)
+			if err := c.Run(ctx, check); err != nil {
+				return nil, err
+			}
+			if err := bundle.Err("read the application's bundle ID"); err != nil {
+				return nil, c.silent(ctx, app.Value, options.PID != 0, err)
+			}
+			if !options.Wanted(bundle.Value) {
+				return &Screen{BundleID: bundle.Value, App: app.Value}, nil
+			}
+		}
 		attributes := options.Attributes
 		if options.Expand && len(attributes) > 0 && !slices.Contains(attributes, nativeClassName) {
 			attributes = append(slices.Clone(attributes), nativeClassName)
 		}
 		second := &Batch{}
-		bundle := second.BundleID(app.Value)
+		if bundle == nil {
+			bundle = second.BundleID(app.Value)
+		}
 		full := second.Snapshot(app.Value, SnapshotOptions{Attributes: attributes})
 		var modal *Result[*Snapshot]
 		if options.Modal {
