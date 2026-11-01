@@ -175,9 +175,59 @@ func enteredDigits(value string, length int) (int, bool) {
 	return 0, false
 }
 
+// SpringBoard posts com.apple.springboard.lockstate when the device locks or
+// unlocks (iPhone18,2, iOS 27.2 24B115).
+const lockStateLife = 30 * time.Second
+
 type lockStateReader struct {
 	access sync.Mutex
 	conn   *coredevice.LockStateConn
+
+	owner    *conn
+	value    bool
+	readAt   time.Time
+	watching bool
+	relayed  func() bool
+	unwatch  func()
+}
+
+func (r *lockStateReader) recent(ctx context.Context) (bool, error) {
+	r.access.Lock()
+	if !r.watching && r.owner != nil {
+		changed, relayed, cancel := r.owner.darwin.watch()
+		r.watching, r.relayed, r.unwatch = true, relayed, cancel
+		go func() {
+			for {
+				select {
+				case <-changed:
+					r.access.Lock()
+					r.readAt = time.Time{}
+					r.access.Unlock()
+					_, _ = r.recent(r.owner.ctx)
+				case <-r.owner.ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+	life := lockStateLife
+	if r.relayed == nil || !r.relayed() {
+		life = time.Second
+	}
+	if !r.readAt.IsZero() && time.Since(r.readAt) < life {
+		value := r.value
+		r.access.Unlock()
+		return value, nil
+	}
+	r.access.Unlock()
+	value, err := r.locked(ctx, r.owner.device)
+	if err != nil {
+		return false, err
+	}
+	r.access.Lock()
+	r.value, r.readAt = value, time.Now()
+	r.access.Unlock()
+	return value, nil
 }
 
 func (r *lockStateReader) locked(ctx context.Context, device *coredevice.Device) (bool, error) {
@@ -210,6 +260,10 @@ func (r *lockStateReader) locked(ctx context.Context, device *coredevice.Device)
 func (r *lockStateReader) close() error {
 	r.access.Lock()
 	defer r.access.Unlock()
+	if r.unwatch != nil {
+		r.unwatch()
+		r.unwatch, r.watching = nil, false
+	}
 	if r.conn == nil {
 		return nil
 	}

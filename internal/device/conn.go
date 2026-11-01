@@ -56,10 +56,12 @@ func newConn(s *Connection, session context.Context, device *coredevice.Device, 
 		events: newEvents(),
 	}
 	c.pasteboard = pasteboard.New(ctx, device, s.logger)
+	c.lockState.owner = c
 	c.ax = newAXWorker(c)
 	c.front = newForeground(c)
 	c.darwin = newDarwinNotifications(c)
 	go c.ax.run()
+	go func() { _, _ = c.lockState.recent(ctx) }()
 	return c
 }
 

@@ -387,7 +387,7 @@ func (p *Phone) requireScreen(ctx context.Context, c *conn) error {
 }
 
 func (p *Phone) TapPoint(ctx context.Context, at Point, count int, hold time.Duration) error {
-	return p.act(ctx, action{unlocked: true, input: func(ctx context.Context, c *conn, geometry phoneGeometry) error {
+	return p.act(ctx, action{name: "tap " + pointText(at), unlocked: true, input: func(ctx context.Context, c *conn, geometry phoneGeometry) error {
 		if err := geometry.check(at); err != nil {
 			return err
 		}
