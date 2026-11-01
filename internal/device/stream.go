@@ -446,6 +446,7 @@ func (v *videoSource) ReadPackets(ctx context.Context, packets []media.ServerPac
 	var batch []byte
 	for i, packet := range v.packets[:n] {
 		if !packet.RTCP {
+			feeds.observe(packet.Buffer.Bytes(), packet.Arrival)
 			if sps := hevcSPS(rtpPayload(packet.Buffer.Bytes())); sps != nil {
 				v.checkPictureSize(sps)
 			}

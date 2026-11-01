@@ -112,9 +112,10 @@ type phoneGeometry struct {
 func (c *conn) readGeometry(ctx context.Context) (phoneGeometry, error) {
 	c.geometryAccess.Lock()
 	defer c.geometryAccess.Unlock()
-	if time.Since(c.geometryAt) < phoneGeometryLife {
+	if time.Since(c.geometryAt) < phoneGeometryLife || c.connection.feeds.steadySince(c.geometryAt) {
 		return c.geometry, nil
 	}
+	asked := time.Now()
 	displays, err := c.display.Displays(ctx)
 	if err != nil {
 		return phoneGeometry{}, E.Cause(err, "read the device's displays")
@@ -142,7 +143,7 @@ func (c *conn) readGeometry(ctx context.Context) (phoneGeometry, error) {
 		PhoneScreen: PhoneScreen{Width: float64(width) / scale, Height: float64(height) / scale, Scale: scale, Orientation: orientation},
 		turns:       touch,
 	}
-	c.geometryAt = time.Now()
+	c.geometryAt = asked
 	return c.geometry, nil
 }
 

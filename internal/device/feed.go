@@ -6,12 +6,14 @@ import (
 	"maps"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
 
 	"github.com/swipt-automation/swipt/internal/coredevice/display"
+	"github.com/swipt-automation/swipt/internal/rfb/media"
 )
 
 const (
@@ -47,6 +49,10 @@ type screenFeeds struct {
 	open       map[*ScreenFeed]struct{}
 	viewer     *videoSource
 	own        *ownFeed
+
+	orientation atomic.Int32
+	oriented    atomic.Int64
+	seen        atomic.Int64
 }
 
 func newScreenFeeds(connection *Connection) *screenFeeds {
@@ -234,6 +240,9 @@ func (f *screenFeeds) read(ctx context.Context, own *ownFeed, stream *deviceStre
 		}
 		var batch []byte
 		for _, packet := range packets[:n] {
+			if !packet.RTCP {
+				f.observe(packet.Buffer.Bytes(), packet.Arrival)
+			}
 			batch = appendFeedRecord(batch, packet.Buffer.Bytes(), packet.RTCP, packet.Arrival)
 			packet.Buffer.Release()
 		}
@@ -252,6 +261,22 @@ func (f *screenFeeds) deliver(batch []byte, current func() bool) {
 	for _, feed := range feeds {
 		feed.deliver(batch)
 	}
+}
+
+func (f *screenFeeds) observe(packet []byte, arrival time.Time) {
+	orientation, found := media.PacketOrientation(packet)
+	if !found {
+		return
+	}
+	at := arrival.UnixNano()
+	if f.orientation.Swap(int32(orientation)+1) != int32(orientation)+1 {
+		f.oriented.Store(at)
+	}
+	f.seen.Store(at)
+}
+
+func (f *screenFeeds) steadySince(at time.Time) bool {
+	return time.Since(time.Unix(0, f.seen.Load())) < phoneGeometryLife && f.oriented.Load() < at.UnixNano()
 }
 
 func appendFeedRecord(batch []byte, data []byte, rtcp bool, arrival time.Time) []byte {
