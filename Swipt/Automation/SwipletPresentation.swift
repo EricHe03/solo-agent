@@ -6,7 +6,16 @@ import SwiftUI
 enum SwipletPresentation {
     static func open(name: String, entry: SwipletEntry) {
         let scene = UIApplication.shared.connectedScenes.lazy.compactMap { $0 as? UIWindowScene }.first { $0.activationState == .foregroundActive }
-        guard var top = scene?.keyWindow?.rootViewController else { return }
+        guard var top = scene?.keyWindow?.rootViewController else {
+            var token: NSObjectProtocol?
+            token = NotificationCenter.default.addObserver(forName: UIScene.didActivateNotification, object: nil, queue: .main) { _ in
+                if let token {
+                    NotificationCenter.default.removeObserver(token)
+                }
+                open(name: name, entry: entry)
+            }
+            return
+        }
         while let presented = top.presentedViewController {
             top = presented
         }

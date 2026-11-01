@@ -79,11 +79,12 @@ const format = (value: unknown): string => (typeof value === "string" ? value : 
 
 const swipletOf = (error: unknown): string => (error instanceof Error && /\bswiplet:\/\/([^/]+)\//.exec(String(error.stack))?.[1]) || "";
 
-const report = (error: unknown) => {
-  const swiplet = swipletOf(error);
+const reportFor = (swiplet: string) => (error: unknown) => {
   host.log(swiplet, "error", describe(error));
   host.report(swiplet, messageOf(error));
 };
+
+const report = (error: unknown) => reportFor(swipletOf(error))(error);
 
 const fail = (name: string, surface: string, error: unknown) => {
   host.log(name, "error", describe(error));
@@ -208,11 +209,12 @@ function load(props: Props): ComponentType {
     return module();
   };
   const module: { exports: { default?: ComponentType } & Record<string, unknown> } = { exports: {} };
-  new Function("require", "module", "exports", "console", `${props.source}\n//# sourceURL=swiplet://${props.name}/${props.file}`)(
+  new Function("require", "module", "exports", "console", "reportError", `${props.source}\n//# sourceURL=swiplet://${props.name}/${props.file}`)(
     resolve,
     module,
     module.exports,
     consoleOf(props.name),
+    reportFor(props.name),
   );
   return module.exports.default ?? (module.exports as unknown as ComponentType);
 }

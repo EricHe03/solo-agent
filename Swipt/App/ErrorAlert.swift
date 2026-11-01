@@ -11,6 +11,7 @@ final class ErrorAlert {
     static let shared = ErrorAlert()
 
     nonisolated static let notificationCategory = "error"
+    nonisolated static let swipletKey = "swiplet"
     nonisolated private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Swipt", category: "error")
 
     private(set) var alert: AlertState?
@@ -21,7 +22,7 @@ final class ErrorAlert {
         report(AlertState(failure, error: error))
     }
 
-    func report(_ alert: AlertState) {
+    func report(_ alert: AlertState, swiplet: String? = nil) {
         Self.logger.error("\(alert.title, privacy: .public): \(alert.message, privacy: .public)")
         guard enqueue(alert) else { return }
         #if os(iOS)
@@ -31,6 +32,9 @@ final class ErrorAlert {
         content.body = alert.message
         content.sound = .default
         content.categoryIdentifier = Self.notificationCategory
+        if let swiplet {
+            content.userInfo[Self.swipletKey] = swiplet
+        }
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: Self.identifier(of: alert), content: content, trigger: nil)) { error in
             if let error {
                 Self.logger.error("Post the error notification: \(error.localizedDescription, privacy: .public)")

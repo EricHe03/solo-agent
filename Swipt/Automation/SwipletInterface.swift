@@ -287,7 +287,11 @@ final class SwipletHost: SwiptHostDelegate {
     func report(swiplet: String, message: String) {
         let name = swiplet.isEmpty ? presented.last?.name : swiplet
         let title = name.map { String(localized: "“\(SwipletStore.shared.titles[$0] ?? $0)” Error") } ?? String(localized: "Swiplet Error")
-        ErrorAlert.shared.report(AlertState(title, errorMessage: message))
+        ErrorAlert.shared.report(AlertState(title, errorMessage: message), swiplet: name)
+    }
+
+    func isPresented(_ name: String) -> Bool {
+        presented.contains { $0.name == name }
     }
 
     func surfaceDidMount(_ surface: String) {
