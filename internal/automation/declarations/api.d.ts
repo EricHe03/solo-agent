@@ -24,7 +24,6 @@ type Jsonify<T> = T extends string | number | boolean | null ? T
 
 
 declare const dataDirectory: DirectoryHandle;
-declare const assets: DirectoryHandle;
 
 interface FileStat {
   readonly size: number;

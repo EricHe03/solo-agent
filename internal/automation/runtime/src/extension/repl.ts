@@ -2,6 +2,7 @@ import { inspect } from "../shared/inspect";
 import { accessibility, device, image, input, screen } from "./api";
 import { createDialog } from "./dialog";
 import { failureOf } from "./errors";
+import { dataDirectory } from "./files";
 import { jsonOf, setInputColumns } from "./format";
 import { handleOf, RasterImage } from "./image";
 import { native } from "./native";
@@ -20,7 +21,7 @@ const outcome = (value: unknown): string => {
   return `{"text":${JSON.stringify(inspect(value))},"json":${jsonOf(value)}}`;
 };
 
-export const replGlobals = () => ({ accessibility, input, device, screen, image, dialog: createDialog(), show });
+export const replGlobals = () => ({ accessibility, input, device, screen, image, dataDirectory: dataDirectory(), dialog: createDialog(), show });
 
 export function launch(script: () => Promise<unknown>, columns: [output: number, input: number][][], id: string): void {
   setInputColumns(id, columns);

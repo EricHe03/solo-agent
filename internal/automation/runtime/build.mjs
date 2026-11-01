@@ -27,7 +27,7 @@ const replOnly = text => {
   const packaging = text.indexOf("export type ActionCaller");
   return packaging < 0 ? text : text.slice(0, packaging);
 };
-const globals = globalModules.map(name => replOnly(imports(read(name)).body).replace(/^export (declare )?/gm, (_, declared) => declared ? "declare " : ""));
+const globals = globalModules.map(name => replOnly(imports(read(name)).body).replace(/^export declare const assets: .*\n/m, "").replace(/^export (declare )?/gm, (_, declared) => declared ? "declare " : ""));
 const namespaced = namespaces.map(name => {
   const { aliases, body } = imports(read(name));
   const members = [...aliases, body.replace(/^export declare /gm, "export ")].join("\n").trimEnd();

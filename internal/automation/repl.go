@@ -7,6 +7,8 @@ import (
 	_ "embed"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -114,7 +116,10 @@ type REPL struct {
 	closed bool
 }
 
-const replPrefix = "@repl-"
+const (
+	replPrefix    = "@repl-"
+	REPLDirectory = "@repl"
+)
 
 var replSequence atomic.Uint64
 
@@ -232,7 +237,11 @@ func stopped(ctx context.Context) error {
 }
 
 func (h *Host) newREPLEngine(id string, dialog Dialog) (*engine, error) {
-	e, err := h.newEngine(Swiplet{ID: id}, dialog, logger.NOP(), nil)
+	directory := filepath.Join(h.options.Directory, REPLDirectory)
+	if err := os.MkdirAll(filepath.Join(directory, DataFolder), 0o755); err != nil {
+		return nil, err
+	}
+	e, err := h.newEngine(Swiplet{ID: id, Directory: directory}, dialog, logger.NOP(), nil)
 	if err != nil {
 		return nil, err
 	}
