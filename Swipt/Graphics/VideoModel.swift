@@ -96,6 +96,7 @@ nonisolated final class VideoModel: @unchecked Sendable {
     let start: Double?
     let duration: Double
     let scale: Double
+    let clockOffset: Double
     let screen: ScreenGeometry
     let segments: [Segment]
     let changes: [[String: Any]]
@@ -110,6 +111,7 @@ nonisolated final class VideoModel: @unchecked Sendable {
         start = (metadata["start"] as? NSNumber)?.doubleValue
         duration = (metadata["duration"] as? NSNumber)?.doubleValue ?? 0
         scale = (metadata["scale"] as? NSNumber)?.doubleValue ?? 1
+        clockOffset = (metadata["clockOffset"] as? NSNumber)?.doubleValue ?? 0
         let screen = metadata["screen"] as? [String: Any] ?? [:]
         self.screen = ScreenGeometry(width: (screen["width"] as? NSNumber)?.intValue ?? 0, height: (screen["height"] as? NSNumber)?.intValue ?? 0, scale: scale)
         segments = (metadata["segments"] as? [[String: Any]] ?? []).compactMap { segment in
@@ -200,12 +202,16 @@ nonisolated final class VideoModel: @unchecked Sendable {
         ]
     }
 
+    private func stored(_ time: Double) -> Double {
+        time - clockOffset
+    }
+
     private func segmentIndex(at time: Double) -> Int {
         segments.lastIndex { $0.start <= time } ?? 0
     }
 
     func pixelSize(at time: Double) -> (width: Int, height: Int) {
-        let segment = segments[segmentIndex(at: time)]
+        let segment = segments[segmentIndex(at: stored(time))]
         let width = screen.width
         let height = screen.height
         return segment.turns % 2 == 0 ? (width, height) : (height, width)
@@ -217,7 +223,8 @@ nonisolated final class VideoModel: @unchecked Sendable {
     }
 
     func raster(at time: Double, token: CancelToken?) throws -> Raster {
-        let index = segmentIndex(at: time)
+        let stored = stored(time)
+        let index = segmentIndex(at: stored)
         let segment = segments[index]
         let reader = try lock.withLock {
             if let reader = readers[index] {
@@ -228,7 +235,7 @@ nonisolated final class VideoModel: @unchecked Sendable {
             return reader
         }
         try token?.check()
-        let buffer = try reader.frame(at: max(time - segment.start, 0) / 1000)
+        let buffer = try reader.frame(at: max(stored - segment.start, 0) / 1000)
         return try Frame(pixelBuffer: buffer, time: time, turns: segment.turns, geometry: screen).raster()
     }
 

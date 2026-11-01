@@ -35,12 +35,13 @@ nonisolated final class SegmentWriter: @unchecked Sendable {
         writer.startSession(atSourceTime: .zero)
     }
 
-    func append(_ unit: AccessUnit) {
+    func append(_ unit: AccessUnit) -> CMTime {
         let time = clock.time(unit.rtpTimestamp)
         if let pending {
             write(pending.unit, time: pending.time, duration: CMTimeSubtract(time, pending.time))
         }
         pending = (unit, time)
+        return time
     }
 
     private func write(_ unit: AccessUnit, time: CMTime, duration: CMTime) {
@@ -96,6 +97,7 @@ nonisolated final class RecordingSession: @unchecked Sendable {
     private var failures: [String] = []
     private var queued: Frame?
     private var busy = false
+    private var clockDeltas: [Double] = []
 
     private init(url: URL, geometry: ScreenGeometry, timeline: LibSwiptGraphicsTimeline?) {
         self.url = url
@@ -170,7 +172,13 @@ nonisolated final class RecordingSession: @unchecked Sendable {
             guard unit.isKeyframe else { return }
             waiting = false
         }
-        writer?.append(unit)
+        if let writer, let origin, let segment = segments.last {
+            let stored = segment.start + writer.append(unit).seconds * 1000
+            clockDeltas.append(unit.arrival - origin - stored)
+            if clockDeltas.count > 8192 {
+                clockDeltas = stride(from: 0, to: clockDeltas.count, by: 2).map { clockDeltas[$0] }
+            }
+        }
         last = unit.arrival
     }
 
@@ -270,7 +278,7 @@ nonisolated final class RecordingSession: @unchecked Sendable {
     }
 
     private func save(_ timeline: String) throws -> VideoModel {
-        let (origin, last, segments, failures) = lock.withLock { (origin, last, segments, failures) }
+        let (origin, last, segments, failures, deltas) = lock.withLock { (origin, last, segments, failures, clockDeltas.sorted()) }
         guard let origin, !segments.isEmpty else {
             throw GraphicsError.unavailable("graphics: the recording got no frames; the screen may be off or another app may hold it")
         }
@@ -298,6 +306,7 @@ nonisolated final class RecordingSession: @unchecked Sendable {
         }
         let metadata: [String: Any] = [
             "version": 1, "start": origin, "duration": rounded(duration), "scale": geometry.scale,
+            "clockOffset": rounded(deltas.isEmpty ? 0 : deltas[deltas.count / 2]),
             "screen": ["width": geometry.width, "height": geometry.height],
             "segments": segments.enumerated().map { index, segment in
                 let following = index + 1 < segments.count ? segments[index + 1].start : duration
