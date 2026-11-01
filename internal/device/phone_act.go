@@ -46,6 +46,7 @@ type axSession struct {
 	geometry phoneGeometry
 	grant    *hidGrant
 	acted    bool
+	previous *accessibility.LayoutFrame
 }
 
 func (s *axSession) tap(ctx context.Context, at Point, count int, hold time.Duration) error {
@@ -124,11 +125,11 @@ func (s *axSession) perform(ctx context.Context, target *PhoneNode, name string)
 // it was sent (iPhone18,2, iOS 27.2 24B115).
 const keyLimit = 2 * time.Second
 
-func (s *axSession) setText(ctx context.Context, target *PhoneNode, text string) error {
+func (s *axSession) setText(ctx context.Context, target *PhoneNode, at Point, text string) error {
 	if !target.AX.TextInput() {
 		return E.New(describeElement(target.AX), " is not a text entry")
 	}
-	entry, err := s.focus(ctx, target)
+	entry, err := s.focus(ctx, target, at)
 	if err != nil {
 		return err
 	}
@@ -176,7 +177,7 @@ func (s *axSession) setText(ctx context.Context, target *PhoneNode, text string)
 
 // Tapping a text field can bring another entry in its place, as Safari's
 // address bar gives way to its editing field (iPhone18,2, iOS 27.2 24B115).
-func (s *axSession) focus(ctx context.Context, target *PhoneNode) (*PhoneNode, error) {
+func (s *axSession) focus(ctx context.Context, target *PhoneNode, at Point) (*PhoneNode, error) {
 	app := target.model.Root.AX
 	before, err := s.focused(ctx, app)
 	if err != nil {
@@ -185,13 +186,7 @@ func (s *axSession) focus(ctx context.Context, target *PhoneNode) (*PhoneNode, e
 	if before != nil && *before == target.AX.Ref {
 		return target, nil
 	}
-	switch {
-	case !target.Shown():
-		return nil, E.New(describeElement(target.AX), " has no position on the screen")
-	case target.Covered:
-		return nil, E.New(describeElement(target.AX), " is covered by the keyboard or a banner")
-	}
-	if err = s.tap(ctx, target.Point, 1, 0); err != nil {
+	if err = s.tap(ctx, at, 1, 0); err != nil {
 		return nil, err
 	}
 	var focused *accessibility.ElementRef

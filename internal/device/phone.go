@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -262,6 +263,7 @@ type PhoneNode struct {
 	Parent   *PhoneNode
 
 	model *PhoneModel
+	space axSpace
 }
 
 func (n *PhoneNode) HasFrame() bool {
@@ -376,7 +378,7 @@ func (m *PhoneModel) convert(space axSpace, node *accessibility.TreeNode, parent
 	if node.Type == windowAutomationType && node.Frame != nil {
 		space = space.window(node.Frame)
 	}
-	out := &PhoneNode{AX: node.Element, Inert: node.Inert, Web: node.Web, Parent: parent, Remote: space.remote(node.Element), model: m}
+	out := &PhoneNode{AX: node.Element, Inert: node.Inert, Web: node.Web, Parent: parent, Remote: space.remote(node.Element), model: m, space: space}
 	m.nodes[node.Ref] = out
 	if out.HasFrame() {
 		out.Frame = space.rect(*node.Frame)
@@ -465,10 +467,12 @@ func (p *Phone) Snapshot(ctx context.Context, options SnapshotOptions) (*View, e
 		return nil, err
 	}
 	defer done()
+	started := time.Now()
 	model, err := p.read(ctx, c, options)
 	if err != nil {
 		return nil, err
 	}
+	p.connection.trace(started, "snapshot.read", strconv.Itoa(len(model.nodes))+" nodes of "+model.BundleID, time.Since(started))
 	return NewView(model, options.Raw), nil
 }
 

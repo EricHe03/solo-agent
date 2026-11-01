@@ -97,7 +97,16 @@ export const setText = (element: unknown, text: unknown, options?: Options) => {
   if (typeof text !== "string") {
     throw new TypeError("the text must be a string");
   }
-  return act("accessibility.setText", [ref, text], check(options, []));
+  const { timeoutMs } = optionsOf(options, ["timeoutMs"]);
+  const limit = limitOf(timeoutMs, "timeoutMs");
+  return act("accessibility.setText", [ref, text, limit === Infinity ? null : limit], options);
+};
+
+export const tap = (element: unknown, options?: Options) => {
+  const ref = elementOf(element, "accessibility.tap");
+  const { timeoutMs } = optionsOf(options, ["timeoutMs"]);
+  const limit = limitOf(timeoutMs, "timeoutMs");
+  return act("accessibility.tap", [ref, limit === Infinity ? null : limit], options);
 };
 
 export const perform = (element: unknown, action: unknown, options?: Options) => {

@@ -130,40 +130,6 @@ func (p *Phone) element(c *conn, ref string) (*PhoneNode, error) {
 	return node, nil
 }
 
-func (p *Phone) SetText(ctx context.Context, ref, text string) error {
-	c, ctx, done, err := p.begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer done()
-	if err = p.requireScreen(ctx, c); err != nil {
-		return err
-	}
-	geometry, err := c.readGeometry(ctx)
-	if err != nil {
-		return err
-	}
-	grant, err := p.connection.input.acquire(ctx, c)
-	if err != nil {
-		return err
-	}
-	defer grant.release()
-	s := &axSession{phone: p, conn: c, geometry: geometry, grant: grant}
-	err = c.ax.do(ctx, true, 0, func(ctx context.Context, client *accessibility.RemoteClient) error {
-		s.client = client
-		node, err := p.element(c, ref)
-		if err != nil {
-			return err
-		}
-		return s.setText(ctx, node, text)
-	})
-	if s.acted {
-		c.events.publish(Event{Kind: EventInput})
-		c.front.acted()
-	}
-	return err
-}
-
 func (p *Phone) Perform(ctx context.Context, ref, name string) error {
 	c, ctx, done, err := p.begin(ctx)
 	if err != nil {

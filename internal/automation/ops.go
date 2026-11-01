@@ -54,6 +54,7 @@ func init() {
 		"accessibility.changed":         uiChanged,
 		"accessibility.setText":         screenAction(uiSetText),
 		"accessibility.perform":         screenAction(uiPerform),
+		"accessibility.tap":             screenAction(uiTap),
 		"fs.stat":                       fsStat,
 		"fs.list":                       fsList,
 		"fs.read":                       fsRead,
@@ -575,10 +576,15 @@ func uiChanged(ctx context.Context, call *operation) (any, error) {
 
 func uiSetText(ctx context.Context, phone *device.Phone, call *operation) error {
 	var ref, text string
-	if err := call.decode(2, &ref, &text); err != nil {
+	var timeoutMs *float64
+	if err := call.decode(2, &ref, &text, &timeoutMs); err != nil {
 		return err
 	}
-	return phone.SetText(ctx, ref, text)
+	timeout, err := elementTimeout(timeoutMs)
+	if err != nil {
+		return err
+	}
+	return phone.SetText(ctx, ref, text, timeout)
 }
 
 func uiPerform(ctx context.Context, phone *device.Phone, call *operation) error {
@@ -587,4 +593,28 @@ func uiPerform(ctx context.Context, phone *device.Phone, call *operation) error 
 		return err
 	}
 	return phone.Perform(ctx, ref, name)
+}
+
+func uiTap(ctx context.Context, phone *device.Phone, call *operation) error {
+	var ref string
+	var timeoutMs *float64
+	if err := call.decode(1, &ref, &timeoutMs); err != nil {
+		return err
+	}
+	timeout, err := elementTimeout(timeoutMs)
+	if err != nil {
+		return err
+	}
+	return phone.Tap(ctx, ref, timeout)
+}
+
+// A missing limit waits forever.
+func elementTimeout(timeoutMs *float64) (time.Duration, error) {
+	if timeoutMs == nil {
+		return -1, nil
+	}
+	if *timeoutMs < 0 {
+		return 0, E.Cause1(ErrInvalid, E.New("timeoutMs must not be negative"))
+	}
+	return milliseconds(*timeoutMs), nil
 }

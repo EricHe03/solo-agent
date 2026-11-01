@@ -69,5 +69,11 @@ export interface FindOptions extends CallOptions {
 
 export declare function snapshot(options?: SnapshotOptions): Promise<AccessibilitySnapshot>;
 export declare function find(selector: AccessibilitySelector | readonly AccessibilitySelector[], options?: FindOptions): Promise<AccessibilityElement | null>;
-export declare function setText(element: AccessibilityElement, text: string, options?: CallOptions): Promise<void>;
+export interface ElementOptions extends CallOptions {
+  /** Omitted or 0 tries once; a positive number or Infinity keeps checking until a tap would reach the element, and fails at the limit. */
+  readonly timeoutMs?: number;
+}
+
+export declare function tap(element: AccessibilityElement, options?: ElementOptions): Promise<void>;
+export declare function setText(element: AccessibilityElement, text: string, options?: ElementOptions): Promise<void>;
 export declare function perform(element: AccessibilityElement, action: AccessibilityAction | (string & {}), options?: CallOptions): Promise<void>;

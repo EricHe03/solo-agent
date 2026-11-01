@@ -4,5 +4,6 @@ const outside = () => {
 
 export const snapshot = outside;
 export const find = outside;
+export const tap = outside;
 export const setText = outside;
 export const perform = outside;
