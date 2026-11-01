@@ -2,7 +2,7 @@ import { stream } from "./async";
 import { DOMException } from "./errors";
 import { AbortController } from "./events";
 import { cacheFile, FileHandle, fileOf, handleOfPath, pathOf } from "./files";
-import { adoptOptional, finite, freeze, graphicsNative, handleOf, imageResult, RasterImage, rectOf, run, timeoutOf, type ImageHandle, type Rect } from "./image";
+import { adopt, adoptOptional, finite, freeze, graphicsNative, handleOf, imageResult, RasterImage, rectOf, run, timeoutOf, type ImageHandle, type Rect } from "./image";
 import { check, optionsOf, signalOf, type Options } from "./options";
 
 interface RecordingHandle {
@@ -266,6 +266,92 @@ const limited = (signal: AbortSignal | undefined, timeout: number | null) => {
 };
 
 export const screenshot = (options?: Options) => imageResult(run("screenshot", {}, [], signalOf(check(options, []))));
+
+type ScreenTarget = RasterImage | RegExp | string;
+
+interface ScreenMatch {
+  readonly frame: Rect;
+  readonly center: [number, number];
+  readonly score: number;
+  readonly text: string | null;
+  readonly target: number;
+  readonly image: RasterImage;
+}
+
+const findLimit = (value: unknown): number | null => {
+  if (value === undefined || value === 0) {
+    return 0;
+  }
+  if (value === Infinity) {
+    return null;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new TypeError("timeoutMs must be a non-negative number of milliseconds, or Infinity");
+  }
+  return value;
+};
+
+export const find = async (target: ScreenTarget | readonly ScreenTarget[], options?: Options & { region?: Rect; timeoutMs?: number; threshold?: number; scales?: readonly number[]; languages?: readonly string[]; minimumHeight?: number; binarize?: number }): Promise<ScreenMatch | null> => {
+  const { region, timeoutMs, threshold, scales, languages, minimumHeight, binarize } = optionsOf(options, ["region", "timeoutMs", "threshold", "scales", "languages", "minimumHeight", "binarize"]);
+  const list = Array.isArray(target) ? target : [target];
+  if (list.length === 0) {
+    throw new TypeError("find needs a target");
+  }
+  const images: object[] = [];
+  const targets = list.map((item, index) => {
+    if (item instanceof RasterImage) {
+      images.push(handleOf(item));
+      return { kind: "image" };
+    }
+    if (item instanceof RegExp) {
+      return { kind: "text", pattern: item.source, flags: item.flags };
+    }
+    if (typeof item === "string" && item !== "") {
+      return { kind: "text", pattern: item.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags: "" };
+    }
+    throw new TypeError(`target ${index + 1} must be a RasterImage, a RegExp or a non-empty string`);
+  });
+  const args: Record<string, unknown> = { targets, timeoutMs: findLimit(timeoutMs) };
+  if (region !== undefined) {
+    args.region = rectOf(region, "region");
+  }
+  if (threshold !== undefined) {
+    if (typeof threshold !== "number" || !(threshold > 0 && threshold <= 1)) {
+      throw new RangeError("threshold must be above 0 and at most 1");
+    }
+    args.threshold = threshold;
+  }
+  if (scales !== undefined) {
+    if (!Array.isArray(scales) || scales.length === 0 || !scales.every(scale => typeof scale === "number" && scale > 0)) {
+      throw new TypeError("scales must be an array of positive numbers");
+    }
+    args.scales = scales;
+  }
+  if (languages !== undefined) {
+    if (!Array.isArray(languages) || !languages.every(language => typeof language === "string")) {
+      throw new TypeError("languages must be an array of strings");
+    }
+    args.languages = languages;
+  }
+  if (minimumHeight !== undefined) {
+    if (typeof minimumHeight !== "number" || !(minimumHeight > 0)) {
+      throw new RangeError("minimumHeight must be a positive number of points");
+    }
+    args.minimumHeight = minimumHeight;
+  }
+  if (binarize !== undefined) {
+    if (!Number.isInteger(binarize) || (binarize as number) < 1 || (binarize as number) > 254) {
+      throw new RangeError("binarize must be an integer from 1 to 254");
+    }
+    args.binarize = binarize;
+  }
+  const result = await run<{ frame: Rect; center: [number, number]; score: number; text: string | null; target: number; image: number } | null>("screen.find", args, images, signalOf(options));
+  if (result === null) {
+    return null;
+  }
+  const { image, ...match } = result;
+  return freeze({ ...match, image: adopt(image) });
+};
 
 export const waitFor = async (predicate: (frame: RasterImage) => boolean | Promise<boolean>, options?: Options & { timeoutMs?: number }): Promise<RasterImage> => {
   if (typeof predicate !== "function") {

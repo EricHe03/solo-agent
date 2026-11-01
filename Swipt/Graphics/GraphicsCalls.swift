@@ -16,6 +16,8 @@ nonisolated enum GraphicsCalls {
             return try waitForChange(call, engine, token)
         case "screen.waitForStable":
             return try waitForStable(call, engine, token)
+        case "screen.find":
+            return try screenFind(call, engine, token)
         case "decode":
             return try decode(call, engine)
         case "encode":
@@ -267,6 +269,138 @@ nonisolated enum GraphicsCalls {
                 changedAt = Date()
             }
             last = current
+        }
+    }
+
+    private enum ScreenTarget {
+        case image(ImageNode)
+        case text(NSRegularExpression)
+    }
+
+    private struct ScreenHit {
+        let frame: CGRect
+        let score: Double
+        let text: String?
+        let target: Int
+    }
+
+    private static func screenTargets(_ call: PreparedCall) throws -> [ScreenTarget] {
+        var targets: [ScreenTarget] = []
+        var images = 0
+        for entry in call.arguments.objects("targets") {
+            if entry["kind"] as? String == "text" {
+                guard let pattern = entry["pattern"] as? String else {
+                    throw GraphicsError.type("graphics: a text target needs a pattern")
+                }
+                var options: NSRegularExpression.Options = []
+                if (entry["flags"] as? String ?? "").contains("i") {
+                    options.insert(.caseInsensitive)
+                }
+                targets.append(.text(try NSRegularExpression(pattern: pattern, options: options)))
+            } else {
+                targets.append(.image(try image(call, images)))
+                images += 1
+            }
+        }
+        guard !targets.isEmpty else {
+            throw GraphicsError.type("graphics: find needs a target")
+        }
+        return targets
+    }
+
+    private static func probe(_ node: ImageNode, _ targets: [ScreenTarget], _ arguments: Arguments, _ token: CancelToken) throws -> ScreenHit? {
+        let region = arguments.rect("region")
+        let raster = try node.raster(token)
+        var target = raster
+        var origin = CGPoint.zero
+        if let region {
+            guard let pixels = node.pixelRect(space: region) else { return nil }
+            target = raster.view(x: Int(pixels.minX), y: Int(pixels.minY), width: Int(pixels.width), height: Int(pixels.height))
+            origin = pixels.origin
+        }
+        let threshold = arguments.double("threshold") ?? 0.8
+        let binarize = arguments.int("binarize")
+        var binaryTarget: Raster?
+        var recognized: RecognizedText?
+        for (index, entry) in targets.enumerated() {
+            try token.check()
+            switch entry {
+            case .image(let template):
+                let base = node.scale / template.scale
+                let factors = (arguments.doubles("scales") ?? [1]).map { $0 * base }
+                var searched = target
+                var pattern = try template.raster(token)
+                if let binarize {
+                    if binaryTarget == nil {
+                        binaryTarget = try target.grayscale().thresholded(binarize)
+                    }
+                    searched = binaryTarget!
+                    pattern = try pattern.grayscale().thresholded(binarize)
+                }
+                let matches = try TemplateMatching.find(
+                    target: searched, template: pattern, factors: factors, threshold: threshold, limit: 1, overlap: 0.3, token: token)
+                if let match = matches.first {
+                    return ScreenHit(frame: node.spaceRect(match.rect.offsetBy(dx: origin.x, dy: origin.y)), score: match.score, text: nil, target: index)
+                }
+            case .text(let expression):
+                if recognized == nil {
+                    var values: [String: Any] = ["level": "accurate", "correction": false]
+                    if let region = arguments.values["region"] {
+                        values["region"] = region
+                    }
+                    for key in ["languages", "minimumHeight"] {
+                        if let value = arguments.values[key] {
+                            values[key] = value
+                        }
+                    }
+                    recognized = try Recognition.text(node, Arguments(values: values), token: token)
+                }
+                for (line, entry) in recognized!.lines.enumerated() {
+                    guard let text = entry["text"] as? String,
+                          let match = expression.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { continue }
+                    let box = (try? recognized!.boundingBox(line: line, candidate: 0, start: match.range.location, end: match.range.location + match.range.length)) ?? nil
+                    guard let numbers = (box ?? entry)["frame"] as? [Double], numbers.count == 4 else { continue }
+                    let confidence = (entry["confidence"] as? NSNumber)?.doubleValue ?? 0
+                    return ScreenHit(frame: CGRect(x: numbers[0], y: numbers[1], width: numbers[2], height: numbers[3]), score: confidence, text: (text as NSString).substring(with: match.range), target: index)
+                }
+            }
+        }
+        return nil
+    }
+
+    private static func screenFind(_ call: PreparedCall, _ engine: GraphicsEngine, _ token: CancelToken) throws -> Any {
+        let arguments = call.arguments
+        let targets = try screenTargets(call)
+        let timeout = arguments.values["timeoutMs"] == nil ? 0 : arguments.timeout()
+        let limit: Date = timeout.isFinite ? Date().addingTimeInterval(timeout / 1000) : .distantFuture
+        let feed = ScreenFeed.shared
+        _ = try feed.acquire()
+        defer { feed.release() }
+        var (frame, sequence) = try firstFrame(feed, token)
+        var comparison: Comparison?
+        var previous: Raster?
+        while true {
+            try token.check()
+            let node = ImageNode.frame(frame)
+            if comparison == nil {
+                comparison = try Comparison(node, region: arguments.rect("region"), threshold: defaultThreshold)
+            }
+            let plane = try comparison!.plane(node, token)
+            let changed = try previous.map { try comparison!.changed($0, plane) } ?? true
+            previous = plane
+            if changed, let hit = try probe(node, targets, arguments, token) {
+                return [
+                    "frame": rectJSON(hit.frame), "center": centerJSON(hit.frame), "score": (hit.score * 1000).rounded() / 1000,
+                    "text": hit.text.map { $0 as Any } ?? NSNull(), "target": hit.target, "image": engine.register(node),
+                ] as [String: Any]
+            }
+            if timeout == 0 {
+                return NSNull()
+            }
+            guard let next = try feed.frame(after: sequence, until: limit, token: token) else {
+                return NSNull()
+            }
+            (frame, sequence) = next
         }
     }
 

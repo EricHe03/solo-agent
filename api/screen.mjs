@@ -3,6 +3,7 @@ const outside = () => {
 };
 
 export const screenshot = outside;
+export const find = outside;
 export const frames = undefined;
 export const waitFor = outside;
 export const waitForChange = outside;

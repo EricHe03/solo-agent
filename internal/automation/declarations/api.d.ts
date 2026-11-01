@@ -292,7 +292,31 @@ declare namespace screen {
     stop(options?: CallOptions): Promise<ScreenRecording>;
   }
 
+  export type ScreenTarget = RasterImage | RegExp | string;
+
+  export interface ScreenFindOptions extends CallOptions {
+    readonly region?: Rect;
+    /** Omitted or 0 reads the latest frame once; a positive number or Infinity keeps reading frames until a match, and answers null at the limit. */
+    readonly timeoutMs?: number;
+    readonly threshold?: number;
+    readonly scales?: readonly number[];
+    readonly languages?: readonly string[];
+    readonly minimumHeight?: number;
+    /** Compares templates and the screen as black and white, split at this gray level, so a mark keeps matching over changing backgrounds. */
+    readonly binarize?: number;
+  }
+
+  export interface ScreenMatch {
+    readonly frame: Rect;
+    readonly center: Point;
+    readonly score: number;
+    readonly text: string | null;
+    readonly target: number;
+    readonly image: RasterImage;
+  }
+
   export function screenshot(options?: CallOptions): Promise<RasterImage>;
+  export function find(target: ScreenTarget | readonly ScreenTarget[], options?: ScreenFindOptions): Promise<ScreenMatch | null>;
   export const frames: ObservableState<RasterImage>;
   export function waitFor(predicate: (frame: RasterImage) => boolean | Promise<boolean>, options?: CallOptions & { readonly timeoutMs?: number }): Promise<RasterImage>;
   export function waitForChange(options?: WaitOptions & { readonly from?: RasterImage }): Promise<RasterImage>;
