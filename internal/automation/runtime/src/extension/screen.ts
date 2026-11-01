@@ -191,6 +191,18 @@ export class ScreenRecording {
     return freeze(await run("video.diff", args, [videos.get(this)!], signalOf(options)));
   }
 
+  async find(target: ScreenTarget | readonly ScreenTarget[], options?: MatchOptions & { from?: number; to?: number }): Promise<(ScreenMatch & { readonly time: number }) | null> {
+    const values = optionsOf(options, [...matchKeys, "from", "to"]);
+    const { args, images } = matchArgs(target, values);
+    if (values.from !== undefined) {
+      args.from = this.#time(values.from, "from");
+    }
+    if (values.to !== undefined) {
+      args.to = this.#time(values.to, "to");
+    }
+    return matchOf(await run<(RawMatch & { time: number }) | null>("video.find", args, [videos.get(this)!, ...images], signalOf(options)));
+  }
+
   async export(options?: Options & { file?: unknown; from?: number; to?: number; region?: Rect; scale?: number; format?: "mov" | "mp4" | "gif"; frameRate?: number }): Promise<FileHandle> {
     const { file, from, to, region, scale, format = "mp4", frameRate } = optionsOf(options, ["file", "from", "to", "region", "scale", "format", "frameRate"]);
     if (format !== "mov" && format !== "mp4" && format !== "gif") {
@@ -269,6 +281,8 @@ export const screenshot = (options?: Options) => imageResult(run("screenshot", {
 
 type ScreenTarget = RasterImage | RegExp | string;
 
+type RawMatch = { frame: Rect; center: [number, number]; score: number; text: string | null; target: number; image: number };
+
 interface ScreenMatch {
   readonly frame: Rect;
   readonly center: [number, number];
@@ -291,8 +305,10 @@ const findLimit = (value: unknown): number | null => {
   return value;
 };
 
-export const find = async (target: ScreenTarget | readonly ScreenTarget[], options?: Options & { region?: Rect; timeoutMs?: number; threshold?: number; scales?: readonly number[]; languages?: readonly string[]; minimumHeight?: number; binarize?: number }): Promise<ScreenMatch | null> => {
-  const { region, timeoutMs, threshold, scales, languages, minimumHeight, binarize } = optionsOf(options, ["region", "timeoutMs", "threshold", "scales", "languages", "minimumHeight", "binarize"]);
+type MatchOptions = Options & { region?: Rect; threshold?: number; scales?: readonly number[]; languages?: readonly string[]; minimumHeight?: number; binarize?: number };
+
+const matchArgs = (target: ScreenTarget | readonly ScreenTarget[], options: Record<string, unknown>) => {
+  const { region, threshold, scales, languages, minimumHeight, binarize } = options;
   const list = Array.isArray(target) ? target : [target];
   if (list.length === 0) {
     throw new TypeError("find needs a target");
@@ -311,7 +327,7 @@ export const find = async (target: ScreenTarget | readonly ScreenTarget[], optio
     }
     throw new TypeError(`target ${index + 1} must be a RasterImage, a RegExp or a non-empty string`);
   });
-  const args: Record<string, unknown> = { targets, timeoutMs: findLimit(timeoutMs) };
+  const args: Record<string, unknown> = { targets };
   if (region !== undefined) {
     args.region = rectOf(region, "region");
   }
@@ -345,12 +361,24 @@ export const find = async (target: ScreenTarget | readonly ScreenTarget[], optio
     }
     args.binarize = binarize;
   }
-  const result = await run<{ frame: Rect; center: [number, number]; score: number; text: string | null; target: number; image: number } | null>("screen.find", args, images, signalOf(options));
+  return { args, images };
+};
+
+const matchKeys = ["region", "threshold", "scales", "languages", "minimumHeight", "binarize"];
+
+const matchOf = <T extends { image: number }>(result: T | null) => {
   if (result === null) {
     return null;
   }
   const { image, ...match } = result;
   return freeze({ ...match, image: adopt(image) });
+};
+
+export const find = async (target: ScreenTarget | readonly ScreenTarget[], options?: MatchOptions & { timeoutMs?: number }): Promise<ScreenMatch | null> => {
+  const values = optionsOf(options, [...matchKeys, "timeoutMs"]);
+  const { args, images } = matchArgs(target, values);
+  args.timeoutMs = findLimit(values.timeoutMs);
+  return matchOf(await run<RawMatch | null>("screen.find", args, images, signalOf(options)));
 };
 
 export const waitFor = async (predicate: (frame: RasterImage) => boolean | Promise<boolean>, options?: Options & { timeoutMs?: number }): Promise<RasterImage> => {

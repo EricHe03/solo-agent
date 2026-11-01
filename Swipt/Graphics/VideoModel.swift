@@ -28,8 +28,7 @@ nonisolated final class SegmentReader: @unchecked Sendable {
         self.track = track
     }
 
-    private func restart(at seconds: Double) throws {
-        reader?.cancelReading()
+    private func open(at seconds: Double) throws -> (AVAssetReader, AVAssetReaderTrackOutput) {
         let reader = try AVAssetReader(asset: asset)
         reader.timeRange = CMTimeRange(start: CMTime(seconds: max(seconds - 1, 0), preferredTimescale: 600), duration: .positiveInfinity)
         let output = AVAssetReaderTrackOutput(track: track, outputSettings: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA])
@@ -41,6 +40,12 @@ nonisolated final class SegmentReader: @unchecked Sendable {
         guard reader.startReading() else {
             throw GraphicsError("Error", "graphics: read the video: \(reader.error?.localizedDescription ?? "unknown")")
         }
+        return (reader, output)
+    }
+
+    private func restart(at seconds: Double) throws {
+        reader?.cancelReading()
+        let (reader, output) = try open(at: seconds)
         self.reader = reader
         self.output = output
         current = nil
@@ -81,6 +86,31 @@ nonisolated final class SegmentReader: @unchecked Sendable {
             }
             throw GraphicsError.data("graphics: the video has no frame at \(Int(seconds * 1000)) ms")
         }
+    }
+
+    func each(from start: Double, through end: Double, token: CancelToken, _ body: (Double, CVPixelBuffer) throws -> Bool) throws -> Bool {
+        let (reader, output) = try open(at: start)
+        defer { reader.cancelReading() }
+        var held: CVPixelBuffer?
+        while let sample = output.copyNextSampleBuffer() {
+            try token.check()
+            guard let image = CMSampleBufferGetImageBuffer(sample) else { continue }
+            let time = CMSampleBufferGetPresentationTimeStamp(sample).seconds
+            if time <= start + 0.0005 {
+                held = image
+                continue
+            }
+            if let shown = held {
+                held = nil
+                guard try body(start, shown) else { return false }
+            }
+            guard time <= end + 0.0005 else { return true }
+            guard try body(time, image) else { return false }
+        }
+        if let shown = held {
+            return try body(start, shown)
+        }
+        return true
     }
 }
 
@@ -226,17 +256,34 @@ nonisolated final class VideoModel: @unchecked Sendable {
         let stored = stored(time)
         let index = segmentIndex(at: stored)
         let segment = segments[index]
-        let reader = try lock.withLock {
-            if let reader = readers[index] {
-                return reader
-            }
-            let reader = try SegmentReader(url: segment.url)
-            readers[index] = reader
-            return reader
-        }
+        let reader = try reader(index)
         try token?.check()
         let buffer = try reader.frame(at: max(stored - segment.start, 0) / 1000)
         return try Frame(pixelBuffer: buffer, time: time, turns: segment.turns, geometry: screen).raster()
+    }
+
+    private func reader(_ index: Int) throws -> SegmentReader {
+        try lock.withLock {
+            if let reader = readers[index] {
+                return reader
+            }
+            let reader = try SegmentReader(url: segments[index].url)
+            readers[index] = reader
+            return reader
+        }
+    }
+
+    func scan(from: Double, to: Double, token: CancelToken, _ body: (Frame) throws -> Bool) throws {
+        let first = stored(from)
+        let last = stored(to)
+        for (index, segment) in segments.enumerated() where segment.start + segment.duration >= first && segment.start <= last {
+            let start = max(first - segment.start, 0) / 1000
+            let end = (min(last, segment.start + segment.duration) - segment.start) / 1000
+            let going = try reader(index).each(from: start, through: end, token: token) { seconds, buffer in
+                try body(Frame(pixelBuffer: buffer, time: segment.start + seconds * 1000 + clockOffset, turns: segment.turns, geometry: screen))
+            }
+            guard going else { return }
+        }
     }
 
     func info() -> String {

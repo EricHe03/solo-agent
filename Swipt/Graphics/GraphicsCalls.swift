@@ -88,6 +88,8 @@ nonisolated enum GraphicsCalls {
             let model = try video(call)
             return try difference(model.node(at: arguments.double("from") ?? 0), model.node(at: arguments.double("to") ?? 0),
                                   threshold: arguments.int("threshold") ?? defaultThreshold, token: token)
+        case "video.find":
+            return try recordingFind(call, engine, token)
         case "video.export":
             return try ["path": video(call).export(arguments, token: token)]
         default:
@@ -284,9 +286,9 @@ nonisolated enum GraphicsCalls {
         let target: Int
     }
 
-    private static func screenTargets(_ call: PreparedCall) throws -> [ScreenTarget] {
+    private static func screenTargets(_ call: PreparedCall, objectsFrom first: Int) throws -> [ScreenTarget] {
         var targets: [ScreenTarget] = []
-        var images = 0
+        var images = first
         for entry in call.arguments.objects("targets") {
             if entry["kind"] as? String == "text" {
                 guard let pattern = entry["pattern"] as? String else {
@@ -368,31 +370,44 @@ nonisolated enum GraphicsCalls {
         return nil
     }
 
-    private static func screenFind(_ call: PreparedCall, _ engine: GraphicsEngine, _ token: CancelToken) throws -> Any {
-        let arguments = call.arguments
-        let targets = try screenTargets(call)
-        let timeout = arguments.values["timeoutMs"] == nil ? 0 : arguments.timeout()
-        let limit: Date = timeout.isFinite ? Date().addingTimeInterval(timeout / 1000) : .distantFuture
-        let feed = ScreenFeed.shared
-        _ = try feed.acquire()
-        defer { feed.release() }
-        var (frame, sequence) = try firstFrame(feed, token)
+    private struct ScreenSearch {
+        let targets: [ScreenTarget]
+        let arguments: Arguments
         var comparison: Comparison?
         var previous: Raster?
-        while true {
-            try token.check()
-            let node = ImageNode.frame(frame)
+
+        mutating func check(_ node: ImageNode, _ token: CancelToken) throws -> ScreenHit? {
             if comparison == nil {
                 comparison = try Comparison(node, region: arguments.rect("region"), threshold: defaultThreshold)
             }
             let plane = try comparison!.plane(node, token)
             let changed = try previous.map { try comparison!.changed($0, plane) } ?? true
             previous = plane
-            if changed, let hit = try probe(node, targets, arguments, token) {
-                return [
-                    "frame": rectJSON(hit.frame), "center": centerJSON(hit.frame), "score": (hit.score * 1000).rounded() / 1000,
-                    "text": hit.text.map { $0 as Any } ?? NSNull(), "target": hit.target, "image": engine.register(node),
-                ] as [String: Any]
+            return changed ? try probe(node, targets, arguments, token) : nil
+        }
+    }
+
+    private static func matchJSON(_ hit: ScreenHit, _ node: ImageNode, _ engine: GraphicsEngine) -> [String: Any] {
+        [
+            "frame": rectJSON(hit.frame), "center": centerJSON(hit.frame), "score": (hit.score * 1000).rounded() / 1000,
+            "text": hit.text.map { $0 as Any } ?? NSNull(), "target": hit.target, "image": engine.register(node),
+        ]
+    }
+
+    private static func screenFind(_ call: PreparedCall, _ engine: GraphicsEngine, _ token: CancelToken) throws -> Any {
+        let arguments = call.arguments
+        var search = ScreenSearch(targets: try screenTargets(call, objectsFrom: 0), arguments: arguments)
+        let timeout = arguments.values["timeoutMs"] == nil ? 0 : arguments.timeout()
+        let limit: Date = timeout.isFinite ? Date().addingTimeInterval(timeout / 1000) : .distantFuture
+        let feed = ScreenFeed.shared
+        _ = try feed.acquire()
+        defer { feed.release() }
+        var (frame, sequence) = try firstFrame(feed, token)
+        while true {
+            try token.check()
+            let node = ImageNode.frame(frame)
+            if let hit = try search.check(node, token) {
+                return matchJSON(hit, node, engine)
             }
             if timeout == 0 {
                 return NSNull()
@@ -402,6 +417,21 @@ nonisolated enum GraphicsCalls {
             }
             (frame, sequence) = next
         }
+    }
+
+    private static func recordingFind(_ call: PreparedCall, _ engine: GraphicsEngine, _ token: CancelToken) throws -> Any {
+        let model = try video(call)
+        let arguments = call.arguments
+        var search = ScreenSearch(targets: try screenTargets(call, objectsFrom: 1), arguments: arguments)
+        var found: [String: Any]?
+        try model.scan(from: arguments.double("from") ?? 0, to: arguments.double("to") ?? model.duration, token: token) { frame in
+            let node = ImageNode.frame(frame)
+            guard let hit = try search.check(node, token) else { return true }
+            found = matchJSON(hit, node, engine)
+            found!["time"] = rounded(frame.time)
+            return false
+        }
+        return found ?? NSNull()
     }
 
     private static func decode(_ call: PreparedCall, _ engine: GraphicsEngine) throws -> Any {

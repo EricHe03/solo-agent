@@ -275,6 +275,7 @@ declare namespace screen {
     frames(times: readonly number[] | { readonly everyMs: number; readonly from?: number; readonly to?: number }): RasterImage[];
     grid(options?: CallOptions & { readonly times?: readonly number[]; readonly columns?: number; readonly width?: number }): Promise<RasterImage>;
     diff(from: number, to: number, options?: CallOptions & { readonly threshold?: number }): Promise<ImageDifference>;
+    find(target: ScreenTarget | readonly ScreenTarget[], options?: Omit<ScreenFindOptions, "timeoutMs"> & { readonly from?: number; readonly to?: number }): Promise<(ScreenMatch & { readonly time: number }) | null>;
     export(options?: CallOptions & {
       readonly file?: FileHandle | string;
       readonly from?: number;
