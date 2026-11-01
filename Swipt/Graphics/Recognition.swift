@@ -34,6 +34,9 @@ nonisolated final class RecognizedText: @unchecked Sendable {
 }
 
 nonisolated enum Recognition {
+    // The accurate recognizer stops reading CJK glyphs below about 20 px (Vision, iOS 27).
+    private static let glyphPixels = 24.0
+
     static func restrict(_ request: VNRequest) {
         guard #available(iOS 17.0, macOS 14.0, *), let supported = try? request.supportedComputeStageDevices else { return }
         for (stage, devices) in supported {
@@ -113,11 +116,16 @@ nonisolated enum Recognition {
         if let words = arguments.strings("words") {
             request.customWords = words
         }
+        var sampled = raster
         if let height = arguments.double("minimumHeight") {
             request.minimumTextHeight = Float(min(max(height * node.scale / Double(raster.height), 0), 1))
+            let density = glyphPixels / height
+            if density < node.scale {
+                sampled = try raster.resized(width: max(Int(Double(raster.width) * density / node.scale), 1), height: max(Int(Double(raster.height) * density / node.scale), 1))
+            }
         }
         restrict(request)
-        try VNImageRequestHandler(cgImage: raster.cgImage(), options: [:]).perform([request])
+        try VNImageRequestHandler(cgImage: sampled.cgImage(), options: [:]).perform([request])
         try token.check()
         let width = Double(raster.width)
         let height = Double(raster.height)
