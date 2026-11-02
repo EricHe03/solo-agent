@@ -114,36 +114,40 @@ function build(platform = "ios", settings = []) {
   return app;
 }
 
-function ipa() {
-  buildRuntime();
-  buildLib();
-  frameworks();
+function archive() {
   buildUI();
-  const archive = path.join(root, "build/Swipt-iOS.xcarchive");
+  const archivePath = path.join(root, "build/Swipt-iOS.xcarchive");
   const payload = path.join(root, "build/Payload");
-  fs.rmSync(archive, { recursive: true, force: true });
+  fs.rmSync(archivePath, { recursive: true, force: true });
   fs.rmSync(payload, { recursive: true, force: true });
   fs.rmSync(path.join(root, "build/Swipt.ipa"), { force: true });
-  xcodebuild(["archive", "-scheme", "Swipt", "-configuration", "Release", "-destination", "generic/platform=iOS", "-archivePath", archive, "CODE_SIGNING_ALLOWED=NO"]);
+  xcodebuild(["archive", "-scheme", "Swipt", "-configuration", "Release", "-destination", "generic/platform=iOS", "-archivePath", archivePath, "CODE_SIGNING_ALLOWED=NO"]);
   fs.mkdirSync(payload);
-  fs.cpSync(path.join(archive, "Products/Applications/Swipt.app"), path.join(payload, "Swipt.app"), { recursive: true });
+  fs.cpSync(path.join(archivePath, "Products/Applications/Swipt.app"), path.join(payload, "Swipt.app"), { recursive: true });
   run("zip", ["-qry", "Swipt.ipa", "Payload"], { cwd: path.join(root, "build") });
   fs.rmSync(payload, { recursive: true });
   console.log("build/Swipt.ipa");
 }
 
-function altstore() {
+function ipa() {
+  buildRuntime();
+  buildLib();
+  frameworks();
+  archive();
+}
+
+function icon() {
   const output = path.join(root, "build/altstore");
   fs.rmSync(output, { recursive: true, force: true });
   fs.mkdirSync(output, { recursive: true });
-  const icon = path.join(output, "icon.png");
+  const file = path.join(output, "icon.png");
   const ictool = path.join(run("xcode-select", ["-p"], { stdout: "pipe" }).trim(), "../Applications/Icon Composer.app/Contents/Executables/ictool");
-  run(ictool, [path.join(root, "Swipt/Resources/AppIcon.icon"), "--export-image", "--output-file", icon, "--platform", "iOS", "--rendition", "Default", "--width", "568", "--height", "568", "--scale", "1"], { stdout: "ignore" });
+  run(ictool, [path.join(root, "Swipt/Resources/AppIcon.icon"), "--export-image", "--output-file", file, "--platform", "iOS", "--rendition", "Default", "--width", "568", "--height", "568", "--scale", "1"], { stdout: "ignore" });
   // AltStore draws icons on a white background, clipped to a circle or a height/5 corner radius
   // (AltStore fafd76e, AltStore/Components/AppIconImageView.swift:46-65), so the transparent
   // corners and edge highlight of the exported squircle show up as a white border.
-  run("sips", ["--cropToHeightWidth", "512", "512", icon], { stdout: "ignore" });
-  run("go", ["run", "./internal/cmd/build_altstore_source"]);
+  run("sips", ["--cropToHeightWidth", "512", "512", file], { stdout: "ignore" });
+  console.log(path.relative(root, file));
 }
 
 function devicectl(args, { parse = false } = {}) {
@@ -263,8 +267,9 @@ const commands = [
   ["ui", "Bundle the Swiplet UI runtime into build/runtime/main.jsbundle when its inputs changed"],
   ["frameworks", "Install the React Native frameworks that the Xcode project links"],
   ["build [ios|macos]", "Build the Debug app into build/DerivedData; ios also runs ui (default: ios)"],
-  ["ipa", "Build runtime, lib, frameworks, ui, then archive Release into build/Swipt.ipa"],
-  ["altstore", "Export the AltStore icon and source into build/altstore"],
+  ["archive", "Archive Release with the built lib and frameworks into build/Swipt.ipa; also runs ui"],
+  ["ipa", "Build runtime, lib and frameworks, then archive"],
+  ["icon", "Export the AltStore icon into build/altstore/icon.png"],
   ["install [-d NAME|URL] [--udid UDID]", "Build runtime, lib and the ios app, unlock the device, install, launch, and check the build that answers"],
 ];
 
@@ -305,11 +310,14 @@ async function main() {
     case "build":
       build(rest[0]);
       break;
+    case "archive":
+      archive();
+      break;
     case "ipa":
       ipa();
       break;
-    case "altstore":
-      altstore();
+    case "icon":
+      icon();
       break;
     case "install":
       await installApp(options);
