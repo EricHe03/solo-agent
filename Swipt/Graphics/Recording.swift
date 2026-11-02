@@ -89,12 +89,12 @@ nonisolated final class RecordingSession: @unchecked Sendable {
     static let feedInterval: Double = 250
 
     let url: URL
-    let requested: Double
     private let geometry: ScreenGeometry
     private let lock = NSLock()
     private let tracking = DispatchQueue(label: "io.nekohasekai.swipt.graphics.recording")
     private let tracker = ChangeTracker()
     private let finishing = DispatchGroup()
+    private let began = DispatchSemaphore(value: 0)
     private var timeline: LibSwiptGraphicsTimeline?
     private var listeners: [Int] = []
     private var timer: DispatchSourceTimer?
@@ -116,10 +116,13 @@ nonisolated final class RecordingSession: @unchecked Sendable {
         self.url = url
         self.geometry = geometry
         self.timeline = timeline
-        requested = nowMilliseconds()
     }
 
-    static func start(url: URL, timeline: LibSwiptGraphicsTimeline?) throws -> RecordingSession {
+    var start: Double {
+        lock.withLock { origin! }
+    }
+
+    static func start(url: URL, timeline: LibSwiptGraphicsTimeline?, token: CancelToken) throws -> RecordingSession {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? FileManager.default.removeItem(at: VideoModel.sidecar(of: url))
         let geometry = try ScreenFeed.shared.acquire()
@@ -138,6 +141,18 @@ nonisolated final class RecordingSession: @unchecked Sendable {
         timer.resume()
         session.timer = timer
         feed.requestKeyFrame()
+        let deadline = Date().addingTimeInterval(ScreenFeed.firstFrameLimit)
+        while session.began.wait(timeout: .now() + 0.05) == .timedOut {
+            do {
+                try token.check()
+                if Date() >= deadline {
+                    throw GraphicsError.unavailable("graphics: the screen sent no frame within \(Int(ScreenFeed.firstFrameLimit)) s; it may be off")
+                }
+            } catch {
+                _ = try? session.stop(token: nil)
+                throw error
+            }
+        }
         return session
     }
 
@@ -167,6 +182,7 @@ nonisolated final class RecordingSession: @unchecked Sendable {
             }
             if origin == nil {
                 origin = unit.arrival
+                began.signal()
             }
             let index = segments.count
             let base = url.deletingPathExtension().lastPathComponent
@@ -320,7 +336,7 @@ nonisolated final class RecordingSession: @unchecked Sendable {
             return VideoModel.change(change, factor: Double(width) / Double(max(change.width, 1)), scale: geometry.scale, app: app)
         }
         let relative: [[String: Any]] = events.compactMap { event in
-            guard let time = (event["time"] as? NSNumber)?.doubleValue, time >= requested - 1000 else { return nil }
+            guard let time = (event["time"] as? NSNumber)?.doubleValue, time >= origin else { return nil }
             var shifted = event
             shifted["time"] = rounded(time - origin)
             return shifted

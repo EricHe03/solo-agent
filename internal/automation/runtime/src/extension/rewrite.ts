@@ -101,6 +101,14 @@ const track = (source: string, edits: Edit[]) => {
   return list;
 };
 
+const isModule = (code: string): boolean => {
+  try {
+    return (parse(code, { module: true, webcompat: true }) as unknown as Node).body.some((node: Node) => /^(Import|Export)/.test(node.type));
+  } catch {
+    return false;
+  }
+};
+
 export type Columns = [output: number, input: number][][];
 
 const columnsOf = (source: string, start: number, edits: (readonly [number, number, string, number])[]): Columns => {
@@ -129,6 +137,9 @@ export function rewrite(code: string): { text: string; columns: Columns } {
   try {
     program = parse(source, { ranges: true, loc: true, webcompat: true }) as unknown as Node;
   } catch (error) {
+    if (isModule(code)) {
+      throw new SyntaxError("there is no module system, so import and export declarations are unavailable; the API is in global objects");
+    }
     const located = error as { loc?: { start: { line: number; column: number } }; description?: string };
     if (located.loc) {
       const { line, column } = located.loc.start;

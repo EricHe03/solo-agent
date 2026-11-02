@@ -56,6 +56,12 @@ const (
 	OutputImage
 )
 
+type Script struct {
+	Code    string
+	Args    []string
+	Program bool
+}
+
 type Output struct {
 	Kind  OutputKind
 	Level log.Level
@@ -97,6 +103,13 @@ func ScriptFailure(err error) (*Failure, bool) {
 		return &Failure{Name: "Error", Message: Message(err)}, true
 	}
 	return nil, false
+}
+
+func failureOf(err error) *Failure {
+	if failure, isFailure := ScriptFailure(err); isFailure {
+		return failure
+	}
+	return &Failure{Name: "Error", Message: Message(err)}
 }
 
 func describeError(err error) string {
@@ -144,7 +157,7 @@ func (r *REPL) session() (*engine, error) {
 	return r.engine, nil
 }
 
-func (r *REPL) Execute(ctx context.Context, code string, timeout time.Duration, emit func(Output)) error {
+func (r *REPL) Execute(ctx context.Context, script Script, timeout time.Duration, emit func(Output)) error {
 	e, err := r.session()
 	if err != nil {
 		return err
@@ -174,7 +187,7 @@ func (r *REPL) Execute(ctx context.Context, code string, timeout time.Duration, 
 	exec.ctx, exec.cancel = context.WithCancelCause(ctx)
 	exec.cleanup = append(exec.cleanup, context.AfterFunc(e.ctx, func() { exec.cancel(context.Cause(e.ctx)) }))
 	select {
-	case e.launches <- launch{exec: exec, code: code}:
+	case e.launches <- launch{exec: exec, script: script}:
 	case <-exec.ctx.Done():
 		for _, stop := range exec.cleanup {
 			stop()
@@ -297,13 +310,13 @@ func (e *engine) start(request launch) {
 		case <-e.ctx.Done():
 		}
 	}))
-	if err := e.enter(exec, func() error { return e.evaluate(exec.id, request.code) }); err != nil {
+	if err := e.enter(exec, func() error { return e.evaluate(exec.id, request.script) }); err != nil {
 		e.end(exec, err)
 	}
 }
 
-func (e *engine) evaluate(id, code string) error {
-	input := e.context.NewString(code)
+func (e *engine) evaluate(id string, script Script) error {
+	input := e.context.NewString(script.Code)
 	rewritten, err := e.rewrite.Call(input)
 	input.Release()
 	if err != nil {
@@ -331,7 +344,13 @@ func (e *engine) evaluate(id, code string) error {
 	defer function.Release()
 	name := e.context.NewString(id)
 	defer name.Release()
-	result, err := e.hooks.launch.Call(function, columns, name)
+	encoded, _ := json.Marshal(struct {
+		Args    []string `json:"args,omitempty"`
+		Program bool     `json:"program"`
+	}{script.Args, script.Program})
+	request := e.context.NewString(string(encoded))
+	defer request.Release()
+	result, err := e.hooks.launch.Call(function, columns, name, request)
 	if err != nil {
 		return err
 	}

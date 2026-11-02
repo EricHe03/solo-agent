@@ -314,7 +314,7 @@ func (w *axWorker) restart(reason string) error {
 		return strings.HasSuffix(it.Executable, "/AccessibilityAudit.framework/Support/axauditd")
 	})
 	if daemon.PID != 0 {
-		w.logger.Info("restarting axauditd, as ", reason)
+		w.logger.Debug("restarting axauditd, as ", reason)
 		if err = apps.Kill(ctx, w.conn.device, daemon.PID); err != nil {
 			return err
 		}

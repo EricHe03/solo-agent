@@ -15,6 +15,7 @@ const (
 	DataFolder    = "data"
 	InterfaceFile = "app.js"
 	ExtensionFile = "extension.js"
+	ExtensionMap  = "extension.js.map"
 	ManifestFile  = "manifest.json"
 	IconFile      = "icon.png"
 	serviceFile   = ".service"

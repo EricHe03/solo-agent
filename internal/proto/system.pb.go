@@ -23,6 +23,8 @@ type GetInfoResponse struct {
 	DeviceName       string                 `protobuf:"bytes,2,opt,name=device_name,json=deviceName,proto3" json:"device_name,omitempty"`
 	Udid             string                 `protobuf:"bytes,3,opt,name=udid,proto3" json:"udid,omitempty"`
 	DeviceConnection *DeviceConnection      `protobuf:"bytes,4,opt,name=device_connection,json=deviceConnection,proto3" json:"device_connection,omitempty"`
+	AppVersion       string                 `protobuf:"bytes,5,opt,name=app_version,json=appVersion,proto3" json:"app_version,omitempty"`
+	AppBuild         string                 `protobuf:"bytes,6,opt,name=app_build,json=appBuild,proto3" json:"app_build,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -85,17 +87,34 @@ func (x *GetInfoResponse) GetDeviceConnection() *DeviceConnection {
 	return nil
 }
 
+func (x *GetInfoResponse) GetAppVersion() string {
+	if x != nil {
+		return x.AppVersion
+	}
+	return ""
+}
+
+func (x *GetInfoResponse) GetAppBuild() string {
+	if x != nil {
+		return x.AppBuild
+	}
+	return ""
+}
+
 var File_system_proto protoreflect.FileDescriptor
 
 const file_system_proto_rawDesc = "" +
 	"\n" +
-	"\fsystem.proto\x12\x05swipt\x1a\x1bgoogle/protobuf/empty.proto\x1a\fcommon.proto\"\xb3\x01\n" +
+	"\fsystem.proto\x12\x05swipt\x1a\x1bgoogle/protobuf/empty.proto\x1a\fcommon.proto\"\xf1\x01\n" +
 	"\x0fGetInfoResponse\x12%\n" +
 	"\x0eserver_version\x18\x01 \x01(\tR\rserverVersion\x12\x1f\n" +
 	"\vdevice_name\x18\x02 \x01(\tR\n" +
 	"deviceName\x12\x12\n" +
 	"\x04udid\x18\x03 \x01(\tR\x04udid\x12D\n" +
-	"\x11device_connection\x18\x04 \x01(\v2\x17.swipt.DeviceConnectionR\x10deviceConnection2J\n" +
+	"\x11device_connection\x18\x04 \x01(\v2\x17.swipt.DeviceConnectionR\x10deviceConnection\x12\x1f\n" +
+	"\vapp_version\x18\x05 \x01(\tR\n" +
+	"appVersion\x12\x1b\n" +
+	"\tapp_build\x18\x06 \x01(\tR\bappBuild2J\n" +
 	"\rSystemService\x129\n" +
 	"\aGetInfo\x12\x16.google.protobuf.Empty\x1a\x16.swipt.GetInfoResponseB2Z0github.com/swipt-automation/swipt/internal/protob\x06proto3"
 

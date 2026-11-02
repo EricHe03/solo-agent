@@ -30,6 +30,8 @@ type PlatformOptions struct {
 	CacheDirectory   string
 	Languages        string
 	AppBundleID      string
+	AppVersion       string
+	AppBuild         string
 }
 
 type PlatformHandler interface {
@@ -46,6 +48,8 @@ type Platform struct {
 	logFactory *log.Factory
 	handler    PlatformHandler
 	app        string
+	appVersion string
+	appBuild   string
 	device     *Device
 	host       *automation.Host
 	dialog     automation.Dialog
@@ -59,7 +63,7 @@ type Platform struct {
 }
 
 func NewPlatform(options *PlatformOptions, handler PlatformHandler, deviceOptions *DeviceOptions, deviceHandler DeviceHandler, graphicsHandler GraphicsHandler) *Platform {
-	p := &Platform{logFactory: newLogFactory(), handler: handler, app: options.AppBundleID, dialogs: make(map[int64]chan string)}
+	p := &Platform{logFactory: newLogFactory(), handler: handler, app: options.AppBundleID, appVersion: options.AppVersion, appBuild: options.AppBuild, dialogs: make(map[int64]chan string)}
 	p.device = newDevice(deviceOptions, deviceHandler, p.logFactory)
 	p.dialog = automation.Dialog{App: p.app, InApp: true, Ask: p.ask, Backdrop: handler.OnBackdrop, Active: handler.AppActive}
 	var graphics automation.Graphics

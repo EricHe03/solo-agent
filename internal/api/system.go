@@ -60,5 +60,7 @@ func (s *systemService) GetInfo(context.Context, *emptypb.Empty) (*proto.GetInfo
 		DeviceName:       s.options.Device.Name(),
 		Udid:             s.options.Device.DeviceInfo().UDID,
 		DeviceConnection: deviceConnection(s.options.Device.State()),
+		AppVersion:       s.options.AppVersion,
+		AppBuild:         s.options.AppBuild,
 	}, nil
 }

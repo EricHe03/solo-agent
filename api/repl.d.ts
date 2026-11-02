@@ -5,6 +5,7 @@ declare global {
   const screen: typeof import("@swipt/api/screen");
   const image: typeof import("@swipt/api/image");
   const dialog: import("@swipt/api/swiplet").IntentDialog;
+  const args: readonly string[];
 
   function show(image: import("@swipt/api/image").RasterImage): void;
 }

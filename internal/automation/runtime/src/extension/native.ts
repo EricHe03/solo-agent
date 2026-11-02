@@ -1,4 +1,5 @@
 import type { Raw } from "./elements";
+import type { Position } from "./format";
 
 export interface Native {
   readonly swiplet: string;
@@ -22,6 +23,7 @@ export interface Native {
   show(image: Uint8Array): void;
   match(snapshot: string, scope: string, json: string, mode: "one" | "all", call: (kind: string, id: string, value: string) => string): { elements?: Raw[]; failure?: string; thrown?: boolean };
   preferredLocalizations(localizations: string): string[];
+  locate(line: number, column: number): Position | undefined;
   readonly graphics?: GraphicsNative;
 }
 

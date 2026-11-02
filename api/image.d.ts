@@ -81,6 +81,7 @@ export interface RasterImage {
   readonly scale: number;
   readonly frame: Rect;
   readonly time: number | null;
+  readonly timestamp: number | null;
 
   crop(rect: Rect): RasterImage;
   resize(scale: number): RasterImage;
@@ -98,7 +99,6 @@ export interface RasterImage {
   save(file: FileHandle | string, options?: CallOptions & { readonly format?: ImageFormat; readonly quality?: number }): Promise<FileHandle>;
   pixel(point: Point, options?: CallOptions): Promise<[red: number, green: number, blue: number, alpha: number]>;
   stats(options?: CallOptions & { readonly region?: Rect }): Promise<ImageStats>;
-  release(): void;
 
   find(template: RasterImage, options?: TemplateMatchOptions): Promise<TemplateMatch | null>;
   findAll(template: RasterImage, options?: TemplateMatchOptions & { readonly limit?: number; readonly overlap?: number }): Promise<TemplateMatch[]>;

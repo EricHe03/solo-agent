@@ -73,6 +73,8 @@ final class Platform {
         options.cacheDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].path
         options.languages = Locale.preferredLanguages.joined(separator: "\n")
         options.appBundleID = Bundle.main.bundleIdentifier ?? ""
+        options.appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        options.appBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
         let deviceOptions = LibSwiptDeviceOptions()
         deviceOptions.diskImageDirectory = Bundle.main.url(forResource: "DeveloperDiskImage", withExtension: nil)?.path ?? ""
         let isAppActive = LockedState(initialState: false)

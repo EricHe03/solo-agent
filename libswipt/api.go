@@ -65,6 +65,7 @@ func (p *Platform) SetAPI(options *APIOptions) error {
 	if state == nil {
 		state = &apiState{server: api.New(api.Options{
 			Device: p.device.connection, Swiplets: p.host, Dialog: p.dialog, Logs: p.logFactory, Logger: p.logFactory.NewLogger("api"),
+			AppVersion: p.appVersion, AppBuild: p.appBuild,
 		})}
 		p.api = state
 	}

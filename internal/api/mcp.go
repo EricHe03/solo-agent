@@ -7,7 +7,6 @@ import (
 	"image/png"
 	"math"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -152,7 +151,7 @@ func (s *Server) js(ctx context.Context, req *mcp.CallToolRequest, input jsInput
 				text = nil
 			}
 		}
-		err := repl.Execute(ctx, input.Code, timeout, func(output automation.Output) {
+		err := repl.Execute(ctx, automation.Script{Code: input.Code}, timeout, func(output automation.Output) {
 			if output.Kind != automation.OutputImage {
 				text = append(text, output.Text)
 				return
@@ -171,15 +170,7 @@ func (s *Server) js(ctx context.Context, req *mcp.CallToolRequest, input jsInput
 				return nil, nil, err
 			}
 			result.IsError = true
-			message := failure.Name + ": " + failure.Message
-			for _, frame := range failure.Stack {
-				position := frame.File + ":" + strconv.Itoa(frame.Line) + ":" + strconv.Itoa(frame.Column)
-				if frame.Function != "" {
-					position = frame.Function + " (" + position + ")"
-				}
-				message += "\n    at " + position
-			}
-			text = append(text, message)
+			text = append(text, failure.Describe())
 		}
 		flush()
 		return result, nil, nil

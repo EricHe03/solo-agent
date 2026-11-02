@@ -21,3 +21,7 @@ export type Jsonify<T> = T extends string | number | boolean | null ? T
   : T extends readonly (infer U)[] ? Jsonify<U>[]
   : T extends object ? { [K in keyof T]: Jsonify<Exclude<T[K], undefined>> }
   : never;
+
+declare global {
+  function sleep(ms: number, options?: CallOptions): Promise<void>;
+}

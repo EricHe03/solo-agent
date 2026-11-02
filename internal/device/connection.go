@@ -241,7 +241,7 @@ func (s *Connection) release() {
 		end := s.endSession
 		s.access.Unlock()
 		if end != nil {
-			s.logger.Info("nothing uses the device connection; disconnecting")
+			s.logger.Debug("nothing uses the device connection; disconnecting")
 			end()
 		}
 	})
@@ -378,7 +378,7 @@ func (s *Connection) stopped(err error) {
 		if err != nil {
 			s.logger.Info("state: ", StateStopped, ": ", err)
 		} else {
-			s.logger.Info("state: ", StateStopped)
+			s.logger.Debug("state: ", StateStopped)
 		}
 		last = func() { s.options.Observer.StateChanged(StateStopped, err) }
 	}
@@ -396,7 +396,7 @@ func (s *Connection) setState(state State, err error) {
 	if err != nil {
 		s.logger.Info("state: ", state, ", ", ProblemOf(err), ": ", err)
 	} else {
-		s.logger.Info("state: ", state)
+		s.logger.Debug("state: ", state)
 	}
 	s.notify(func(observer Observer) { observer.StateChanged(state, err) })
 }
@@ -422,7 +422,7 @@ func (s *Connection) notify(call func(Observer)) {
 }
 
 func (s *Connection) streamingChanged(active bool) {
-	s.logger.Info("device video running: ", active)
+	s.logger.Debug("device video running: ", active)
 	s.notify(func(observer Observer) { observer.StreamingChanged(active) })
 }
 
@@ -508,7 +508,7 @@ func (s *Connection) serveSession(session context.Context) {
 			return
 		}
 		if connected.IsZero() {
-			s.logger.Info("connect to the device: ", err)
+			s.logger.Debug("connect to the device: ", err)
 		} else {
 			s.logger.Info("device connection ended: ", err)
 		}
@@ -649,7 +649,7 @@ func (s *Connection) watchRoute(session context.Context, device *coredevice.Devi
 		current := M.AddrPortFromNet(conn.LocalAddr()).Addr().Unmap()
 		_ = conn.Close()
 		if current != local.Addr().Unmap() {
-			s.logger.Info("device route changed from ", local.Addr(), " to ", current)
+			s.logger.Debug("device route changed from ", local.Addr(), " to ", current)
 			return errRerouted
 		}
 	}
@@ -763,10 +763,10 @@ func (s *Connection) updateDisplay(info display.DisplayInfo) {
 	}
 	s.access.Unlock()
 	if previous.Orientation != info.CurrentOrientation && previous.Orientation != "" {
-		s.logger.Info("screen orientation: ", info.CurrentOrientation, ", ", info.Width, "x", info.Height)
+		s.logger.Debug("screen orientation: ", info.CurrentOrientation, ", ", info.Width, "x", info.Height)
 	}
 	if changed {
-		s.logger.Info("screen size changed: ", info.Width, "x", info.Height)
+		s.logger.Debug("screen size changed: ", info.Width, "x", info.Height)
 		s.screenChanged()
 	}
 }
@@ -790,7 +790,7 @@ func (s *Connection) videoSize(width, height int) {
 	s.screen.Width, s.screen.Height = width, height
 	s.access.Unlock()
 	if changed {
-		s.logger.Info("the video's size differs from the screen's: ", width, "x", height)
+		s.logger.Debug("the video's size differs from the screen's: ", width, "x", height)
 		go s.screenChanged()
 	}
 }

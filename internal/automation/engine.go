@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-sourcemap/sourcemap"
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/device"
@@ -120,8 +121,8 @@ type entry struct {
 }
 
 type launch struct {
-	exec *execution
-	code string
+	exec   *execution
+	script Script
 }
 
 type engine struct {
@@ -133,6 +134,7 @@ type engine struct {
 	snapshots *snapshotStore
 	hooks     hooks
 	rewrite   jsc.Value
+	sources   func() *sourcemap.Consumer
 	ctx       context.Context
 	cancel    context.CancelCauseFunc
 	graphics  uint64
@@ -188,7 +190,11 @@ func (h *Host) Call(ctx context.Context, request CallRequest) (json.RawMessage, 
 		return nil, E.Cause1(ErrNotAllowed, E.New("the action ", strconv.Quote(request.Action), " is not exposed to shortcuts"))
 	}
 	h.timeline.record(TimelineEvent{Time: time.Now().UnixMilli(), Type: "action", Swiplet: swiplet.ID, Action: request.Action, Caller: string(request.Caller)})
-	return h.execute(ctx, swiplet, request.Dialog, request.Log, entry{action: request.Action, input: string(input), caller: request.Caller}, nil)
+	output, err := h.execute(ctx, swiplet, request.Dialog, request.Log, entry{action: request.Action, input: string(input), caller: request.Caller}, nil)
+	if err != nil && ctx.Err() == nil {
+		h.Log(swiplet.ID, log.LevelError, "the action "+strconv.Quote(request.Action)+" failed: "+failureOf(err).Describe())
+	}
+	return output, err
 }
 
 func (h *Host) execute(ctx context.Context, swiplet Swiplet, dialog Dialog, logs func(LogEntry), entry entry, running func()) (json.RawMessage, error) {
@@ -251,6 +257,14 @@ func (h *Host) newEngine(swiplet Swiplet, dialog Dialog, logger log.ContextLogge
 		context: jsc.New(), snapshots: newSnapshotStore(), completions: make(chan completion, completionBacklog), wake: make(chan struct{}, 1),
 		executions: make(map[string]*execution), ops: make(map[string]*pendingOperation), results: make(map[string]completion),
 		subscriptions: make(map[string]*subscription), blobs: make(map[string][]byte),
+		sources: sync.OnceValue(func() *sourcemap.Consumer {
+			data, err := os.ReadFile(filepath.Join(swiplet.Directory, SourceFolder, ExtensionMap))
+			if err != nil {
+				return nil
+			}
+			consumer, _ := sourcemap.Parse("", data)
+			return consumer
+		}),
 	}
 	e.ctx, e.cancel = context.WithCancelCause(context.Background())
 	e.main = &execution{ctx: e.ctx, logs: logs}
@@ -382,6 +396,7 @@ func (e *engine) natives() map[string]jsc.Function {
 		"show":                   e.show,
 		"match":                  e.match,
 		"preferredLocalizations": e.preferredLocalizations,
+		"locate":                 e.locate,
 	}
 }
 
@@ -449,6 +464,25 @@ func (e *engine) cancelOperation(arguments []jsc.Value) (any, error) {
 		op.cancel()
 	}
 	return nil, nil
+}
+
+func (e *engine) locate(arguments []jsc.Value) (any, error) {
+	if len(arguments) < 2 {
+		return nil, E.New("expected the line and the column")
+	}
+	sources := e.sources()
+	if sources == nil {
+		return nil, nil
+	}
+	file, _, line, column, found := sources.Source(int(arguments[0].Number()), int(arguments[1].Number())-1)
+	if !found || file == "" {
+		return nil, nil
+	}
+	return struct {
+		File   string `json:"file"`
+		Line   int    `json:"line"`
+		Column int    `json:"column"`
+	}{file, line, column + 1}, nil
 }
 
 func (e *engine) takeFailure(arguments []jsc.Value) (any, error) {

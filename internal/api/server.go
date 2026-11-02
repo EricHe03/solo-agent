@@ -44,11 +44,13 @@ var (
 type anonymousKey struct{}
 
 type Options struct {
-	Device   *device.Connection
-	Swiplets *automation.Host
-	Dialog   automation.Dialog
-	Logs     *log.Factory
-	Logger   logger.ContextLogger
+	Device     *device.Connection
+	Swiplets   *automation.Host
+	Dialog     automation.Dialog
+	Logs       *log.Factory
+	Logger     logger.ContextLogger
+	AppVersion string
+	AppBuild   string
 }
 
 type Server struct {

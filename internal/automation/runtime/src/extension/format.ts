@@ -2,11 +2,14 @@ import { inspect } from "../shared/inspect";
 import { replHead } from "./head";
 import { native } from "./native";
 
-export interface Frame {
-  function: string;
+export interface Position {
   file: string;
   line: number;
   column: number;
+}
+
+export interface Frame extends Position {
+  function: string;
 }
 
 const keptInputs = 256;
@@ -19,19 +22,23 @@ export const setInputColumns = (id: string, columns: [output: number, input: num
   }
 };
 
+const located = (line: number, column: number): Position => {
+  column = line === 1 ? column - native.extensionHead.length : column;
+  return native.locate(line, column) ?? { file: "extension.js", line, column };
+};
+
 const frame = (name: string, url: string, line: number, column: number): Frame | undefined => {
-  let file = url;
+  let position: Position;
   if (url === "extension.js") {
-    column = line === 1 ? column - native.extensionHead.length : column;
+    position = located(line, column);
   } else if (/^input-\d+\.js$/.test(url)) {
-    file = "input.js";
     const anchors = inputColumns.get(url.slice("input-".length, -".js".length))?.[line - 1] ?? [[line === 1 ? replHead.length + 1 : 1, 1]];
     const [output, input] = anchors.findLast(([start]) => start <= column) ?? anchors[0];
-    column = input + column - output;
+    position = { file: "input.js", line, column: input + column - output };
   } else {
     return undefined;
   }
-  return { function: name === "global code" ? "" : name, file, line, column: Math.max(column, 1) };
+  return { function: name === "global code" ? "" : name, ...position, column: Math.max(position.column, 1) };
 };
 
 export const framesOf = (error: Error & { line?: number; column?: number; sourceURL?: string }): Frame[] => {
@@ -66,7 +73,10 @@ export const describe = (error: unknown): string => {
 
 export const format = (value: unknown): string => {
   if (typeof value === "string") {
-    return value;
+    return value.replace(/^(.*)@extension\.js:(\d+):(\d+)$/gm, (_text, name: string, line: string, column: string) => {
+      const found = located(Number(line), Number(column));
+      return `${name}@${found.file}:${found.line}:${found.column}`;
+    });
   }
   if (value instanceof Error) {
     return describe(value);

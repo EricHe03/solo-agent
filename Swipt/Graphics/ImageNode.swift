@@ -22,31 +22,30 @@ nonisolated enum ImageOperation: Sendable {
 }
 
 nonisolated final class ImageNode: @unchecked Sendable {
-    let parent: ImageNode?
-    let operation: ImageOperation?
     let pixelWidth: Int
     let pixelHeight: Int
     let transform: CGAffineTransform
     let gray: Bool
     let time: Double?
+    let timestamp: Double?
 
+    private let source: ImageSource?
     private let lock = NSLock()
-    private var source: ImageSource?
+    private var parent: (node: ImageNode, operation: ImageOperation)?
     private var cached: Raster?
-    private var released = false
 
-    private init(source: ImageSource?, parent: ImageNode?, operation: ImageOperation?, width: Int, height: Int, transform: CGAffineTransform, gray: Bool, time: Double?) {
+    private init(source: ImageSource?, parent: (node: ImageNode, operation: ImageOperation)?, width: Int, height: Int, transform: CGAffineTransform, gray: Bool, time: Double?, timestamp: Double?) {
         self.source = source
         self.parent = parent
-        self.operation = operation
         pixelWidth = width
         pixelHeight = height
         self.transform = transform
         self.gray = gray
         self.time = time
+        self.timestamp = timestamp
     }
 
-    static func encoded(_ data: Data, scale: Double?, time: Double?) throws -> ImageNode {
+    static func encoded(_ data: Data, scale: Double?, timestamp: Double?) throws -> ImageNode {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               var width = (properties[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue,
@@ -59,30 +58,30 @@ nonisolated final class ImageNode: @unchecked Sendable {
         }
         let dpi = (properties[kCGImagePropertyDPIWidth] as? NSNumber)?.doubleValue
         let chosen = scale ?? dpi.map { $0 / 72 }.flatMap { $0 >= 1 && $0 <= 16 ? $0 : nil } ?? 1
-        return ImageNode(source: .encoded(data), parent: nil, operation: nil, width: width, height: height,
-                         transform: CGAffineTransform(scaleX: 1 / chosen, y: 1 / chosen), gray: false, time: time)
+        return ImageNode(source: .encoded(data), parent: nil, width: width, height: height,
+                         transform: CGAffineTransform(scaleX: 1 / chosen, y: 1 / chosen), gray: false, time: nil, timestamp: timestamp)
     }
 
-    static func frame(_ frame: Frame) -> ImageNode {
-        ImageNode(source: .frame(frame), parent: nil, operation: nil, width: frame.pixelWidth, height: frame.pixelHeight,
-                  transform: CGAffineTransform(scaleX: 1 / frame.geometry.scale, y: 1 / frame.geometry.scale), gray: false, time: frame.time)
+    static func frame(_ frame: Frame, of model: VideoModel? = nil) -> ImageNode {
+        ImageNode(source: .frame(frame), parent: nil, width: frame.pixelWidth, height: frame.pixelHeight,
+                  transform: CGAffineTransform(scaleX: 1 / frame.geometry.scale, y: 1 / frame.geometry.scale), gray: false,
+                  time: model == nil ? nil : frame.time, timestamp: model == nil ? frame.time : model!.start.map { $0 + frame.time })
     }
 
     static func video(_ model: VideoModel, time: Double) -> ImageNode {
         let size = model.pixelSize(at: time)
-        let start = model.start.map { $0 + time }
-        return ImageNode(source: .video(model, time), parent: nil, operation: nil, width: size.width, height: size.height,
-                         transform: CGAffineTransform(scaleX: 1 / model.scale, y: 1 / model.scale), gray: false, time: start)
+        return ImageNode(source: .video(model, time), parent: nil, width: size.width, height: size.height,
+                         transform: CGAffineTransform(scaleX: 1 / model.scale, y: 1 / model.scale), gray: false, time: time, timestamp: model.start.map { $0 + time })
     }
 
-    static func raster(_ raster: Raster, transform: CGAffineTransform, time: Double? = nil) -> ImageNode {
-        ImageNode(source: .raster(raster), parent: nil, operation: nil, width: raster.width, height: raster.height,
-                  transform: transform, gray: raster.isGray, time: time)
+    static func raster(_ raster: Raster, transform: CGAffineTransform) -> ImageNode {
+        ImageNode(source: .raster(raster), parent: nil, width: raster.width, height: raster.height,
+                  transform: transform, gray: raster.isGray, time: nil, timestamp: nil)
     }
 
     private func derive(_ operation: ImageOperation, width: Int, height: Int, transform: CGAffineTransform? = nil, gray: Bool? = nil) -> ImageNode {
-        ImageNode(source: nil, parent: self, operation: operation, width: width, height: height,
-                  transform: transform ?? self.transform, gray: gray ?? self.gray, time: time)
+        ImageNode(source: nil, parent: (self, operation), width: width, height: height,
+                  transform: transform ?? self.transform, gray: gray ?? self.gray, time: time, timestamp: timestamp)
     }
 
     var scale: Double {
@@ -94,26 +93,26 @@ nonisolated final class ImageNode: @unchecked Sendable {
     }
 
     var screenFrame: Frame? {
-        lock.withLock {
-            if parent == nil, case .frame(let frame) = source {
-                return frame
-            }
-            return nil
+        if case .frame(let frame) = source {
+            return frame
         }
+        return nil
     }
 
     var estimatedBytes: Int {
         pixelWidth * pixelHeight * (gray ? 1 : 4)
     }
 
-    func pixelRect(space rect: CGRect) -> CGRect? {
+    func pixelRect(space rect: CGRect) throws -> CGRect {
         let mapped = rect.applying(transform.inverted()).intersection(CGRect(x: 0, y: 0, width: pixelWidth, height: pixelHeight))
-        guard !mapped.isNull else { return nil }
         let left = floor(mapped.minX + 1e-6)
         let top = floor(mapped.minY + 1e-6)
         let right = ceil(mapped.maxX - 1e-6)
         let bottom = ceil(mapped.maxY - 1e-6)
-        guard right - left >= 1, bottom - top >= 1 else { return nil }
+        guard !mapped.isNull, right - left >= 1, bottom - top >= 1 else {
+            let described = { (rect: CGRect) in rectJSON(rect).map { String(format: "%g", $0) }.joined(separator: ", ") }
+            throw GraphicsError.range("[\(described(rect))] does not overlap the image [\(described(frame))]")
+        }
         return CGRect(x: left, y: top, width: right - left, height: bottom - top)
     }
 
@@ -130,9 +129,7 @@ nonisolated final class ImageNode: @unchecked Sendable {
     }
 
     func crop(space rect: CGRect) throws -> ImageNode {
-        guard let pixels = pixelRect(space: rect) else {
-            throw GraphicsError.range("the rect lies outside the image")
-        }
+        let pixels = try pixelRect(space: rect)
         return derive(.crop(x: Int(pixels.minX), y: Int(pixels.minY), width: Int(pixels.width), height: Int(pixels.height)),
                       width: Int(pixels.width), height: Int(pixels.height),
                       transform: CGAffineTransform(translationX: pixels.minX, y: pixels.minY).concatenating(transform))
@@ -170,44 +167,26 @@ nonisolated final class ImageNode: @unchecked Sendable {
         }
     }
 
-    func release() {
-        lock.withLock {
-            released = true
-            cached = nil
-            source = nil
-        }
-    }
-
     func raster(_ token: CancelToken? = nil) throws -> Raster {
-        if let cached = try peek() {
+        if let cached = lock.withLock({ cached }) {
             return cached
         }
         let rendered = try render(token)
         lock.withLock {
-            if !released {
-                cached = rendered
-            }
+            cached = rendered
+            parent = nil
         }
         return rendered
     }
 
-    private func peek() throws -> Raster? {
-        try lock.withLock {
-            if released {
-                throw GraphicsError.released
-            }
-            return cached
-        }
-    }
-
     private func render(_ token: CancelToken?) throws -> Raster {
-        if let parent, let operation {
-            let input = try parent.peek() ?? parent.render(token)
+        guard let source else {
+            guard let parent = lock.withLock({ parent }) else {
+                return try raster(token)
+            }
+            let input = try parent.node.lock.withLock({ parent.node.cached }) ?? parent.node.render(token)
             try token?.check()
-            return try perform(operation, on: input)
-        }
-        guard let source = lock.withLock({ source }) else {
-            throw GraphicsError.released
+            return try perform(parent.operation, on: input)
         }
         var raster: Raster = switch source {
         case .encoded(let data): try Raster.decode(data)
@@ -218,11 +197,7 @@ nonisolated final class ImageNode: @unchecked Sendable {
         if raster.width != pixelWidth || raster.height != pixelHeight {
             raster = try raster.resized(width: pixelWidth, height: pixelHeight)
         }
-        lock.withLock {
-            if !released {
-                cached = raster
-            }
-        }
+        lock.withLock { cached = raster }
         return raster
     }
 

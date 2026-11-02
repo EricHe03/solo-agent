@@ -378,7 +378,7 @@ func (p *Phone) requireScreen(ctx context.Context, c *conn) error {
 	if locked {
 		return E.Extend(ErrLocked, "unlock it first")
 	}
-	display, err := p.backlight(ctx, c)
+	display, err := c.backlight(ctx)
 	if err != nil {
 		return err
 	}
@@ -456,6 +456,7 @@ func (p *Phone) Button(ctx context.Context, name string) error {
 	return p.act(ctx, action{
 		name: "button " + name,
 		input: func(ctx context.Context, c *conn, _ phoneGeometry) error {
+			defer c.lockState.forget()
 			return p.gesture(ctx, c, func(input *hid.Client) error {
 				for index, button := range buttons {
 					if index > 0 {
@@ -516,7 +517,11 @@ func (p *Phone) Unlock(ctx context.Context) error {
 		if err != nil {
 			return E.Cause(err, "read the lock state")
 		}
-		if !locked {
+		display, err := c.backlight(ctx)
+		if err != nil {
+			return err
+		}
+		if !locked && (display == "activeOn" || display == "dimmed") {
 			return nil
 		}
 		grant, err := p.connection.input.acquire(ctx, c)

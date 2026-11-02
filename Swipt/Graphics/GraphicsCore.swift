@@ -31,7 +31,6 @@ nonisolated struct GraphicsError: Error, Sendable {
     static func state(_ message: String) -> GraphicsError { GraphicsError("InvalidStateError", message) }
     static let aborted = GraphicsError("AbortError", "the operation was aborted")
     static let ended = GraphicsError("AbortError", "the JavaScript session ended")
-    static let released = GraphicsError("InvalidStateError", "the image was released")
 }
 
 nonisolated enum Outcome {

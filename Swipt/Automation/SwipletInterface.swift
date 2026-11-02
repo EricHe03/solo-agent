@@ -277,7 +277,7 @@ final class SwipletHost: SwiptHostDelegate {
         case "debug": LibSwiptLogLevelDebug
         default: LibSwiptLogLevelInfo
         }
-        Platform.shared.logSwiplet(swiplet, level: level, message: message)
+        Platform.shared.logSwiplet(swiplet.isEmpty ? presented.last?.name ?? "" : swiplet, level: level, message: message)
     }
 
     func fail(surface: String, message: String) {

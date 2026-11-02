@@ -37,6 +37,44 @@ interface VideoInfo {
 
 const largestFrameCount = 1000;
 
+type TimelineEvent =
+  | { time: number; type: "operation"; name: string; arguments?: unknown[]; durationMs?: number; error?: string; message?: string }
+  | { time: number; type: "action"; swiplet: string; action: string; caller: string }
+  | { time: number; type: "foreground"; app: string }
+  | { time: number; type: "log"; swiplet: string; level: string; message: string }
+  | { time: number; type: "feed" };
+
+const clip = (text: string, limit: number) => {
+  const line = text.replace(/\s*\n\s*/g, " ");
+  return line.length > limit ? `${line.slice(0, limit - 1)}…` : line;
+};
+
+const timelineEntry = (event: TimelineEvent): { text: string; detail?: string } | undefined => {
+  switch (event.type) {
+    case "operation": {
+      const detail = [event.durationMs === undefined ? undefined : `${Math.round(event.durationMs)} ms`, event.error === undefined ? undefined : `failed: ${clip(event.error, 200)}`]
+        .filter(part => part !== undefined).join(", ") || undefined;
+      if (event.name === "trace.screen.find") {
+        const message = event.message ?? "";
+        const end = message.lastIndexOf("; ");
+        return { text: `screen.find ${end < 0 ? message : message.slice(0, end)}`, detail };
+      }
+      if (event.name.startsWith("trace.")) {
+        return undefined;
+      }
+      return { text: `${event.name}(${clip((event.arguments ?? []).map(value => JSON.stringify(value)).join(", "), 160)})`, detail };
+    }
+    case "action":
+      return { text: `action ${event.action} of ${event.swiplet} from ${event.caller}` };
+    case "foreground":
+      return { text: `foreground ${event.app}` };
+    case "log":
+      return { text: `${event.level} ${event.swiplet}: ${clip(event.message, 200)}` };
+    case "feed":
+      return undefined;
+  }
+};
+
 const defaultFile = (folder: string, extension: string): FileHandle =>
   cacheFile(`${folder}/${new Date().toISOString().replace(/[:.]/g, "-")}.${extension}`);
 
@@ -130,11 +168,7 @@ export class ScreenRecording {
   }
 
   #time(value: unknown, name: string): number {
-    const time = finite(value, name);
-    if (time < 0 || time > this.duration) {
-      throw new RangeError(`${name} must be from 0 to ${this.duration} ms`);
-    }
-    return time;
+    return Math.min(Math.max(finite(value, name), 0), this.duration);
   }
 
   frame(time: number): RasterImage {
@@ -150,6 +184,9 @@ export class ScreenRecording {
       const step = durationOf(everyMs, "everyMs", 1000);
       const first = from === undefined ? 0 : this.#time(from, "from");
       const last = to === undefined ? this.duration : this.#time(to, "to");
+      if (last < first) {
+        throw new RangeError("to must not be before from");
+      }
       chosen = [];
       for (let time = first; time <= last && chosen.length <= largestFrameCount; time += step) {
         chosen.push(time);
@@ -215,8 +252,11 @@ export class ScreenRecording {
     if (to !== undefined) {
       args.to = this.#time(to, "to");
     }
-    if (args.from !== undefined && args.to !== undefined && (args.to as number) <= (args.from as number)) {
+    if (from !== undefined && to !== undefined && finite(to, "to") <= finite(from, "from")) {
       throw new RangeError("to must be after from");
+    }
+    if ((args.to ?? this.duration) === (args.from ?? 0)) {
+      throw new RangeError(`the range lies outside the recording, which runs from 0 to ${this.duration} ms`);
     }
     if (region !== undefined) {
       args.region = rectOf(region, "region");
@@ -238,7 +278,36 @@ export class ScreenRecording {
   }
 
   toString(): string {
-    return `ScreenRecording ${this.file.name} ${Math.round(this.duration) / 1000} s, ${this.changes.length} changes, ${this.events.length} events`;
+    const entries: { time: number; end: number; text: string; detail?: string }[] = [];
+    for (const event of this.events as unknown as readonly TimelineEvent[]) {
+      const entry = timelineEntry(event);
+      if (entry !== undefined) {
+        entries.push({ time: event.time, end: event.time + (event.type === "operation" ? event.durationMs ?? 0 : 0), ...entry });
+      }
+    }
+    for (const change of this.changes as unknown as readonly RawChange[]) {
+      const shown = change.frames.slice(0, 3).map(frame => `[${frame.map(Math.round).join(", ")}]`).join(" ");
+      const more = change.frames.length > 3 ? ` and ${change.frames.length - 3} more` : "";
+      const app = change.app === null ? "" : ` in ${change.app}`;
+      entries.push({ time: change.time, end: change.end, text: `screen changed at ${shown}${more}${app}`, detail: `until ${Math.round(change.end)} ms` });
+    }
+    entries.sort((a, b) => a.time - b.time);
+    entries.push({ time: this.duration, end: this.duration, text: "recording ends" });
+    const folded: { time: number; end: number; text: string; detail?: string; count: number }[] = [];
+    for (const entry of entries) {
+      const previous = folded.at(-1);
+      if (previous !== undefined && previous.text === entry.text) {
+        previous.end = Math.max(previous.end, entry.end);
+        previous.count += 1;
+      } else {
+        folded.push({ ...entry, count: 1 });
+      }
+    }
+    const width = Math.max(...folded.map(entry => String(Math.round(entry.time)).length));
+    return folded.map(entry => {
+      const suffix = entry.count > 1 ? `, ${entry.count} times until ${Math.round(entry.end)} ms` : entry.detail === undefined ? "" : `, ${entry.detail}`;
+      return `${String(Math.round(entry.time)).padStart(width)} ms  ${entry.text}${suffix}`;
+    }).join("\n");
   }
 }
 

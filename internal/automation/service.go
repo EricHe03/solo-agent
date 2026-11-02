@@ -161,7 +161,7 @@ func (r *runner) supervise(ctx context.Context, cancel context.CancelFunc, previ
 			r.access.Unlock()
 			return
 		}
-		r.logger.Error("the service stopped: ", describeError(err))
+		r.logger.Error("the service stopped: ", failureOf(err).Describe())
 		r.set(ServiceFailed, err)
 		if time.Since(started) >= stableService {
 			failures = 0
@@ -202,11 +202,7 @@ func (r *runner) setLocked(status ServiceStatus, err error) {
 	r.state.Status, r.state.Error, r.state.Failure, r.state.Since = status, "", nil, time.Now()
 	if err != nil {
 		r.state.Error = describeError(err)
-		failure, isFailure := ScriptFailure(err)
-		if !isFailure {
-			failure = &Failure{Name: "Error", Message: Message(err)}
-		}
-		r.state.Failure = failure
+		r.state.Failure = failureOf(err)
 	}
 	r.publishLocked()
 }

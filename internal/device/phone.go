@@ -539,7 +539,7 @@ func (p *Phone) Display(ctx context.Context) (string, error) {
 		return "", err
 	}
 	defer done()
-	return p.backlight(ctx, c)
+	return c.backlight(ctx)
 }
 
 func (p *Phone) Frontmost(ctx context.Context) (string, error) {
@@ -595,8 +595,8 @@ func (p *Phone) WatchForeground(ctx context.Context, emit func(string)) error {
 	}
 }
 
-func (p *Phone) backlight(ctx context.Context, c *conn) (string, error) {
-	if read := p.connection.options.BacklightState; read != nil {
+func (c *conn) backlight(ctx context.Context) (string, error) {
+	if read := c.connection.options.BacklightState; read != nil {
 		switch read() {
 		case 0:
 			return "off", nil

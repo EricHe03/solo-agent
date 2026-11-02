@@ -201,6 +201,7 @@ nonisolated enum JavaScript {
     nonisolated var scale: Double { get }
     nonisolated var frame: [Double] { get }
     nonisolated var time: Double { get }
+    nonisolated var timestamp: Double { get }
     nonisolated var pixelWidth: Int { get }
     nonisolated var pixelHeight: Int { get }
     nonisolated func crop(_ x: Double, _ y: Double, _ width: Double, _ height: Double) -> JSValue
@@ -213,7 +214,6 @@ nonisolated enum JavaScript {
     nonisolated func dilate(_ radius: Int) -> ImageHandle
     nonisolated func erode(_ radius: Int) -> ImageHandle
     nonisolated func showBytes() -> JSValue
-    nonisolated func discard()
 }
 
 @objc nonisolated final class ImageHandle: NSObject, ImageExports {
@@ -233,6 +233,7 @@ nonisolated enum JavaScript {
     var scale: Double { rounded(node.scale) }
     var frame: [Double] { rectJSON(node.frame) }
     var time: Double { node.time ?? .nan }
+    var timestamp: Double { node.timestamp ?? .nan }
     var pixelWidth: Int { node.pixelWidth }
     var pixelHeight: Int { node.pixelHeight }
 
@@ -284,10 +285,6 @@ nonisolated enum JavaScript {
             return JavaScript.fail(error)
         }
     }
-
-    func discard() {
-        node.release()
-    }
 }
 
 @objc protocol RecordingExports: JSExport {
@@ -303,7 +300,7 @@ nonisolated enum JavaScript {
     }
 
     var path: String { session.url.path }
-    var start: Double { session.requested }
+    var start: Double { session.start }
 
     deinit {
         session.abandon()

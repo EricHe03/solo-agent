@@ -48,6 +48,25 @@ interface State {
 }
 
 const host = requireNativeModule<SwiptHost>("SwiptHost");
+
+Object.assign(globalThis, {
+  sleep: (ms: number, { signal }: { signal?: AbortSignal } = {}) =>
+    new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(signal.reason);
+        return;
+      }
+      const abort = () => {
+        clearTimeout(timer);
+        reject(signal!.reason);
+      };
+      const timer = setTimeout(() => {
+        signal?.removeEventListener("abort", abort);
+        resolve();
+      }, ms);
+      signal?.addEventListener("abort", abort, { once: true });
+    }),
+});
 const states = new Map<string, State>();
 
 const stateOf = (name: string): State => {

@@ -15,6 +15,7 @@ export interface ImageHandle {
   readonly scale: number;
   readonly frame: number[];
   readonly time: number;
+  readonly timestamp: number;
   readonly pixelWidth: number;
   readonly pixelHeight: number;
   crop(x: number, y: number, width: number, height: number): ImageHandle;
@@ -27,7 +28,6 @@ export interface ImageHandle {
   dilate(radius: number): ImageHandle;
   erode(radius: number): ImageHandle;
   showBytes(): Uint8Array;
-  discard(): void;
 }
 
 const largestSide = 16384;
@@ -298,6 +298,7 @@ export class RasterImage {
   declare readonly scale: number;
   declare readonly frame: Rect;
   declare readonly time: number | null;
+  declare readonly timestamp: number | null;
 
   constructor(handle: ImageHandle) {
     handles.set(this, handle);
@@ -308,6 +309,7 @@ export class RasterImage {
       scale: { value: handle.scale, enumerable: true },
       frame: { value: Object.freeze([frame[0], frame[1], frame[2], frame[3]]), enumerable: true },
       time: { value: Number.isNaN(handle.time) ? null : handle.time, enumerable: true },
+      timestamp: { value: Number.isNaN(handle.timestamp) ? null : handle.timestamp, enumerable: true },
     });
     Object.freeze(this);
   }
@@ -457,10 +459,6 @@ export class RasterImage {
 
   async detectBarcodes(options?: Options) {
     return freeze(await run<unknown[]>("barcodes", {}, [handleOf(this)], signalOf(check(options, []))));
-  }
-
-  release(): void {
-    handleOf(this).discard();
   }
 
   toString(): string {

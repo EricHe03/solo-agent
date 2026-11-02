@@ -68,7 +68,7 @@ nonisolated enum GraphicsCalls {
             return try Recognition.barcodes(image(call, 0), token: token)
         case "record":
             let url = URL(fileURLWithPath: arguments.string("path") ?? "")
-            let session = try RecordingSession.start(url: url, timeline: context.watchTimeline())
+            let session = try RecordingSession.start(url: url, timeline: context.watchTimeline(), token: token)
             return ["recording": engine.register(session)]
         case "recording.stop":
             guard let session = call.objects.first as? RecordingSession else { throw GraphicsError.type("stop needs a Recording") }
@@ -140,9 +140,7 @@ nonisolated enum GraphicsCalls {
     private static func region(_ node: ImageNode, _ rect: CGRect?, _ token: CancelToken) throws -> Raster {
         let raster = try node.raster(token)
         guard let rect else { return raster }
-        guard let pixels = node.pixelRect(space: rect) else {
-            throw GraphicsError.range("the region lies outside the image")
-        }
+        let pixels = try node.pixelRect(space: rect)
         return raster.view(x: Int(pixels.minX), y: Int(pixels.minY), width: Int(pixels.width), height: Int(pixels.height))
     }
 
@@ -158,7 +156,7 @@ nonisolated enum GraphicsCalls {
             throw GraphicsError.unavailable("graphics: the device sent no screenshot")
         }
         try token.check()
-        return try ["image": engine.register(ImageNode.encoded(data, scale: shot.scale > 0 ? shot.scale : nil, time: started))]
+        return try ["image": engine.register(ImageNode.encoded(data, scale: shot.scale > 0 ? shot.scale : nil, timestamp: started))]
     }
 
     private static func firstFrame(_ feed: ScreenFeed, _ token: CancelToken) throws -> (Frame, Int) {
@@ -187,9 +185,7 @@ nonisolated enum GraphicsCalls {
 
         init(_ node: ImageNode, region: CGRect?, threshold: Int) throws {
             let area = region ?? node.frame
-            guard let pixels = node.pixelRect(space: area) else {
-                throw GraphicsError.range("the region lies outside the screen")
-            }
+            let pixels = try node.pixelRect(space: area)
             let factor = min(pixels.width, pixels.height) >= 64 ? 4.0 : 1.0
             self.region = area
             width = max(Int(pixels.width / factor), 1)
@@ -199,9 +195,7 @@ nonisolated enum GraphicsCalls {
         }
 
         func plane(_ node: ImageNode, _ token: CancelToken) throws -> Raster {
-            guard let pixels = node.pixelRect(space: region) else {
-                throw GraphicsError.range("the region lies outside the screen")
-            }
+            let pixels = try node.pixelRect(space: region)
             if shared, let frame = node.screenFrame {
                 let quarter = try frame.quarter()
                 let x = min(Int(pixels.minX) / 4, quarter.width - width)
@@ -324,7 +318,7 @@ nonisolated enum GraphicsCalls {
         var target = raster
         var origin = CGPoint.zero
         if let region {
-            guard let pixels = node.pixelRect(space: region) else { return nil }
+            let pixels = try node.pixelRect(space: region)
             target = raster.view(x: Int(pixels.minX), y: Int(pixels.minY), width: Int(pixels.width), height: Int(pixels.height))
             origin = pixels.origin
         }
@@ -407,7 +401,7 @@ nonisolated enum GraphicsCalls {
                 resting = true
                 return nil
             }
-            let time = node.time ?? nowMilliseconds()
+            let time = node.time ?? node.timestamp ?? nowMilliseconds()
             let due = probedAt.map { time - $0 >= 2 * last } ?? true
             let rested = resting
             resting = false
@@ -432,12 +426,10 @@ nonisolated enum GraphicsCalls {
                 case .text(let expression): "text /\(expression.pattern)/"
                 }
             }.joined(separator: ", ")
-            var detail = "\(described) in \(arguments.rect("region").map { "\(rectJSON($0).map { Int($0) })" } ?? "the screen"): compared \(frames) frames in \(Int(comparing)) ms, probed \(probes) in \(Int(probing)) ms, last \(Int(last)) ms"
-            if let hit {
-                detail += ", matched target \(hit.target)"
-                if let frameTime {
-                    detail += " in a frame from \(Int(now - frameTime)) ms ago"
-                }
+            var detail = "\(described) in \(arguments.rect("region").map { "\(rectJSON($0).map { Int($0) })" } ?? "the screen"), \(hit.map { "matched target \($0.target)" } ?? "no match")"
+            detail += "; compared \(frames) frames in \(Int(comparing)) ms, probed \(probes) in \(Int(probing)) ms, last \(Int(last)) ms"
+            if hit != nil, let frameTime {
+                detail += ", the matched frame is \(Int(now - frameTime)) ms old"
             }
             context.trace(name, detail: detail, startedMs: started, durationMs: now - started)
         }
@@ -483,7 +475,7 @@ nonisolated enum GraphicsCalls {
         var result: [String: Any]?
         var found: ScreenHit?
         try model.scan(from: arguments.double("from") ?? 0, to: arguments.double("to") ?? model.duration, token: token) { frame in
-            let node = ImageNode.frame(frame)
+            let node = ImageNode.frame(frame, of: model)
             guard let hit = try search.check(node, token) else { return true }
             found = hit
             result = matchJSON(hit, node, engine)
@@ -512,7 +504,7 @@ nonisolated enum GraphicsCalls {
         } else {
             throw GraphicsError.type("decode needs bytes or a file")
         }
-        let node = try ImageNode.encoded(data, scale: scale, time: nil)
+        let node = try ImageNode.encoded(data, scale: scale, timestamp: nil)
         return ["image": engine.register(node)]
     }
 
@@ -536,7 +528,7 @@ nonisolated enum GraphicsCalls {
         var target = raster
         var origin = CGPoint.zero
         if let rect = arguments.rect("region") {
-            guard let pixels = node.pixelRect(space: rect) else { return [Any]() }
+            let pixels = try node.pixelRect(space: rect)
             target = raster.view(x: Int(pixels.minX), y: Int(pixels.minY), width: Int(pixels.width), height: Int(pixels.height))
             origin = pixels.origin
         }

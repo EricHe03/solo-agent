@@ -21,6 +21,8 @@ type ExecuteRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
 	TimeoutMs     uint32                 `protobuf:"varint,2,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	Args          []string               `protobuf:"bytes,3,rep,name=args,proto3" json:"args,omitempty"`
+	Program       bool                   `protobuf:"varint,4,opt,name=program,proto3" json:"program,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -67,6 +69,20 @@ func (x *ExecuteRequest) GetTimeoutMs() uint32 {
 		return x.TimeoutMs
 	}
 	return 0
+}
+
+func (x *ExecuteRequest) GetArgs() []string {
+	if x != nil {
+		return x.Args
+	}
+	return nil
+}
+
+func (x *ExecuteRequest) GetProgram() bool {
+	if x != nil {
+		return x.Program
+	}
+	return false
 }
 
 type ConsoleOutput struct {
@@ -336,11 +352,13 @@ var File_repl_proto protoreflect.FileDescriptor
 const file_repl_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"repl.proto\x12\x05swipt\x1a\x1bgoogle/protobuf/empty.proto\x1a\fcommon.proto\"C\n" +
+	"repl.proto\x12\x05swipt\x1a\x1bgoogle/protobuf/empty.proto\x1a\fcommon.proto\"q\n" +
 	"\x0eExecuteRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x1d\n" +
 	"\n" +
-	"timeout_ms\x18\x02 \x01(\rR\ttimeoutMs\"J\n" +
+	"timeout_ms\x18\x02 \x01(\rR\ttimeoutMs\x12\x12\n" +
+	"\x04args\x18\x03 \x03(\tR\x04args\x12\x18\n" +
+	"\aprogram\x18\x04 \x01(\bR\aprogram\"J\n" +
 	"\rConsoleOutput\x12%\n" +
 	"\x05level\x18\x01 \x01(\x0e2\x0f.swipt.LogLevelR\x05level\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\"5\n" +

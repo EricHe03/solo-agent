@@ -190,6 +190,19 @@ func (f *Failure) Summary() string {
 	return text
 }
 
+func (f *Failure) Describe() string {
+	var text strings.Builder
+	text.WriteString(f.Name + ": " + f.Message)
+	for _, frame := range f.Stack {
+		position := frame.File + ":" + strconv.Itoa(frame.Line) + ":" + strconv.Itoa(frame.Column)
+		if frame.Function != "" {
+			position = frame.Function + " (" + position + ")"
+		}
+		text.WriteString("\n    at " + position)
+	}
+	return text.String()
+}
+
 func (f *Failure) Is(target error) bool {
 	switch f.Name {
 	case "AbortError":

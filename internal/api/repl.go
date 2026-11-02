@@ -23,7 +23,7 @@ func (s *replService) Execute(request *proto.ExecuteRequest, stream grpc.ServerS
 		return err
 	}
 	var sendErr error
-	err = session.Execute(ctx, request.Code, time.Duration(request.TimeoutMs)*time.Millisecond, func(output automation.Output) {
+	err = session.Execute(ctx, automation.Script{Code: request.Code, Args: request.Args, Program: request.Program}, time.Duration(request.TimeoutMs)*time.Millisecond, func(output automation.Output) {
 		if sendErr != nil {
 			return
 		}

@@ -1,7 +1,7 @@
 import structuredClone from "@ungap/structured-clone";
 import { URL, URLSearchParams } from "whatwg-url-minimum";
 
-import { deliver, end, settle } from "./async";
+import { deliver, end, settle, sleep } from "./async";
 import { crypto } from "./crypto";
 import { atob, btoa, TextDecoder, TextEncoder } from "./encoding";
 import { DOMException } from "./errors";
@@ -25,7 +25,7 @@ export function install(binding: Native) {
   define({
     AbortController, AbortSignal, Event, EventTarget, CustomEvent, DOMException, TextEncoder, TextDecoder, atob, btoa,
     structuredClone: (value: unknown) => structuredClone(value), URL, URLSearchParams, crypto, fetch, Headers, Request,
-    Response, Blob,
+    Response, Blob, sleep,
     queueMicrotask: (callback: () => void) => {
       if (typeof callback !== "function") {
         throw new TypeError("the callback is not a function");

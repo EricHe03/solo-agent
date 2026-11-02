@@ -87,12 +87,17 @@ func (t *deviceUnlockTarget) unlock(parent context.Context) (consumed bool, err 
 	defer cancel()
 	defer func() {
 		if err != nil && ctx.Err() != nil && parent.Err() == nil {
-			err = E.Cause(err, "the device stayed locked for ", unlockLimit)
+			err = E.Cause(err, "the device was not unlocked with an active display within ", unlockLimit)
 		}
 	}()
 	locked, err := t.conn.lockState.locked(ctx, t.conn.device)
-	if err != nil || !locked {
+	if err != nil {
 		return false, err
+	}
+	if !locked {
+		if consumed, locked, err = t.wake(ctx); err != nil || !locked {
+			return consumed, err
+		}
 	}
 	state, err := t.prepare(ctx)
 	if err != nil {
@@ -200,9 +205,7 @@ func (r *lockStateReader) recent(ctx context.Context) (bool, error) {
 			for {
 				select {
 				case <-changed:
-					r.access.Lock()
-					r.readAt = time.Time{}
-					r.access.Unlock()
+					r.forget()
 					_, _ = r.recent(r.owner.ctx)
 				case <-r.owner.ctx.Done():
 					return
@@ -220,14 +223,13 @@ func (r *lockStateReader) recent(ctx context.Context) (bool, error) {
 		return value, nil
 	}
 	r.access.Unlock()
-	value, err := r.locked(ctx, r.owner.device)
-	if err != nil {
-		return false, err
-	}
+	return r.locked(ctx, r.owner.device)
+}
+
+func (r *lockStateReader) forget() {
 	r.access.Lock()
-	r.value, r.readAt = value, time.Now()
+	r.readAt = time.Time{}
 	r.access.Unlock()
-	return value, nil
 }
 
 func (r *lockStateReader) locked(ctx context.Context, device *coredevice.Device) (bool, error) {
@@ -247,6 +249,7 @@ func (r *lockStateReader) locked(ctx context.Context, device *coredevice.Device)
 		}
 		state, err := r.conn.LockState(ctx)
 		if err == nil {
+			r.value, r.readAt = state.PasscodeRequired, time.Now()
 			return state.PasscodeRequired, nil
 		}
 		r.conn.Close()
@@ -366,7 +369,7 @@ func (t *deviceUnlockTarget) prepare(ctx context.Context) (accessibility.Passcod
 				return accessibility.PasscodeState{}, err
 			}
 			wakeSent = true
-			t.logger.Info("unlock wake after ", time.Since(started))
+			t.logger.Debug("unlock wake after ", time.Since(started))
 			continue
 		}
 		wakeSent = false
@@ -381,7 +384,7 @@ func (t *deviceUnlockTarget) prepare(ctx context.Context) (accessibility.Passcod
 				return accessibility.PasscodeState{}, err
 			}
 			openSent = true
-			t.logger.Info("unlock first backspace after ", time.Since(started))
+			t.logger.Debug("unlock first backspace after ", time.Since(started))
 			continue
 		}
 		if err = join(accessibilityDialed, &accessibilityErr); err != nil {
@@ -392,14 +395,14 @@ func (t *deviceUnlockTarget) prepare(ctx context.Context) (accessibility.Passcod
 			return accessibility.PasscodeState{}, err
 		}
 		if state.Ready {
-			t.logger.Info("lock-screen keyboard ready after ", time.Since(started))
+			t.logger.Debug("lock-screen keyboard ready after ", time.Since(started))
 			return state, nil
 		}
 		if layout == nil {
 			continue
 		}
 		data, _ := json.Marshal(layout)
-		t.logger.Info("unlock layout probe after ", time.Since(started), ": ", string(data))
+		t.logger.Debug("unlock layout probe after ", time.Since(started), ": ", string(data))
 		point, ok := accessibility.NumericPasscodeShortcutPoint(*layout, deviceClass)
 		if !ok {
 			continue
@@ -412,7 +415,7 @@ func (t *deviceUnlockTarget) prepare(ctx context.Context) (accessibility.Passcod
 		}
 		err = t.input.Tap(ctx, hid.Touch{X: point.X, Y: point.Y})
 		shortcutTried = true
-		t.logger.Info("unlock shortcut tap after ", time.Since(started), ", error: ", err)
+		t.logger.Debug("unlock shortcut tap after ", time.Since(started), ", error: ", err)
 		if err != nil {
 			return accessibility.PasscodeState{}, err
 		}
@@ -453,17 +456,38 @@ func (t *deviceUnlockTarget) preparation(ctx context.Context, readLayout bool) (
 		return
 	})
 	data, _ := json.Marshal(state)
-	t.logger.Info("unlock readiness probe: ", string(data), ", error: ", err)
+	t.logger.Debug("unlock readiness probe: ", string(data), ", error: ", err)
 	return state, layout, err
 }
 
-func (t *deviceUnlockTarget) activeDisplay(ctx context.Context) (bool, error) {
-	if read := t.connection.options.BacklightState; read != nil {
-		if state := read(); state >= 0 {
-			return state == 2, nil
+func (t *deviceUnlockTarget) wake(ctx context.Context) (consumed, locked bool, err error) {
+	state, err := t.conn.backlight(ctx)
+	if err != nil || state == "activeOn" || state == "dimmed" {
+		return false, false, err
+	}
+	home := hid.ButtonHome
+	home.Hold = 0
+	if err = t.input.PressButton(ctx, home); err != nil {
+		return true, false, err
+	}
+	var polled time.Time
+	for {
+		if err = sleep(ctx, unlockPoll-time.Since(polled)); err != nil {
+			return true, false, err
+		}
+		polled = time.Now()
+		if locked, err = t.conn.lockState.locked(ctx, t.conn.device); err != nil || locked {
+			return true, locked, err
+		}
+		active, err := t.activeDisplay(ctx)
+		if err != nil || active {
+			return true, false, err
 		}
 	}
-	state, err := t.conn.display.BacklightState(ctx)
+}
+
+func (t *deviceUnlockTarget) activeDisplay(ctx context.Context) (bool, error) {
+	state, err := t.conn.backlight(ctx)
 	return state == "activeOn", err
 }
 

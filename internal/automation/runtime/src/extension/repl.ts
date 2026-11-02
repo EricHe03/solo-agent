@@ -23,7 +23,9 @@ const outcome = (value: unknown): string => {
 
 export const replGlobals = () => ({ accessibility, input, device, screen, image, dataDirectory: dataDirectory(), dialog: createDialog(), show });
 
-export function launch(script: () => Promise<unknown>, columns: [output: number, input: number][][], id: string): void {
+export function launch(script: () => Promise<unknown>, columns: [output: number, input: number][][], id: string, request: string): void {
+  const { args = [], program }: { args?: string[]; program: boolean } = JSON.parse(request);
   setInputColumns(id, columns);
-  void script().then(outcome).then(output => native.finish("", output, id), error => native.finish(failureOf(error), "", id));
+  Object.defineProperty(globalThis, "args", { value: args, writable: true, configurable: true, enumerable: false });
+  void script().then(value => (program ? "" : outcome(value))).then(output => native.finish("", output, id), error => native.finish(failureOf(error), "", id));
 }

@@ -19,7 +19,7 @@ func (p *Phone) Trace(fn func(Trace)) {
 }
 
 func (s *Connection) trace(at time.Time, name, detail string, duration time.Duration) {
-	s.logger.Debug(name, ": ", detail, " (", duration, ")")
+	s.logger.Debug("trace.", name, ": ", detail, " (", duration, ")")
 	record(at, name, detail, duration)
 }
 

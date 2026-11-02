@@ -97,7 +97,7 @@ nonisolated enum Recognition {
         var raster = try node.raster(token)
         var origin = CGPoint.zero
         if let region = arguments.rect("region") {
-            guard let pixels = node.pixelRect(space: region) else { return RecognizedText([], place: { $0 }) }
+            let pixels = try node.pixelRect(space: region)
             raster = raster.view(x: Int(pixels.minX), y: Int(pixels.minY), width: Int(pixels.width), height: Int(pixels.height))
             origin = pixels.origin
         }

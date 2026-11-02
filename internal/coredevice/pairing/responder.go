@@ -203,7 +203,7 @@ func (r *Responder) Accept(ctx context.Context) (*Record, error) {
 }
 
 func (r *Responder) serve(state *acceptState, netConn net.Conn) {
-	r.logger.Info("pairing connection from ", netConn.RemoteAddr())
+	r.logger.Debug("pairing connection from ", netConn.RemoteAddr())
 	stopClose := context.AfterFunc(state.ctx, func() { netConn.Close() })
 	c := newConn(netConn, originDevice)
 	record, attempt, err := r.pair(state, c)
@@ -214,7 +214,7 @@ func (r *Responder) serve(state *acceptState, netConn net.Conn) {
 		stopClose()
 		netConn.Close()
 		if attempt == 0 || state.ctx.Err() != nil || !state.isLast(attempt) {
-			r.logger.Info("pairing connection from ", netConn.RemoteAddr(), " closed: ", err)
+			r.logger.Debug("pairing connection from ", netConn.RemoteAddr(), " closed: ", err)
 			return
 		}
 		state.report(acceptResult{err: err})

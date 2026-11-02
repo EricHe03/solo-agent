@@ -136,7 +136,7 @@ func (p *Phone) WatchState(ctx context.Context, name string, emit func(any)) err
 			}
 			return locked, nil
 		}
-		return p.backlight(ctx, c)
+		return c.backlight(ctx)
 	}
 	poll := displayPoll
 	if name == "locked" {

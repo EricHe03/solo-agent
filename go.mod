@@ -5,6 +5,7 @@ go 1.26.8
 require (
 	github.com/coder/websocket v1.8.15
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	github.com/go-sourcemap/sourcemap v2.1.4+incompatible
 	github.com/google/uuid v1.6.0
 	// TODO: switch back to github.com/modelcontextprotocol/go-sdk once it supports the tasks extension
 	github.com/nekohasekai/go-sdk v1.8.1-0.20261024082711-45d20edf2bb5

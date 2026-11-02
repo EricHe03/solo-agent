@@ -27,7 +27,8 @@ const replOnly = text => {
   const packaging = text.indexOf("export type ActionCaller");
   return packaging < 0 ? text : text.slice(0, packaging);
 };
-const globals = globalModules.map(name => replOnly(imports(read(name)).body).replace(/^export declare const assets: .*\n/m, "").replace(/^export (declare )?/gm, (_, declared) => declared ? "declare " : ""));
+const ambient = text => text.replace(/^declare global \{\n([\s\S]*?)^\}\n/gm, (_, body) => body.replace(/^  (?=\S)/gm, "declare "));
+const globals = globalModules.map(name => ambient(replOnly(imports(read(name)).body).replace(/^export declare const assets: .*\n/m, "").replace(/^export (declare )?/gm, (_, declared) => declared ? "declare " : "")).trimEnd());
 const namespaced = namespaces.map(name => {
   const { aliases, body } = imports(read(name));
   const members = [...aliases, body.replace(/^export declare /gm, "export ")].join("\n").trimEnd();
@@ -36,6 +37,6 @@ const namespaced = namespaces.map(name => {
 const repl = read("repl");
 const extras = repl.slice(repl.indexOf("declare global {") + "declare global {".length, repl.lastIndexOf("\n}\n\nexport"))
   .split("\n")
-  .filter(line => /^\s*(const dialog|function show)/.test(line))
+  .filter(line => line.trim() !== "" && !namespaces.some(name => line.startsWith(`  const ${name}:`)))
   .map(line => line.replace(/^  /, "declare ").replace(/import\("@swipt\/api\/swiplet"\)\./g, "").replace(/import\("@swipt\/api\/image"\)\./g, "image."));
 fs.writeFileSync(new URL("../declarations/api.d.ts", import.meta.url), `${[...globals, ...namespaced, extras.join("\n")].join("\n\n").trimEnd()}\n`);
