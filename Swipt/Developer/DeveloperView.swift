@@ -274,7 +274,7 @@ private func apiUsage(scheme: String, address: String, token: String?, revealed:
     let url = apiURL(scheme: scheme, address: address, token: token, revealed: revealed)
     return [
         UsageItem(label: String(localized: "URL"), text: url),
-        UsageItem(label: "Swipt CLI", text: "swipt connect \(url)"),
+        UsageItem(label: "Swipt CLI", text: "swipt device add \(url)"),
     ]
 }
 

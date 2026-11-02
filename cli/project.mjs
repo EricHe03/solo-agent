@@ -84,9 +84,10 @@ async function bundle(project) {
   const out = { app: "", extension: "", extensionMap: "", assets: new Map() };
   loadEnvironment(project.root);
   if (project.extension) {
+    const outfile = path.join(project.root, "dist", project.config.id, "src", "extension.js");
     const result = await build({
       entryPoints: [project.extension],
-      outfile: path.join(project.root, "dist", project.config.id, "src", "extension.js"),
+      outfile,
       bundle: true,
       format: "cjs",
       platform: "neutral",
@@ -100,7 +101,9 @@ async function bundle(project) {
       plugins: [metro(project.root, { sourcemap: true })],
     });
     out.extension = result.outputFiles.find(file => file.path.endsWith(".js")).text;
-    out.extensionMap = result.outputFiles.find(file => file.path.endsWith(".map")).text;
+    const map = JSON.parse(result.outputFiles.find(file => file.path.endsWith(".map")).text);
+    const sources = map.sources.map(source => path.relative(project.root, path.resolve(path.dirname(outfile), map.sourceRoot ?? "", source)).split(path.sep).join("/"));
+    out.extensionMap = JSON.stringify({ ...map, sourceRoot: undefined, sources });
   }
   if (project.app) {
     const result = await build({
@@ -273,7 +276,7 @@ export async function buildProject(root) {
   const archive = path.join(dist, `${manifest.id}.swiplet`);
   fs.rmSync(archive, { force: true });
   fs.rmSync(path.join(dist, `${manifest.id}.zip`), { force: true });
-  execFileSync("zip", ["-qr", "-n", storedSuffixes, archive, ...fs.readdirSync(folder), "-x", "*.map"], { cwd: folder });
+  execFileSync("zip", ["-qr", "-n", storedSuffixes, archive, ...fs.readdirSync(folder)], { cwd: folder });
   return { id: manifest.id, archive, digest: folderDigest(folder) };
 }
 
@@ -284,7 +287,7 @@ function folderDigest(folder) {
       const name = path.join(directory, entry.name);
       if (entry.isDirectory()) {
         walk(name);
-      } else if (!entry.name.endsWith(".map")) {
+      } else {
         hash.update(`${path.relative(folder, name)}\0`);
         hash.update(fs.readFileSync(name));
         hash.update("\0");
@@ -414,7 +417,7 @@ const templates = {
           app: "./src/App.tsx",
           extension: "./src/extension.ts",
         },
-        scripts: { build: "swipt build", check: "tsc" },
+        scripts: { build: "swipt project build", check: "tsc" },
         dependencies: { zod: "^4.6.7" },
         devDependencies: {
           "@swipt/api": version,

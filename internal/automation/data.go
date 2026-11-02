@@ -283,7 +283,7 @@ func swipletRoot(swiplet Swiplet, kind string) (*fileRoot, error) {
 
 func (h *Host) swipletRoot(id, kind string) (*fileRoot, error) {
 	if id == REPLDirectory && kind == DataFolder {
-		return swipletRoot(Swiplet{ID: id, Directory: filepath.Join(h.options.Directory, REPLDirectory)}, kind)
+		return openFileRoot(filepath.Join(h.options.Directory, REPLDirectory, DataFolder), "the data directory of the REPL")
 	}
 	swiplet, err := h.Swiplet(id)
 	if err != nil {

@@ -1,5 +1,5 @@
 const outside = () => {
-  throw new Error("@swipt/api/input runs inside Swipt; build the swiplet with `swipt build`");
+  throw new Error("@swipt/api/input runs inside Swipt; build the swiplet with `swipt project build`");
 };
 
 export const tap = outside;

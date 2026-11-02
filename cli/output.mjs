@@ -36,10 +36,10 @@ const frameText = frame => {
   return frame.function === "" ? position : `${frame.function} (${position})`;
 };
 
-export const failureText = (failure, frames) => [`${failure.name}: ${failure.message}`, ...failure.stack.map(frame => `    at ${frameText(frames(frame))}`)].join("\n");
+export const failureText = failure => [`${failure.name}: ${failure.message}`, ...failure.stack.map(frame => `    at ${frameText(frame)}`)].join("\n");
 
-export function printScriptError(failure, frames) {
-  console.error(`error: ${failureText(failure, frames)}`);
+export function printScriptError(failure) {
+  console.error(`error: ${failureText(failure)}`);
   return new FalseResult();
 }
 
@@ -48,14 +48,14 @@ export function printLog(entry, toStdout) {
   (toStdout ? console.log : console.error)(clockTime(entry.time), levelName(entry.level).toUpperCase(), message);
 }
 
-export function serviceText(id, state, frames) {
+export function serviceText(id, state) {
   let text = state?.enabled ? "enabled" : "disabled";
   text += `, ${state && state.status !== ServiceStatus.UNSPECIFIED ? enumText(ServiceStatusSchema, state.status, "SERVICE_STATUS_") : "stopped"}`;
   if (state?.since) {
     text += ` since ${clockTime(state.since)}`;
   }
   if (state?.error) {
-    text += `: ${failureText(state.error, frames(id))}`;
+    text += `: ${failureText(state.error)}`;
   }
   return text;
 }

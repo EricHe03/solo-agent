@@ -13,9 +13,8 @@ import { attach } from "./connection.mjs";
 import { Ignorer, relativePath } from "./ignore.mjs";
 import { columns, dateTime, enumText, printLog, printScriptError, serviceText } from "./output.mjs";
 import { buildProject, loadProject } from "./project.mjs";
-import { DeviceConnectionProblem, DeviceConnectionProblemSchema, DeviceConnectionStateSchema, LogLevel } from "./proto/common_pb.js";
+import { LogLevel } from "./proto/common_pb.js";
 import { ServiceStatus, ServiceStatusSchema } from "./proto/swiplets_pb.js";
-import { sources } from "./sourcemap.mjs";
 
 const uploadChunk = 256 << 10;
 const rebuildDelay = 300;
@@ -44,27 +43,6 @@ const session = (context, run) => attach(context).then(run);
 export function printVersion() {
   console.log("swipt", version, `node ${process.versions.node}`, `${process.platform}/${process.arch}`);
 }
-
-export const info = context =>
-  session(context, async client => {
-    const found = await client.system.getInfo({}, { signal: context.signal });
-    const connection = found.deviceConnection;
-    let state = enumText(DeviceConnectionStateSchema, connection?.state ?? 0, "DEVICE_CONNECTION_STATE_");
-    if (connection && connection.problem !== DeviceConnectionProblem.UNSPECIFIED) {
-      state += `, ${enumText(DeviceConnectionProblemSchema, connection.problem, "DEVICE_CONNECTION_PROBLEM_")}`;
-    }
-    if (connection?.message) {
-      state += `: ${connection.message}`;
-    }
-    console.log(
-      columns([
-        ["device:", found.deviceName],
-        ["udid:", found.udid],
-        ["server:", found.serverVersion],
-        ["connection:", state],
-      ]),
-    );
-  });
 
 export const logs = context =>
   session(context, async client => {
@@ -111,25 +89,27 @@ const serviceStatus = state => (state.status === ServiceStatus.UNSPECIFIED ? "st
 
 const notInstalled = id => new Error(`there is no swiplet ${JSON.stringify(id)}`);
 
-export const swiplets = context =>
+export const list = context =>
   session(context, async client => {
     const { swiplets } = await client.swiplets.listSwiplets({}, { signal: context.signal });
-    if (context.args.length === 0) {
-      const rows = swiplets.map(swiplet => {
-        let service = "";
-        let status = "";
-        if (swiplet.service) {
-          service = swiplet.service.enabled ? "enabled" : "disabled";
-          status = serviceStatus(swiplet.service);
-          if (swiplet.service.error) {
-            status += `: ${swiplet.service.error.name}: ${swiplet.service.error.message}`;
-          }
+    const rows = swiplets.map(swiplet => {
+      let service = "";
+      let status = "";
+      if (swiplet.service) {
+        service = swiplet.service.enabled ? "enabled" : "disabled";
+        status = serviceStatus(swiplet.service);
+        if (swiplet.service.error) {
+          status += `: ${swiplet.service.error.name}: ${swiplet.service.error.message}`;
         }
-        return [swiplet.id, swiplet.title, swiplet.version, swiplet.actions.map(action => action.name).join(","), service, status];
-      });
-      console.log(columns([["ID", "TITLE", "VERSION", "ACTIONS", "SERVICE", "STATUS"], ...rows]));
-      return;
-    }
+      }
+      return [swiplet.id, swiplet.title, swiplet.version, swiplet.actions.map(action => action.name).join(","), service, status];
+    });
+    console.log(columns([["ID", "TITLE", "VERSION", "ACTIONS", "SERVICE", "STATUS"], ...rows]));
+  });
+
+export const show = context =>
+  session(context, async client => {
+    const { swiplets } = await client.swiplets.listSwiplets({}, { signal: context.signal });
     const swiplet = swiplets.find(it => it.id === context.args[0]);
     if (!swiplet) {
       throw notInstalled(context.args[0]);
@@ -139,7 +119,7 @@ export const swiplets = context =>
       console.log("ui: yes");
     }
     if (swiplet.service) {
-      console.log(`service: ${serviceText(swiplet.id, swiplet.service, sources.frame.bind(sources))}`);
+      console.log(`service: ${serviceText(swiplet.id, swiplet.service)}`);
     }
     for (const action of swiplet.actions) {
       console.log();
@@ -173,14 +153,14 @@ export const call = context =>
       return;
     }
     if (result?.outcome.case === "error") {
-      throw printScriptError(result.outcome.value, sources.frame(id));
+      throw printScriptError(result.outcome.value);
     }
     throw new Error("the server sent no result");
   });
 
 async function watchServices(client, id, signal) {
   for await (const response of client.swiplets.watchServices({ swipletId: id }, { signal })) {
-    console.log(`${response.swipletId}: ${serviceText(response.swipletId, response.service, sources.frame.bind(sources))}`);
+    console.log(`${response.swipletId}: ${serviceText(response.swipletId, response.service)}`);
   }
 }
 
@@ -192,7 +172,7 @@ export const setService = enabled => context =>
       await watchServices(client, id, context.signal);
       return;
     }
-    console.log(`${id}: ${serviceText(id, response.service, sources.frame.bind(sources))}`);
+    console.log(`${id}: ${serviceText(id, response.service)}`);
   });
 
 export const serviceWatch = context => session(context, client => watchServices(client, context.args[0] ?? "", context.signal));
@@ -201,16 +181,6 @@ export const remove = context =>
   session(context, async client => {
     await client.swiplets.removeSwiplet({ swipletId: context.args[0] }, { signal: context.signal });
     console.log("removed", context.args[0]);
-  });
-
-export const filesList = context =>
-  session(context, async client => {
-    const [id, directory = ""] = context.args;
-    const { files } = await client.swiplets.listDataFiles({ swipletId: id, path: directory, recursive: context.options.recursive }, { signal: context.signal });
-    const rows = files.map(file => [file.directory ? "-" : String(file.size), dateTime(file.modified), file.directory ? `${file.path}/` : file.path]);
-    if (rows.length > 0) {
-      console.log(columns(rows));
-    }
   });
 
 const isLocal = name => {
@@ -265,97 +235,131 @@ class FileSink {
 
 const printSaved = (target, count) => console.error(`saved ${count} file(s) to ${target}`);
 
-export const filesRead = context =>
-  session(context, async client => {
-    const [id, given] = context.args;
-    const output = context.options.output ?? "";
-    const requested = path.posix.normalize(`/${given}`).replace(/^\/+|\/+$/g, "");
-    const printing = output === "" || output === "-";
-    const directory = () =>
-      new UsageError(
-        requested === ""
-          ? `${JSON.stringify(given)} names the data directory of ${id}; save it with --output DIRECTORY`
-          : `${JSON.stringify(requested)} is a directory in the data directory of ${id}; save it with --output DIRECTORY`,
-      );
-    const relativeTo = name => name.slice(requested.length).replace(/^\//, "");
-    let sink;
-    let single;
-    const contents = [];
-    try {
-      for await (const response of client.swiplets.readDataFile({ swipletId: id, path: given }, { signal: context.signal })) {
-        if (response.part.case === "file") {
-          const file = response.part.value;
-          if (file.path === requested && !file.directory) {
-            single = file;
-            continue;
-          }
-          if (!sink) {
-            if (printing) {
-              throw directory();
+const dataCommands = target => ({
+  list: context =>
+    session(context, async client => {
+      const {
+        id,
+        args: [directory = ""],
+      } = target(context.args);
+      const { files } = await client.swiplets.listDataFiles({ swipletId: id, path: directory, recursive: context.options.recursive }, { signal: context.signal });
+      const rows = files.map(file => [file.directory ? "-" : String(file.size), dateTime(file.modified), file.directory ? `${file.path}/` : file.path]);
+      if (rows.length > 0) {
+        console.log(columns(rows));
+      }
+    }),
+  read: context =>
+    session(context, async client => {
+      const {
+        id,
+        where,
+        args: [given],
+      } = target(context.args);
+      const output = context.options.output ?? "";
+      const requested = path.posix.normalize(`/${given}`).replace(/^\/+|\/+$/g, "");
+      const printing = output === "" || output === "-";
+      const directory = () =>
+        new UsageError(
+          requested === ""
+            ? `${JSON.stringify(given)} names ${where}; save it with --output DIRECTORY`
+            : `${JSON.stringify(requested)} is a directory in ${where}; save it with --output DIRECTORY`,
+        );
+      const relativeTo = name => name.slice(requested.length).replace(/^\//, "");
+      let sink;
+      let single;
+      const contents = [];
+      try {
+        for await (const response of client.swiplets.readDataFile({ swipletId: id, path: given }, { signal: context.signal })) {
+          if (response.part.case === "file") {
+            const file = response.part.value;
+            if (file.path === requested && !file.directory) {
+              single = file;
+              continue;
             }
-            sink = new FileSink(output);
+            if (!sink) {
+              if (printing) {
+                throw directory();
+              }
+              sink = new FileSink(output);
+            }
+            sink.begin(relativeTo(file.path), file.directory);
+          } else if (response.part.case === "chunk") {
+            const chunk = response.part.value;
+            if (single && chunk.path === single.path) {
+              contents.push(chunk.data);
+              continue;
+            }
+            if (!sink) {
+              throw new Error(`the server sent data for ${chunk.path} before announcing it`);
+            }
+            sink.write(relativeTo(chunk.path), chunk.offset, chunk.data);
           }
-          sink.begin(relativeTo(file.path), file.directory);
-        } else if (response.part.case === "chunk") {
-          const chunk = response.part.value;
-          if (single && chunk.path === single.path) {
-            contents.push(chunk.data);
-            continue;
-          }
-          if (!sink) {
-            throw new Error(`the server sent data for ${chunk.path} before announcing it`);
-          }
-          sink.write(relativeTo(chunk.path), chunk.offset, chunk.data);
         }
+      } finally {
+        sink?.close();
       }
-    } finally {
-      sink?.close();
-    }
-    if (sink) {
-      printSaved(sink.root, sink.saved);
-      return;
-    }
-    if (!single) {
+      if (sink) {
+        printSaved(sink.root, sink.saved);
+        return;
+      }
+      if (!single) {
+        if (printing) {
+          throw directory();
+        }
+        fs.mkdirSync(output, { recursive: true });
+        printSaved(output, 0);
+        return;
+      }
+      const data = Buffer.concat(contents);
       if (printing) {
-        throw directory();
+        process.stdout.write(data);
+        return;
       }
-      fs.mkdirSync(output, { recursive: true });
-      printSaved(output, 0);
-      return;
-    }
-    const data = Buffer.concat(contents);
-    if (printing) {
-      process.stdout.write(data);
-      return;
-    }
-    let target = output;
-    if (fs.existsSync(target) && fs.statSync(target).isDirectory()) {
-      target = path.join(target, path.posix.basename(single.path));
-    }
-    fs.writeFileSync(target, data);
-    printSaved(target, 1);
-  });
+      let destination = output;
+      if (fs.existsSync(destination) && fs.statSync(destination).isDirectory()) {
+        destination = path.join(destination, path.posix.basename(single.path));
+      }
+      fs.writeFileSync(destination, data);
+      printSaved(destination, 1);
+    }),
+  write: context =>
+    session(context, async client => {
+      const {
+        id,
+        args: [name, file],
+      } = target(context.args);
+      const data = file === undefined || file === "-" ? readStdin() : fs.readFileSync(file);
+      await client.swiplets.writeDataFile(
+        (async function* () {
+          yield { part: { case: "header", value: { swipletId: id, path: name } } };
+          for (let offset = 0; offset < data.length; offset += uploadChunk) {
+            yield { part: { case: "data", value: data.subarray(offset, offset + uploadChunk) } };
+          }
+        })(),
+        { signal: context.signal },
+      );
+    }),
+  remove: context =>
+    session(context, async client => {
+      const {
+        id,
+        args: [name],
+      } = target(context.args);
+      await client.swiplets.removeDataFile({ swipletId: id, path: name, recursive: context.options.recursive }, { signal: context.signal });
+    }),
+  clear: context =>
+    session(context, async client => {
+      const { id } = target(context.args);
+      const { files } = await client.swiplets.listDataFiles({ swipletId: id }, { signal: context.signal });
+      for (const file of files) {
+        await client.swiplets.removeDataFile({ swipletId: id, path: file.path, recursive: true }, { signal: context.signal });
+      }
+    }),
+});
 
-export const filesWrite = context =>
-  session(context, async client => {
-    const [id, name, file] = context.args;
-    const data = file === undefined || file === "-" ? readStdin() : fs.readFileSync(file);
-    await client.swiplets.writeDataFile(
-      (async function* () {
-        yield { part: { case: "header", value: { swipletId: id, path: name } } };
-        for (let offset = 0; offset < data.length; offset += uploadChunk) {
-          yield { part: { case: "data", value: data.subarray(offset, offset + uploadChunk) } };
-        }
-      })(),
-      { signal: context.signal },
-    );
-  });
+export const swipletData = dataCommands(([id, ...args]) => ({ id, where: `the data directory of ${id}`, args }));
 
-export const filesRemove = context =>
-  session(context, async client => {
-    const [id, name] = context.args;
-    await client.swiplets.removeDataFile({ swipletId: id, path: name, recursive: context.options.recursive }, { signal: context.signal });
-  });
+export const replData = dataCommands(args => ({ id: "@repl", where: "the data directory of the REPL", args }));
 
 async function deploy(client, archive, signal) {
   const data = fs.readFileSync(archive);
@@ -371,17 +375,16 @@ async function deploy(client, archive, signal) {
 
 const printDeployed = (deployed, toStdout) => (toStdout ? console.log : console.error)(deployed.replaced ? "replaced" : "installed", deployed.swiplet.id, deployed.swiplet.version);
 
-export async function deployCommand(context) {
-  const [given] = context.args;
-  let archive;
-  if (given !== undefined && (given.endsWith(".swiplet") || given.endsWith(".zip"))) {
-    if (!fs.existsSync(given)) {
-      throw new Error(`there is no archive at ${given}`);
-    }
-    archive = given;
-  } else {
-    ({ archive } = await buildProject(path.resolve(given ?? ".")));
+export async function install(context) {
+  const [archive] = context.args;
+  if (!fs.existsSync(archive)) {
+    throw new Error(`there is no archive at ${archive}`);
   }
+  await session(context, async client => printDeployed(await deploy(client, archive, context.signal), true));
+}
+
+export async function deployProject(context) {
+  const { archive } = await buildProject(path.resolve(context.args[0] ?? "."));
   await session(context, async client => printDeployed(await deploy(client, archive, context.signal), true));
 }
 
@@ -407,7 +410,6 @@ export async function develop(context) {
   const { signal, printError } = context;
   const project = loadProject(path.resolve(context.args[0] ?? "."));
   const root = project.root;
-  sources.root = root;
   const client = await attach(context);
   const controller = new AbortController();
   const inner = AbortSignal.any([signal, controller.signal]);
@@ -418,7 +420,7 @@ export async function develop(context) {
   follow(inner, fatalReject, async () => {
     for await (const response of client.swiplets.watchServices({}, { signal: inner })) {
       if (response.swipletId === project.config.id && response.service?.status === ServiceStatus.FAILED) {
-        console.error(`${response.swipletId}: ${serviceText(response.swipletId, response.service, sources.frame.bind(sources))}`);
+        console.error(`${response.swipletId}: ${serviceText(response.swipletId, response.service)}`);
       }
     }
   });
@@ -441,7 +443,6 @@ export async function develop(context) {
       }
       return;
     }
-    sources.forget(built.id);
     if (built.digest === deployed) {
       console.error(`built in ${elapsed(started)}; it came out as deployed, so nothing was deployed`);
       return;
@@ -506,20 +507,27 @@ export async function develop(context) {
   }
 }
 
-function readScript(args, options) {
-  if (args.length === 1 && options.file !== undefined) {
-    throw new UsageError("give CODE or --file, not both");
+const isFile = name => {
+  try {
+    return fs.statSync(name).isFile();
+  } catch {
+    return false;
   }
-  if (options.file !== undefined) {
-    return { code: fs.readFileSync(options.file, "utf8"), run: true };
+};
+
+export const isProgram = first => first === "-" || isFile(first);
+
+function readScript([first, ...args]) {
+  if (first === undefined || first === "-") {
+    return { code: readStdin().toString(), args, program: true, file: "input.js" };
   }
-  if (args.length === 1 && args[0] !== "-") {
-    return { code: args[0], run: true };
+  if (isFile(first)) {
+    return { code: fs.readFileSync(first, "utf8"), args, program: true, file: first };
   }
-  if (args.length === 0 && options.reset) {
-    return { code: "", run: false };
+  if (args.length > 0) {
+    throw new UsageError(`${JSON.stringify(first)} is not a file, and CODE takes no ARG`);
   }
-  return { code: readStdin().toString(), run: true };
+  return { code: first, args, program: false, file: "input.js" };
 }
 
 class ImageSink {
@@ -535,7 +543,7 @@ class ImageSink {
         this.directory = path.resolve(this.output);
         fs.mkdirSync(this.directory, { recursive: true });
       } else {
-        this.directory = fs.mkdtempSync(path.join(os.tmpdir(), "swipt-js-"));
+        this.directory = fs.mkdtempSync(path.join(os.tmpdir(), "swipt-repl-"));
       }
     }
     const name = path.join(this.directory, `image-${crypto.randomBytes(5).toString("hex")}.png`);
@@ -544,29 +552,20 @@ class ImageSink {
   }
 }
 
-export async function js(context) {
+export const api = context =>
+  session(context, async client => {
+    process.stdout.write((await client.repl.getDeclarations({}, { signal: context.signal })).typescript);
+  });
+
+export const reset = context => session(context, client => client.repl.reset({}, { signal: context.signal }));
+
+export async function run(context) {
   const { args, options, signal } = context;
-  if (options.api) {
-    if (args.length > 0 || options.file !== undefined || options.reset) {
-      throw new UsageError("--api takes no script and no --reset");
-    }
-    await session(context, async client => {
-      process.stdout.write((await client.repl.getDeclarations({}, { signal: context.signal })).typescript);
-    });
-    return;
-  }
-  const { code, run } = readScript(args, options);
+  const script = readScript(args);
   await session(context, async client => {
-    if (options.reset) {
-      await client.repl.reset({}, { signal });
-    }
-    if (!run) {
-      return;
-    }
-    const script = options.file ?? "input.js";
     const images = new ImageSink(options.output);
     let failure;
-    for await (const response of client.repl.execute({ code }, { signal })) {
+    for await (const response of client.repl.execute({ code: script.code, args: script.args, program: script.program }, { signal })) {
       switch (response.part.case) {
         case "console": {
           const output = response.part.value;
@@ -585,7 +584,7 @@ export async function js(context) {
       }
     }
     if (failure) {
-      throw printScriptError(failure, frame => (frame.file === "input.js" ? { ...frame, file: script } : frame));
+      throw printScriptError({ ...failure, stack: failure.stack.map(frame => (frame.file === "input.js" ? { ...frame, file: script.file } : frame)) });
     }
   });
 }

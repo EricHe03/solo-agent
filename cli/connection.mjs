@@ -7,7 +7,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 import Bonjour from "bonjour-service";
 
 import { Code, RpcError, UsageError, open } from "./client.mjs";
-import { columns } from "./output.mjs";
+import { columns, enumText } from "./output.mjs";
+import { DeviceConnectionProblem, DeviceConnectionProblemSchema, DeviceConnectionStateSchema } from "./proto/common_pb.js";
 
 const browseLimit = 1500;
 const browseRequery = 300;
@@ -128,7 +129,7 @@ async function discover(signal, stored, until) {
   return found;
 }
 
-const requiresToken = found => `${found.name} requires a token: swipt connect ${withToken(found.url)}`;
+const requiresToken = found => `${found.name} requires a token: swipt device add ${withToken(found.url)}`;
 
 export async function attach(context) {
   const given = context.options.device ?? process.env.SWIPT_DEVICE;
@@ -142,7 +143,7 @@ export async function attach(context) {
     if (known === undefined) {
       const found = (await discover(context.signal, stored, services => services.some(it => sameName(it.name, name)))).find(it => sameName(it.name, name));
       if (!found) {
-        throw new Error(`there is no device ${name}; "swipt devices" lists them`);
+        throw new Error(`there is no device ${name}; "swipt device list" lists them`);
       }
       if (found.authenticates) {
         throw new Error(requiresToken(found));
@@ -161,7 +162,7 @@ export async function attach(context) {
       if (locked.length > 0) {
         throw new Error(locked.map(requiresToken).join("\n"));
       }
-      throw new Error('there is no device; turn on Swipt › Developer › Local Network, or connect one with "swipt connect URL"');
+      throw new Error('there is no device; turn on Swipt › Developer › Local Network, or connect one with "swipt device add URL"');
     }
     if (names.length > 1) {
       throw new Error(`there is more than one device: ${names.join(", ")}; choose one with -d or SWIPT_DEVICE`);
@@ -172,35 +173,42 @@ export async function attach(context) {
   return open(device);
 }
 
-async function reachable(device, signal) {
+function connectionText(connection) {
+  let text = enumText(DeviceConnectionStateSchema, connection?.state ?? 0, "DEVICE_CONNECTION_STATE_");
+  if (connection && connection.problem !== DeviceConnectionProblem.UNSPECIFIED) {
+    text += `, ${enumText(DeviceConnectionProblemSchema, connection.problem, "DEVICE_CONNECTION_PROBLEM_")}`;
+  }
+  if (connection?.message) {
+    text += `: ${connection.message}`;
+  }
+  return text;
+}
+
+async function probe(url, signal) {
   try {
-    await open(device).system.getInfo({}, { signal });
-    return true;
+    const info = await open(parseURL(url)).system.getInfo({}, { signal });
+    return [`${info.appVersion} (${info.appBuild})`, connectionText(info.deviceConnection)];
   } catch (error) {
-    return error instanceof RpcError && error.code === Code.Unauthenticated;
+    return [error instanceof RpcError && error.code === Code.Unauthenticated ? "requires a token" : "offline"];
   }
 }
 
-export async function devices({ signal }) {
+export async function list({ signal }) {
   const stored = load();
   const deadline = AbortSignal.any([signal, AbortSignal.timeout(browseLimit)]);
-  const probes = new Map(Object.entries(stored).map(([name, url]) => [name, reachable(parseURL(url), deadline)]));
-  const found = await discover(signal, stored);
+  const probes = new Map(Object.values(stored).map(url => [url, probe(url, deadline)]));
+  await discover(signal, stored);
   const names = Object.keys(stored).sort((a, b) => a.localeCompare(b));
   if (names.length === 0) {
-    console.error('no device publishes Swipt on the local network; turn on Swipt › Developer › Local Network, or connect one with "swipt connect URL"');
+    console.error('no device publishes Swipt on the local network; turn on Swipt › Developer › Local Network, or connect one with "swipt device add URL"');
     return;
   }
-  const rows = [];
-  for (const name of names) {
-    const { url } = parseURL(stored[name]);
-    const online = found.some(it => sameName(it.name, name) && it.url === url) || (probes.has(name) && (await probes.get(name)));
-    rows.push([name, url, online ? "" : "offline"]);
-  }
+  const late = AbortSignal.any([signal, AbortSignal.timeout(browseLimit)]);
+  const rows = await Promise.all(names.map(async name => [name, parseURL(stored[name]).url, ...(await (probes.get(stored[name]) ?? probe(stored[name], late)))]));
   console.log(columns(rows));
 }
 
-export async function connect(context) {
+export async function add(context) {
   const device = parseURL(context.args[0]);
   context.target.url = device.url;
   const info = await open(device).system.getInfo({}, { signal: context.signal });
@@ -212,10 +220,10 @@ export async function connect(context) {
   }
   stored[name] = context.args[0];
   save(stored);
-  console.log("connected", name);
+  console.log("added", name);
 }
 
-export function disconnect({ args }) {
+export function remove({ args }) {
   const stored = load();
   const name = storedName(stored, label(args[0]));
   if (name === undefined) {
@@ -223,5 +231,5 @@ export function disconnect({ args }) {
   }
   delete stored[name];
   save(stored);
-  console.log("disconnected", name);
+  console.log("removed", name);
 }
