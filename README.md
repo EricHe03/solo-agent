@@ -4,8 +4,7 @@ The universal iOS automation platform.
 
 ## Requirements
 
-* Requires iOS 27; no jailbreak or TrollStore required (though sideloading is obviously necessary)
-* Based on the iOS developer debugging protocol (requires [LocalDevVPN](https://apps.apple.com/app/id6755608044), or [sing-box](https://sing-box.sagernet.org) with `loopback_address`; For reference, an example of a usable configuration: [LocalDevVPN.json](examples/sing-box-loopback-example/LocalDevVPN.json))
+* iOS 27; no jailbreak or TrollStore required (though sideloading is obviously necessary)
 
 ## Architecture
 

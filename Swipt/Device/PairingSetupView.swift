@@ -4,6 +4,8 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct PairingSetupView: View {
+    var next: (() -> Void)? = nil
+
     @Environment(\.dismiss) private var dismiss
     @State private var isPickingFile = false
     @State private var alert: AlertState?
@@ -13,48 +15,47 @@ struct PairingSetupView: View {
 
     var body: some View {
         WithPerceptionTracking {
-            NavigationStackCompat {
-                SheetForm(Text("Pair with This Device")) {
-                    Section {
-                        if case .code(let pin) = session.state {
-                            PairingCodeView(pin: pin)
-                        } else {
-                            Button(action: pairInSettings) {
-                                HStack {
-                                    Text("Pair in Settings")
-                                    Spacer()
-                                    if session.isInProgress {
-                                        ProgressView()
-                                    }
-                                }
-                            }
-                            .disabled(session.isInProgress)
-                        }
-                    } footer: {
-                        Text("1. Go to Settings › Privacy & Security › Developer Mode.\n2. Tap “Pair with \(session.hostName)”.\n3. Enter the pairing code shown by Swipt.")
-                    }
-                    Section {
-                        Button("Import Pairing File") { isPickingFile = true }
-                    }
-                    .disabled(session.isInProgress)
+            SetupPage(
+                "link", Text("Pair with This Device"),
+                description: Text("Swipt needs to pair with this device to connect to its developer services.")
+            ) {
+                PairingGuideView(hostName: session.hostName)
+                VStack(alignment: .leading, spacing: 12) {
+                    SetupStepLine(number: 1, text: Text("Go to Settings › Privacy & Security › Developer Mode."))
+                    SetupStepLine(number: 2, text: Text("Tap “\("Pair with \(session.hostName)")”."))
+                    SetupStepLine(number: 3, text: Text("Enter the pairing code shown here."))
                 }
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel", role: .cancel) {
-                            session.cancel()
-                            dismiss()
-                        }
-                    }
+                switch session.state {
+                case .code(let pin):
+                    PairingCodeView(pin: pin)
+                case .waiting:
+                    InlineProgress("Waiting for Settings")
+                case .idle, .failed:
+                    EmptyView()
                 }
-                .fileImporter(isPresented: $isPickingFile, allowedContentTypes: [.item]) { result in
-                    if case .success(let url) = result {
-                        importFile(url)
-                    }
+            } actions: {
+                SetupPrimaryButton(title: Text("Pair in Settings"), action: pairInSettings)
+                if session.isInProgress {
+                    SetupSecondaryButton(title: Text("Cancel")) { session.cancel() }
+                } else {
+                    SetupSecondaryButton(title: Text("Import Pairing File…")) { isPickingFile = true }
                 }
-                .alert(problemAlert)
             }
-            .interactiveDismissDisabled(session.isInProgress)
-            .onChangeCompat(of: pairing.revision) { dismiss() }
+            .navigationBarBackButtonHidden(session.isInProgress)
+            .fileImporter(isPresented: $isPickingFile, allowedContentTypes: [.item]) { result in
+                if case .success(let url) = result {
+                    importFile(url)
+                }
+            }
+            .alert(problemAlert)
+            .onChangeCompat(of: pairing.revision) {
+                guard pairing.isPaired else { return }
+                if let next {
+                    next()
+                } else {
+                    dismiss()
+                }
+            }
         }
     }
 
@@ -106,7 +107,6 @@ private struct PairingCodeView: View {
             .lineLimit(1)
             .textSelection(.enabled)
             .accessibilityLabel(Text(verbatim: pin.map(String.init).joined(separator: " ")))
-            .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
     }
 }

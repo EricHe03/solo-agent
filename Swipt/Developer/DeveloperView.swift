@@ -7,7 +7,7 @@ import UIKit
 struct DeveloperView: View {
     var body: some View {
         Form {
-            Section("Publish") {
+            Section {
                 NavigationLink {
                     LocalNetworkView()
                 } label: {
@@ -20,6 +20,8 @@ struct DeveloperView: View {
                         icon: "cloud", title: Text(verbatim: "Cloudflare"),
                         description: Text("Securely provides the Swipt API and MCP to the internet through Cloudflare."))
                 }
+            } header: {
+                Text(verbatim: "API")
             }
         }
         .navigationTitle("Developer")

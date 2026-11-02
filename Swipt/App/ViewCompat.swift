@@ -267,6 +267,15 @@ extension View {
     }
 
     @ViewBuilder
+    func prominentButtonStyleCompat() -> some View {
+        if #available(iOS 26, macOS 26, *) {
+            buttonStyle(.glassProminent)
+        } else {
+            buttonStyle(.borderedProminent)
+        }
+    }
+
+    @ViewBuilder
     func formRowButtonStyleCompat() -> some View {
         #if os(macOS)
         buttonStyle(FormRowButtonStyle())

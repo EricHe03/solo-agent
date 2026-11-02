@@ -58,6 +58,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Resources/DeveloperDiskImage,
 			);
 			target = 5C0000000000000000000502 /* Swipt macOS */;
 		};
@@ -69,6 +70,9 @@
 			exceptions = (
 				5C0000000000000000000302 /* Exceptions for "Swipt" folder in "Swipt" target */,
 				5C0000000000000000000303 /* Exceptions for "Swipt" folder in "Swipt macOS" target */,
+			);
+			explicitFolders = (
+				Resources/DeveloperDiskImage,
 			);
 			path = Swipt;
 			sourceTree = "<group>";

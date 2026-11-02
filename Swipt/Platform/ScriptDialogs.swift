@@ -408,7 +408,7 @@ private struct ValueDialog: View {
             numberInput(integer: false, min: min, max: max)
         case .date:
             input(separated: true) {
-                DatePicker("", selection: $date, displayedComponents: .date)
+                DatePicker(selection: $date, displayedComponents: .date) { EmptyView() }
                     .datePickerStyle(.graphical)
                     .labelsHidden()
             } done: {
@@ -416,7 +416,7 @@ private struct ValueDialog: View {
             }
         case .time:
             input(separated: true) {
-                DatePicker("", selection: $date, displayedComponents: .hourAndMinute)
+                DatePicker(selection: $date, displayedComponents: .hourAndMinute) { EmptyView() }
                     .datePickerStyle(.wheel)
                     .labelsHidden()
                     .frame(maxWidth: .infinity)
@@ -425,7 +425,7 @@ private struct ValueDialog: View {
             }
         case .dateTime:
             input(separated: true) {
-                DatePicker("", selection: $date, displayedComponents: [.date, .hourAndMinute])
+                DatePicker(selection: $date, displayedComponents: [.date, .hourAndMinute]) { EmptyView() }
                     .datePickerStyle(.graphical)
                     .labelsHidden()
             } done: {

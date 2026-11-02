@@ -49,6 +49,13 @@ final class PairingStore {
         return PairedDevice(name: info.deviceName, canMatchService: info.canMatchService)
     }
 
+    func clear() {
+        try? FileManager.default.removeItem(at: Self.url)
+        record = nil
+        device = nil
+        revision += 1
+    }
+
     func save(_ record: Data) throws {
         let device = try Self.check(record)
         var url = Self.url

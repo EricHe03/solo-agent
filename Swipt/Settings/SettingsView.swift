@@ -26,11 +26,6 @@ struct SettingsView: View {
                     } label: {
                         Label("Automatic Unlock", systemImage: "lock.open")
                     }
-                    NavigationLink {
-                        DeviceView()
-                    } label: {
-                        Label("Device", systemImage: DeviceView.systemImage)
-                    }
                 }
                 #endif
             }

@@ -114,18 +114,6 @@ nonisolated final class CloudflareTunnelEvents: NSObject, LibSwiptCloudflareTunn
     }
 }
 
-nonisolated final class DiskImageImportEvents: NSObject, LibSwiptDiskImageImportHandlerProtocol, @unchecked Sendable {
-    private let deliver: @Sendable (DiskImageImportProgress) -> Void
-
-    init(_ deliver: @escaping @Sendable (DiskImageImportProgress) -> Void) {
-        self.deliver = deliver
-    }
-
-    func onProgress(_ received: Int64, total: Int64) {
-        deliver(DiskImageImportProgress(received: received, total: total > 0 ? total : nil))
-    }
-}
-
 nonisolated final class ActionEvents: NSObject, LibSwiptActionObserverProtocol, @unchecked Sendable {
     private let deliverRequest: @Sendable (String) -> Void
 

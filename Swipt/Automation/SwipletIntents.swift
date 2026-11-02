@@ -29,7 +29,7 @@ struct SwipletActionEntity: AppEntity {
     var id: String { "\(swiplet)/\(action)" }
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(title)", subtitle: "\(swipletTitle)")
+        DisplayRepresentation(title: .verbatim(title), subtitle: .verbatim(swipletTitle))
     }
 }
 
@@ -98,7 +98,7 @@ struct SwipletServiceEntity: AppEntity {
     let title: String
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(title)")
+        DisplayRepresentation(title: .verbatim(title))
     }
 }
 

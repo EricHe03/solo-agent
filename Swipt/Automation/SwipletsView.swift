@@ -12,8 +12,18 @@ struct SwipletsView: View {
 
     var body: some View {
         WithPerceptionTracking {
-            Form {
-                swipletsSection
+            Group {
+                if swiplets.ids.isEmpty {
+                    ContentUnavailableViewCompat {
+                        Label("No Swiplets", systemImage: "wand.and.stars")
+                    } description: {
+                        Text("Tap \(Image(systemName: "plus")) to add a swiplet.")
+                    }
+                } else {
+                    Form {
+                        swipletsSection
+                    }
+                }
             }
             .navigationTitle("Swiplets")
             .navigationDestination(item: $swipletInfo) { id in
@@ -64,17 +74,12 @@ struct SwipletsView: View {
 
     private var swipletsSection: some View {
         Section {
-            if swiplets.ids.isEmpty {
-                Text("No Swiplets")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(swiplets.ids, id: \.self, content: swipletRow)
-                    .onMove { source, destination in
-                        var ids = swiplets.ids
-                        ids.move(fromOffsets: source, toOffset: destination)
-                        swiplets.reorder(ids)
-                    }
-            }
+            ForEach(swiplets.ids, id: \.self, content: swipletRow)
+                .onMove { source, destination in
+                    var ids = swiplets.ids
+                    ids.move(fromOffsets: source, toOffset: destination)
+                    swiplets.reorder(ids)
+                }
         }
     }
 

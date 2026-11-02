@@ -3,7 +3,7 @@ import AppIntents
 @available(iOS 27, *)
 extension AppIntent {
     func present(_ request: DialogRequest, value parameter: IntentParameter<String?>) async throws -> DialogAnswer {
-        let dialog = request.prompt.map { IntentDialog("\($0)") }
+        let dialog = request.prompt.map { IntentDialog(.verbatim($0)) }
         switch request {
         case .choice(_, let options):
             let chosen = try await requestChoice(between: DialogRequest.Choice.intentOptions(options), dialog: dialog)
@@ -13,9 +13,9 @@ extension AppIntent {
                 switch action {
                 case .named(let name): name.intentName
                 case .custom(let accept, let deny, let destructive):
-                    .custom(acceptLabel: "\(accept)", acceptAlternatives: [], denyLabel: "\(deny)", denyAlternatives: [], destructive: destructive)
+                    .custom(acceptLabel: .verbatim(accept), acceptAlternatives: [], denyLabel: .verbatim(deny), denyAlternatives: [], destructive: destructive)
                 }
-            try await requestConfirmation(actionName: actionName, dialog: IntentDialog("\(prompt)"))
+            try await requestConfirmation(actionName: actionName, dialog: IntentDialog(.verbatim(prompt)))
             return .none
         // Shortcuts asks only for parameters its editor shows
         // (-[WFSequentialParameterInputProvider askForParameterIfAvailable], iOS 27 24A446).
@@ -32,7 +32,7 @@ extension AppIntent {
             if alwaysConfirm {
                 let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? ""
                 let text = prompt ?? String(localized: "Continue in \(name)?")
-                try await requestConfirmation(actionName: .open, dialog: IntentDialog("\(text)"))
+                try await requestConfirmation(actionName: .open, dialog: IntentDialog(.verbatim(text)))
             }
             return .none
         }
@@ -48,7 +48,7 @@ extension DialogRequest.Choice {
             case .destructive: .destructive
             case .cancel: .cancel
             }
-        return IntentChoiceOption(title: "\(title)", style: style)
+        return IntentChoiceOption(title: .verbatim(title), style: style)
     }
 
     nonisolated static func intentOptions(_ choices: [Self]) -> [IntentChoiceOption] {
@@ -94,5 +94,13 @@ extension DialogRequest.ActionName {
         case .turnOn: .turnOn
         case .view: .view
         }
+    }
+}
+
+extension LocalizedStringResource {
+    /// Shows a runtime string as is: nothing is extracted into a String Catalog,
+    /// and the lookup goes to a table that doesn't exist so no key can match.
+    nonisolated static func verbatim(_ string: String) -> LocalizedStringResource {
+        LocalizedStringResource(String.LocalizationValue(string), table: "Verbatim")
     }
 }

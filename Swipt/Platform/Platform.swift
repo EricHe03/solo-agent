@@ -74,7 +74,7 @@ final class Platform {
         options.languages = Locale.preferredLanguages.joined(separator: "\n")
         options.appBundleID = Bundle.main.bundleIdentifier ?? ""
         let deviceOptions = LibSwiptDeviceOptions()
-        deviceOptions.diskImageDirectory = (try? DiskImageStore.directory.get())?.path ?? ""
+        deviceOptions.diskImageDirectory = Bundle.main.url(forResource: "DeveloperDiskImage", withExtension: nil)?.path ?? ""
         let isAppActive = LockedState(initialState: false)
         self.isAppActive = isAppActive
         let events = PlatformEvents(

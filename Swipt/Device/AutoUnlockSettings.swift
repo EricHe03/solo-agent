@@ -1,5 +1,6 @@
 import Foundation
 import Perception
+import SwiftUI
 
 @Perceptible
 final class AutoUnlockSettings {
@@ -9,6 +10,7 @@ final class AutoUnlockSettings {
         static let isEnabled = "serverAutoUnlocks"
         static let passcodeType = "serverAutoUnlockPasscodeType"
         static let passcode = "serverAutoUnlockPasscode"
+        static let isSetUp = "autoUnlockSetUp"
     }
 
     var isEnabled: Bool {
@@ -23,23 +25,46 @@ final class AutoUnlockSettings {
         didSet { store.set(passcode, for: Key.passcode) }
     }
 
+    var isSetUp: Bool {
+        didSet { store.set(isSetUp, for: Key.isSetUp) }
+    }
+
     private let store = PreferenceStore.shared
 
     init() {
         isEnabled = store.value(Bool.self, for: Key.isEnabled) ?? false
         passcodeType = store.value(PasscodeType.self, for: Key.passcodeType) ?? .pin
         passcode = store.value(String.self, for: Key.passcode) ?? ""
+        isSetUp = store.value(Bool.self, for: Key.isSetUp) ?? false
     }
+
+    var isDecided: Bool { isSetUp || isEnabled }
 
     var problem: String? {
         isEnabled ? passcodeType.problem(for: passcode) : nil
     }
 }
 
-enum PasscodeType: Int32, Codable {
+enum PasscodeType: Int32, Codable, CaseIterable {
     case pin = 0
     case numeric = 1
     case alphanumeric = 2
+
+    var title: Text {
+        switch self {
+        case .pin: Text("Numeric Passcode")
+        case .numeric: Text("Custom Numeric Passcode")
+        case .alphanumeric: Text("Custom Alphanumeric Passcode")
+        }
+    }
+
+    var subtitle: Text {
+        switch self {
+        case .pin: Text("4 or 6 digits on a keypad")
+        case .numeric: Text("Any length on a keypad")
+        case .alphanumeric: Text("Letters and numbers on a keyboard")
+        }
+    }
 
     func problem(for passcode: String) -> String? {
         guard !passcode.isEmpty else { return String(localized: "Enter this device’s lock screen passcode.") }

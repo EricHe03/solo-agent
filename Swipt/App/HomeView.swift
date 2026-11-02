@@ -45,8 +45,8 @@ struct HomeView: View {
     private var layout: some View {
         #if os(iOS)
         WithPerceptionTracking {
-            if Platform.isSupported, Platform.shared.device.tunnelFound == false {
-                LoopbackRequiredView()
+            if Platform.isSupported, SetupView.isNeeded {
+                SetupView()
             } else if #available(iOS 18, *) {
                 TabView(selection: $selection) {
                     Tab("Swiplets", systemImage: "wand.and.stars", value: HomeTab.swiplets) {

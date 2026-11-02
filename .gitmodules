@@ -1,0 +1,3 @@
+[submodule "DeveloperDiskImage"]
+	path = Swipt/Resources/DeveloperDiskImage
+	url = https://github.com/swipt-automation/DeveloperDiskImage.git

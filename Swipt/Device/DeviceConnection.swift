@@ -49,13 +49,10 @@ final class DeviceConnection {
 
     var unavailableReason: String? {
         if !pairing.isPaired {
-            return String(localized: "Pair and import the Developer Disk Image in Settings › Device first.")
+            return String(localized: "Pair this device in Swipt first.")
         }
         if autoUnlock.problem != nil {
             return String(localized: "Check Settings › Automatic Unlock.")
-        }
-        if DiskImageStore.shared.isImporting {
-            return String(localized: "The Developer Disk Image is still importing.")
         }
         return nil
     }
@@ -133,7 +130,11 @@ final class DeviceConnection {
         let record = withPerceptionTracking {
             pairing.record
         } onChange: { [weak self] in
-            DispatchQueue.main.async { self?.observePairing() }
+            DispatchQueue.main.async {
+                self?.remotePairing.refresh()
+                self?.clearFailure()
+                self?.observePairing()
+            }
         }
         configure { try $0.setPairingRecord(record ?? Data()) }
     }
@@ -185,6 +186,9 @@ final class DeviceConnection {
             phase = .running
         case LibSwiptDeviceFailed:
             phase = .failed
+            if change.errorCode == LibSwiptDeviceErrorPairingRejected {
+                pairing.clear()
+            }
         default:
             phase = change.errorCode == LibSwiptDeviceErrorNone ? .idle : .failed
         }
