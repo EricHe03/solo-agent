@@ -72,6 +72,8 @@ type Host struct {
 
 	timeline timeline
 
+	databases databaseStore
+
 	appVersions sync.Map
 }
 
@@ -92,7 +94,7 @@ func New(options Options) *Host {
 	h := &Host{
 		options: options, logFactory: logFactory, logger: logFactory.Logger(),
 		runners: make(map[string]*runner), watchers: make(map[*serviceWatcher]struct{}),
-		timeline: timeline{watches: make(map[*TimelineWatch]struct{})},
+		timeline: timeline{watches: make(map[*TimelineWatch]struct{})}, databases: newDatabaseStore(),
 	}
 	h.ctx, h.cancel = context.WithCancelCause(context.Background())
 	h.lease = &foregroundLease{host: h}
@@ -328,6 +330,7 @@ func (h *Host) ClearData(id string) error {
 	if previous != nil {
 		<-previous
 	}
+	h.CloseDatabases(nil, id)
 	data := filepath.Join(swiplet.Directory, DataFolder)
 	err = E.Errors(os.RemoveAll(data), os.Mkdir(data, 0o755))
 	_, markerErr := os.Stat(filepath.Join(swiplet.Directory, serviceFile))
@@ -372,6 +375,7 @@ func (h *Host) remove(id string) error {
 		r.end()
 	}
 	h.releaseLocation(id)
+	h.CloseDatabases(nil, id)
 	if err = os.RemoveAll(swiplet.Directory); err != nil {
 		return err
 	}

@@ -493,6 +493,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lresolv",
+					"-lsqlite3",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
 				PRODUCT_MODULE_NAME = Swipt;
@@ -540,6 +541,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lresolv",
+					"-lsqlite3",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
 				PRODUCT_MODULE_NAME = Swipt;
@@ -591,6 +593,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lresolv",
+					"-lsqlite3",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
 				PRODUCT_MODULE_NAME = Swipt;
@@ -640,6 +643,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lresolv",
+					"-lsqlite3",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
 				PRODUCT_MODULE_NAME = Swipt;

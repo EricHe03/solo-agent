@@ -1,5 +1,6 @@
 import Foundation
 import LibSwipt
+internal import SwiptHost
 import Perception
 import SwiftUI
 import UIKit
@@ -91,6 +92,15 @@ final class Platform {
         let deviceEvents = DeviceEvents()
         let core = LibSwiptNewPlatform(options, events, deviceOptions, deviceEvents, Graphics.shared)!
         self.core = core
+        let box = UncheckedSendable(value: core)
+        SwiptHostModule.database = { swiplet, request in
+            var failure: NSError?
+            let answer = box.value.swipletDatabase(swiplet, request: request, error: &failure)
+            if let failure {
+                throw failure
+            }
+            return answer
+        }
         Graphics.shared.attach(core.device()!)
         device = DeviceConnection(core.device()!, events: deviceEvents)
         apiAdvertiser.onFailure = { [weak self] errorCode in
@@ -276,6 +286,8 @@ final class Platform {
             handleDialog(id, request: request)
         case .service(let swiplet, let service):
             serviceChanged(swiplet, to: service)
+        case .databaseChanged(let swiplet, let database, let path, let table, let rowID):
+            SwiptHostModule.send("sqlite", ["swiplet": swiplet, "databaseName": database, "databaseFilePath": path, "tableName": table, "rowId": rowID])
         case .swipletsChanged:
             SwipletStore.shared.reload()
         case .apiFailed(let message):

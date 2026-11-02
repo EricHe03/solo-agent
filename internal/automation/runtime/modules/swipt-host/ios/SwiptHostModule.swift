@@ -47,6 +47,7 @@ public protocol SwiptHostDelegate: AnyObject {
 
 public final class SwiptHostModule: Module {
   @MainActor public static weak var delegate: SwiptHostDelegate?
+  nonisolated(unsafe) public static var database: (@Sendable (_ swiplet: String, _ request: String) throws -> String)?
 
   private static let lock = NSLock()
   private static let modules = NSHashTable<SwiptHostModule>.weakObjects()
@@ -71,7 +72,7 @@ public final class SwiptHostModule: Module {
   public func definition() -> ModuleDefinition {
     Name("SwiptHost")
 
-    Events("service")
+    Events("service", "sqlite")
 
     OnCreate {
       Self.lock.lock()
@@ -103,6 +104,13 @@ public final class SwiptHostModule: Module {
       Task { @MainActor in
         Self.delegate?.exit(swiplet: swiplet)
       }
+    }
+
+    Function("sqlite") { (swiplet: String, request: String) throws -> String in
+      guard let database = Self.database else {
+        throw Exception(name: "SwiptHostUnavailable", description: "Swipt isn't ready for swiplets")
+      }
+      return try database(swiplet, request)
     }
 
     Function("preferredLocalizations") { (localizations: [String]) -> [String] in

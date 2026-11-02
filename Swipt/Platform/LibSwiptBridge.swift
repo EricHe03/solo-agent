@@ -27,6 +27,7 @@ nonisolated struct SwipletService: Equatable, Sendable {
 nonisolated enum PlatformEvent: Sendable {
     case dialog(id: Int64, request: String?)
     case service(swiplet: String, SwipletService)
+    case databaseChanged(swiplet: String, database: String, path: String, table: String, rowID: Int64)
     case swipletsChanged
     case apiFailed(String)
 }
@@ -55,6 +56,10 @@ nonisolated final class PlatformEvents: NSObject, LibSwiptPlatformHandlerProtoco
 
     func onServiceChanged(_ swiplet: String?, enabled: Bool, status: String?, message: String?, since: Int64) {
         deliver.withLock { $0 }?(.service(swiplet: swiplet ?? "", SwipletService(enabled: enabled, status: status ?? "", error: message ?? "", since: since)))
+    }
+
+    func onDatabaseChanged(_ swiplet: String?, database: String?, path: String?, table: String?, rowID: Int64) {
+        deliver.withLock { $0 }?(.databaseChanged(swiplet: swiplet ?? "", database: database ?? "", path: path ?? "", table: table ?? "", rowID: rowID))
     }
 
     func onSwipletsChanged() {

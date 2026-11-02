@@ -3,6 +3,7 @@ package libSwipt
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"io/fs"
@@ -267,4 +268,18 @@ func (p *Platform) CopySwipletFile(swiplet, root, from, toRoot, to string) error
 
 func (p *Platform) MoveSwipletFile(swiplet, root, from, toRoot, to string) error {
 	return p.host.TransferFile(swiplet, root, from, toRoot, to, true)
+}
+
+const appDatabaseClient = "app"
+
+func (p *Platform) SwipletDatabase(swiplet string, request string) (string, error) {
+	result, err := p.host.SQLite(appDatabaseClient, swiplet, []byte(request))
+	if err != nil {
+		return "", err
+	}
+	data, err := json.Marshal(result)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }

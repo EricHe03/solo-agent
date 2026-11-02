@@ -5,6 +5,7 @@ import { AbortController } from "./events";
 import { assets, dataDirectory } from "./files";
 import { getCalendars, getLocales, preferredLocalizations } from "./localization";
 import { native } from "./native";
+import { sqlite } from "./sqlite";
 
 type Caller = "app" | "shortcuts" | "api";
 const exposable: Caller[] = ["shortcuts"];
@@ -103,6 +104,7 @@ const modules: Record<string, () => object> = {
   "@swipt/api/screen": () => ({ __esModule: true, ...screen }),
   "@swipt/api/image": () => ({ __esModule: true, ...image }),
   "expo-localization": () => ({ __esModule: true, getLocales, getCalendars }),
+  "expo-sqlite": () => sqlite,
 };
 
 const require = (specifier: string): object => {

@@ -3,6 +3,7 @@ import { Component, useEffect, useMemo, useSyncExternalStore, useState, type Com
 
 import { inspect } from "../shared/inspect";
 import { directoryOf, type FileHost } from "./files";
+import { createSQLite, type DatabaseChangeEvent } from "../shared/sqlite";
 
 type ServiceStatus = "starting" | "running" | "stopped" | "failed";
 
@@ -39,7 +40,9 @@ interface SwiptHost extends FileHost {
   log(swiplet: string, level: string, message: string): void;
   fail(surface: string, message: string): void;
   report(swiplet: string, message: string): void;
+  sqlite(swiplet: string, request: string): string;
   addListener(event: "service", listener: (event: ServiceEvent & { name: string }) => void): EventSubscription;
+  addListener(event: "sqlite", listener: (event: DatabaseChangeEvent & { swiplet: string }) => void): EventSubscription;
 }
 
 interface State {
@@ -210,7 +213,19 @@ const modules: Record<string, () => unknown> = {
   "@expo/ui/community/slider": () => require("@expo/ui/community/slider"),
 };
 
-function load(props: Props): ComponentType {
+function load(props: Props): { Swiplet: ComponentType; close(): void } {
+  const sqlite = createSQLite({
+    request: call => JSON.parse(host.sqlite(props.name, JSON.stringify(call))),
+    defaultDirectory: decodeURIComponent(props.dataDirectory.replace(/^file:\/\//, "")).replace(/\/+$/, ""),
+    subscribe(listener) {
+      const subscription = host.addListener("sqlite", event => {
+        if (event.swiplet === props.name) {
+          listener(event);
+        }
+      });
+      return () => subscription.remove();
+    },
+  });
   const own: Record<string, () => unknown> = {
     "@swipt/api": () => exportsOf("@swipt/api", {}),
     "@swipt/api/swiplet": () => interfaceModule(props),
@@ -219,6 +234,7 @@ function load(props: Props): ComponentType {
         dataDirectory: directoryOf(host, props.name, "data", props.dataDirectory),
         assets: directoryOf(host, props.name, "assets", props.assetsDirectory),
       }),
+    "expo-sqlite": () => sqlite.exports,
   };
   const resolve = (specifier: string) => {
     const module = own[specifier] ?? modules[specifier];
@@ -228,14 +244,19 @@ function load(props: Props): ComponentType {
     return module();
   };
   const module: { exports: { default?: ComponentType } & Record<string, unknown> } = { exports: {} };
-  new Function("require", "module", "exports", "console", "reportError", `${props.source}\n//# sourceURL=swiplet://${props.name}/${props.file}`)(
-    resolve,
-    module,
-    module.exports,
-    consoleOf(props.name),
-    reportFor(props.name),
-  );
-  return module.exports.default ?? (module.exports as unknown as ComponentType);
+  try {
+    new Function("require", "module", "exports", "console", "reportError", `${props.source}\n//# sourceURL=swiplet://${props.name}/${props.file}`)(
+      resolve,
+      module,
+      module.exports,
+      consoleOf(props.name),
+      reportFor(props.name),
+    );
+  } catch (error) {
+    sqlite.close();
+    throw error;
+  }
+  return { Swiplet: module.exports.default ?? (module.exports as unknown as ComponentType), close: sqlite.close };
 }
 
 class Boundary extends Component<{ name: string; surface: string; children: ReactNode }, { failed: boolean }> {
@@ -255,9 +276,9 @@ class Boundary extends Component<{ name: string; surface: string; children: Reac
 }
 
 function Root(props: Props) {
-  const [loaded] = useState((): { Swiplet: ComponentType } | { error: unknown } => {
+  const [loaded] = useState((): ReturnType<typeof load> | { error: unknown } => {
     try {
-      return { Swiplet: load(props) };
+      return load(props);
     } catch (error) {
       return { error };
     }
@@ -268,6 +289,7 @@ function Root(props: Props) {
     }
     host.mounted(props.surface);
   }, [loaded, props.name, props.surface]);
+  useEffect(() => () => ("close" in loaded ? loaded.close() : undefined), [loaded]);
   if ("error" in loaded) {
     return null;
   }

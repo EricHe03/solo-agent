@@ -39,6 +39,7 @@ type PlatformHandler interface {
 	OnDialogWithdrawn(dialogID int64)
 	OnBackdrop(image []byte)
 	OnServiceChanged(swiplet string, enabled bool, status string, message string, since int64)
+	OnDatabaseChanged(swiplet string, database string, path string, table string, rowID int64)
 	OnSwipletsChanged()
 	OnAPIFailed(message string)
 	AppActive() bool
@@ -97,6 +98,9 @@ func (p *Platform) Start() error {
 			p.handler.OnServiceChanged(swiplet, state.Enabled, string(state.Status), state.Error, unixMilli(state.Since))
 		})
 	}()
+	go p.host.WatchDatabases(context.Background(), "", func(change automation.DatabaseChange) {
+		p.handler.OnDatabaseChanged(change.Swiplet, change.Database, change.Path, change.Table, change.RowID)
+	})
 	p.host.Start()
 	return nil
 }

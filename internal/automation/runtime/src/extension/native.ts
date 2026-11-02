@@ -24,6 +24,7 @@ export interface Native {
   match(snapshot: string, scope: string, json: string, mode: "one" | "all", call: (kind: string, id: string, value: string) => string): { elements?: Raw[]; failure?: string; thrown?: boolean };
   preferredLocalizations(localizations: string): string[];
   locate(line: number, column: number): Position | undefined;
+  sqlite(request: string): unknown;
   readonly graphics?: GraphicsNative;
 }
 

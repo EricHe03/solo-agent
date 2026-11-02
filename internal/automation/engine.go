@@ -358,6 +358,7 @@ func (e *engine) enter(exec *execution, run func() error) error {
 func (e *engine) close() {
 	e.cancel(errEnded)
 	e.dropWork()
+	e.host.CloseDatabases(e, "")
 	e.uninstallGraphics()
 	e.context.Close()
 }
@@ -397,7 +398,16 @@ func (e *engine) natives() map[string]jsc.Function {
 		"match":                  e.match,
 		"preferredLocalizations": e.preferredLocalizations,
 		"locate":                 e.locate,
+		"sqlite":                 e.sqlite,
 	}
+}
+
+func (e *engine) sqlite(arguments []jsc.Value) (any, error) {
+	values, err := texts(arguments, 1)
+	if err != nil {
+		return nil, err
+	}
+	return e.host.SQLite(e, e.swiplet.ID, []byte(values[0]))
 }
 
 func texts(arguments []jsc.Value, count int) ([]string, error) {
@@ -534,7 +544,7 @@ func (e *engine) subscribe(arguments []jsc.Value) (any, error) {
 		return nil, E.Cause(err, "decode the arguments of ", kind)
 	}
 	ctx, cancel := context.WithCancel(e.current.ctx)
-	it := &subscription{cancel: cancel, exec: e.current, queue: kind == "device.applicationEvents"}
+	it := &subscription{cancel: cancel, exec: e.current, queue: kind == "device.applicationEvents" || kind == "sqlite.changes"}
 	e.subscriptions[id] = it
 	publish := func(value any, failure error) {
 		it.access.Lock()

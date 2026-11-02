@@ -26,6 +26,7 @@ const appModules = [
   "@swipt/api",
   "@swipt/api/swiplet",
   "@swipt/api/file-system",
+  "expo-sqlite",
 ];
 const extensionModules = [
   "@swipt/api",
@@ -37,6 +38,7 @@ const extensionModules = [
   "@swipt/api/screen",
   "@swipt/api/image",
   "expo-localization",
+  "expo-sqlite",
 ];
 
 const idPattern = /^[a-z0-9][a-z0-9._-]{0,127}$/;
@@ -166,6 +168,14 @@ function describeExtension(source) {
     "@swipt/api/screen": loading("screen"),
     "@swipt/api/image": loading("image"),
     "expo-localization": { getLocales: () => [{ languageTag: "en", languageCode: "en" }], getCalendars: () => [] },
+    "expo-sqlite": {
+      openDatabaseSync: () => loading("the database"),
+      openDatabaseAsync: () => Promise.resolve(loading("the database")),
+      deleteDatabaseSync: () => {},
+      deleteDatabaseAsync: () => Promise.resolve(),
+      addDatabaseChangeListener: () => ({ remove: () => {} }),
+      defaultDatabaseDirectory: "",
+    },
   };
   const ignored = () => 0;
   const context = vm.createContext({
