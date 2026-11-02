@@ -15,7 +15,7 @@
     "swipt-runtime": "workspace:*"
   },
   "patchedDependencies": {
-    "@expo/ui@58.0.25": "internal/automation/runtime/patches/@expo%2Fui@58.0.25.patch",
+    "@expo/ui@58.0.26": "internal/automation/runtime/patches/@expo%2Fui@58.0.26.patch",
     "expo-modules-autolinking@58.0.16": "internal/automation/runtime/patches/expo-modules-autolinking@58.0.16.patch"
   },
   "expo": {
