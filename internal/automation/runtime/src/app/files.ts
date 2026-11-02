@@ -22,6 +22,10 @@ interface Location {
   readonly path: string;
 }
 
+interface ByteStream {
+  getReader(): { read(): Promise<{ done: boolean; value?: Uint8Array }> };
+}
+
 const token = Symbol("location");
 const locations = new WeakMap<FileHandle | DirectoryHandle, Location>();
 
@@ -126,7 +130,7 @@ export class FileHandle {
     return host.fileReadText(swiplet, kind, path);
   }
 
-  async write(data: string | Uint8Array | Blob): Promise<void> {
+  async write(data: string | Uint8Array | Blob | ByteStream): Promise<void> {
     const { host, swiplet, kind, path } = at(this);
     if (typeof data === "string") {
       await host.fileWriteText(swiplet, kind, path, data);
@@ -141,7 +145,26 @@ export class FileHandle {
       await host.fileWrite(swiplet, kind, path, encodeBase64(new Uint8Array(await blob.arrayBuffer())));
       return;
     }
-    throw new TypeError("the data must be a string, a Uint8Array or a Blob");
+    const stream = data as Partial<ByteStream> | undefined;
+    if (typeof stream?.getReader === "function") {
+      const reader = stream.getReader();
+      const chunks: Uint8Array[] = [];
+      for (let result = await reader.read(); !result.done; result = await reader.read()) {
+        if (!(result.value instanceof Uint8Array)) {
+          throw new TypeError("the stream produced a chunk that is not a Uint8Array");
+        }
+        chunks.push(result.value);
+      }
+      const bytes = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.length, 0));
+      let offset = 0;
+      for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.length;
+      }
+      await host.fileWrite(swiplet, kind, path, encodeBase64(bytes));
+      return;
+    }
+    throw new TypeError("the data must be a string, a Uint8Array, a Blob or a ReadableStream");
   }
 
   async copy(to: FileHandle): Promise<void> {

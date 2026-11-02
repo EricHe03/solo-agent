@@ -1,64 +1,44 @@
-import { invoke } from "./async";
-import { bytesOf, TextDecoder, TextEncoder } from "./encoding";
-import { DOMException } from "./errors";
-import { native } from "./native";
 import { URL, URLSearchParams } from "whatwg-url-minimum";
 
-let blobBytes: (blob: Blob) => Uint8Array;
-
-export class Blob {
-  readonly #bytes: Uint8Array;
-  readonly type: string;
-
-  static {
-    blobBytes = blob => blob.#bytes;
-  }
-
-  constructor(parts: unknown[] = [], options: { type?: string } = {}) {
-    const chunks = parts.map(part => part instanceof Blob ? part.#bytes : typeof part === "string" ? new TextEncoder().encode(part) : bytesOf(part));
-    const bytes = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.length, 0));
-    let offset = 0;
-    for (const chunk of chunks) {
-      bytes.set(chunk, offset);
-      offset += chunk.length;
-    }
-    this.#bytes = bytes;
-    this.type = /[^ -~]/.test(options.type ?? "") ? "" : (options.type ?? "").toLowerCase();
-  }
-
-  get size(): number {
-    return this.#bytes.length;
-  }
-
-  slice(start?: number, end?: number, type?: string): Blob {
-    return new Blob([this.#bytes.slice(start, end)], { type });
-  }
-
-  async bytes(): Promise<Uint8Array> {
-    return this.#bytes.slice();
-  }
-
-  async arrayBuffer(): Promise<ArrayBuffer> {
-    return this.#bytes.slice().buffer as ArrayBuffer;
-  }
-
-  async text(): Promise<string> {
-    return new TextDecoder().decode(this.#bytes);
-  }
-}
+import { invoke } from "./async";
+import { Blob, blobBytes, objectURL } from "./blob";
+import { atob, bytesOf, TextDecoder, TextEncoder } from "./encoding";
+import { failureOf } from "./errors";
+import { AbortController, type AbortSignal } from "./events";
+import { encodeMultipart, FormData, parseForm } from "./form";
+import { native } from "./native";
+import { bytesStream, errorNative, isDisturbed, nativeReadable, nativeWritable, readAll, ReadableStream, takeNative } from "./streams";
 
 type HeadersInit = Headers | Record<string, string> | Iterable<readonly [string, string]>;
+type Guard = "none" | "immutable";
 
 const token = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+const invalidValue = /[\0\r\n]|[^\0-\xff]/;
+const whitespace = /^[\t\n\r ]+|[\t\n\r ]+$/g;
+
+let guard: (headers: Headers, value: Guard) => Headers;
+let headerList: (headers: Headers) => [string, string][];
 
 export class Headers {
   #entries: [string, string][] = [];
+  #guard: Guard = "none";
+
+  static {
+    guard = (headers, value) => {
+      headers.#guard = value;
+      return headers;
+    };
+    headerList = headers => headers.#entries.map(([name, value]) => [name, value]);
+  }
 
   constructor(init?: HeadersInit) {
     if (init instanceof Headers) {
       this.#entries = init.#entries.map(([name, value]) => [name, value]);
     } else if (init !== undefined && init !== null) {
-      const pairs = Symbol.iterator in Object(init) ? [...(init as Iterable<readonly [string, string]>)] : Object.entries(init as Record<string, string>);
+      if (typeof init !== "object") {
+        throw new TypeError("the headers are not an object or a sequence of pairs");
+      }
+      const pairs = Symbol.iterator in init ? Array.from(init as Iterable<readonly [string, string]>, pair => [...pair]) : Object.entries(init);
       for (const pair of pairs) {
         if (pair.length !== 2) {
           throw new TypeError("a header needs a name and a value");
@@ -76,18 +56,42 @@ export class Headers {
     return text.toLowerCase();
   }
 
+  #value(value: string): string {
+    const text = String(value).replace(whitespace, "");
+    if (invalidValue.test(text)) {
+      throw new TypeError(`${JSON.stringify(text)} is not a valid header value`);
+    }
+    return text;
+  }
+
+  #mutable(): void {
+    if (this.#guard === "immutable") {
+      throw new TypeError("the headers are immutable");
+    }
+  }
+
   append(name: string, value: string): void {
-    this.#entries.push([this.#name(name), String(value).trim()]);
+    const entry: [string, string] = [this.#name(name), this.#value(value)];
+    this.#mutable();
+    this.#entries.push(entry);
   }
 
   set(name: string, value: string): void {
     const key = this.#name(name);
-    this.#entries = this.#entries.filter(([item]) => item !== key);
-    this.#entries.push([key, String(value).trim()]);
+    const text = this.#value(value);
+    this.#mutable();
+    const index = this.#entries.findIndex(([item]) => item === key);
+    if (index < 0) {
+      this.#entries.push([key, text]);
+      return;
+    }
+    this.#entries[index] = [key, text];
+    this.#entries = this.#entries.filter(([item], position) => position <= index || item !== key);
   }
 
   delete(name: string): void {
     const key = this.#name(name);
+    this.#mutable();
     this.#entries = this.#entries.filter(([item]) => item !== key);
   }
 
@@ -141,89 +145,128 @@ export class Headers {
     return this.entries();
   }
 
-  list(): [string, string][] {
-    return this.#entries.map(([name, value]) => [name, value]);
+  get [Symbol.toStringTag](): string {
+    return "Headers";
   }
 }
 
-type BodyInit = string | ArrayBuffer | ArrayBufferView | Blob | URLSearchParams | null | undefined;
+type BodyInit = string | ArrayBuffer | ArrayBufferView | Blob | URLSearchParams | FormData | ReadableStream<Uint8Array> | null | undefined;
+type Source = { bytes: Uint8Array } | { stream: ReadableStream<Uint8Array> };
 
-const encodeBody = (body: BodyInit, headers: Headers): Uint8Array | null => {
-  if (body === null || body === undefined) {
-    return null;
-  }
-  const contentType = (type: string) => {
-    if (!headers.has("content-type")) {
-      headers.set("content-type", type);
+const extract = (body: BodyInit): { source: Source; type: string | null } => {
+  if (body instanceof ReadableStream) {
+    if (isDisturbed(body)) {
+      throw new TypeError("the body stream is locked or was read");
     }
-  };
-  if (typeof body === "string") {
-    contentType("text/plain;charset=UTF-8");
-    return new TextEncoder().encode(body);
-  }
-  if (body instanceof URLSearchParams) {
-    contentType("application/x-www-form-urlencoded;charset=UTF-8");
-    return new TextEncoder().encode(body.toString());
+    return { source: { stream: body }, type: null };
   }
   if (body instanceof Blob) {
-    if (body.type) {
-      contentType(body.type);
-    }
-    return blobBytes(body).slice();
+    return { source: { bytes: blobBytes(body).slice() }, type: body.type || null };
   }
-  return bytesOf(body).slice();
+  if (body instanceof FormData) {
+    const { bytes, type } = encodeMultipart(body);
+    return { source: { bytes }, type };
+  }
+  if (body instanceof URLSearchParams) {
+    return { source: { bytes: new TextEncoder().encode(body.toString()) }, type: "application/x-www-form-urlencoded;charset=UTF-8" };
+  }
+  if (ArrayBuffer.isView(body) || body instanceof ArrayBuffer) {
+    return { source: { bytes: bytesOf(body).slice() }, type: null };
+  }
+  return { source: { bytes: new TextEncoder().encode(String(body)) }, type: "text/plain;charset=UTF-8" };
+};
+
+const internal = Symbol("internal");
+
+interface BodyState {
+  source: Source | null;
+  used: boolean;
+  signal?: AbortSignal;
+}
+
+let stateOf: (body: Body) => BodyState;
+
+const used = (state: BodyState) => state.used || (state.source !== null && "stream" in state.source && isDisturbed(state.source.stream));
+
+const takeBody = (state: BodyState): Source | null => {
+  if (used(state)) {
+    throw new TypeError("the body was already read");
+  }
+  state.used = true;
+  return state.source;
+};
+
+const teeBody = (state: BodyState): Source | null => {
+  if (used(state)) {
+    throw new TypeError("the body was already read");
+  }
+  const { source } = state;
+  if (source === null) {
+    return null;
+  }
+  if ("bytes" in source) {
+    return { bytes: source.bytes.slice() };
+  }
+  const [first, second] = source.stream.tee();
+  state.source = { stream: first };
+  return { stream: second };
 };
 
 abstract class Body {
-  #source: (() => Uint8Array) | null;
-  #used = false;
+  readonly #state: BodyState;
 
-  protected constructor(source: (() => Uint8Array) | null) {
-    this.#source = source;
+  static {
+    stateOf = body => body.#state;
+  }
+
+  protected constructor(state: BodyState) {
+    this.#state = state;
   }
 
   abstract readonly headers: Headers;
 
-  get body(): null {
-    return null;
-  }
-
-  get bodyUsed(): boolean {
-    return this.#used;
-  }
-
-  protected read(): Uint8Array {
-    if (this.#used) {
-      throw new TypeError("the body was already read");
-    }
-    this.#used = true;
-    return this.#source?.() ?? new Uint8Array(0);
-  }
-
-  protected peek(): (() => Uint8Array) | null {
-    if (this.#used) {
-      throw new TypeError("the body was already read");
-    }
-    const source = this.#source;
+  get body(): ReadableStream<Uint8Array> | null {
+    const { source } = this.#state;
     if (source === null) {
       return null;
     }
-    let bytes: Uint8Array | undefined;
-    const once = () => (bytes ??= source());
-    this.#source = once;
-    return once;
+    if ("bytes" in source) {
+      this.#state.source = { stream: bytesStream(source.bytes) };
+    }
+    return (this.#state.source as { stream: ReadableStream<Uint8Array> }).stream;
+  }
+
+  get bodyUsed(): boolean {
+    return used(this.#state);
+  }
+
+  async #consume(): Promise<Uint8Array> {
+    const source = takeBody(this.#state);
+    if (source === null) {
+      return new Uint8Array(0);
+    }
+    if ("bytes" in source) {
+      return source.bytes;
+    }
+    const id = takeNative(source.stream);
+    if (id !== null) {
+      const bytes = await invoke<Uint8Array | null>("stream.readAll", [id], { signal: this.#state.signal });
+      return bytes instanceof Uint8Array ? bytes : new Uint8Array(0);
+    }
+    return readAll(source.stream);
   }
 
   async bytes(): Promise<Uint8Array> {
-    return this.read();
+    return this.#consume();
   }
 
   async arrayBuffer(): Promise<ArrayBuffer> {
-    return this.read().slice().buffer as ArrayBuffer;
+    const bytes = await this.#consume();
+    return bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength ? bytes.buffer as ArrayBuffer : bytes.slice().buffer as ArrayBuffer;
   }
 
   async text(): Promise<string> {
-    return new TextDecoder().decode(this.read());
+    return new TextDecoder().decode(await this.#consume());
   }
 
   async json(): Promise<unknown> {
@@ -231,61 +274,140 @@ abstract class Body {
   }
 
   async blob(): Promise<Blob> {
-    return new Blob([this.read()], { type: this.headers.get("content-type") ?? "" });
+    return new Blob([await this.#consume()], { type: this.headers.get("content-type") ?? "" });
   }
 
-  async formData(): Promise<never> {
-    throw new DOMException("formData() is not supported", "NotSupportedError");
+  async formData(): Promise<FormData> {
+    return parseForm(await this.#consume(), this.headers.get("content-type"));
   }
 }
 
-const methods = ["DELETE", "GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH"];
+const standardMethods = ["DELETE", "GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH"];
+const forbiddenMethods = ["CONNECT", "TRACE", "TRACK"];
+const redirects = ["follow", "manual", "error"] as const;
+
+type RequestRedirect = typeof redirects[number];
 
 export interface RequestInit {
   method?: string;
   headers?: HeadersInit;
   body?: BodyInit;
   signal?: AbortSignal | null;
-  redirect?: "follow" | "manual" | "error";
+  redirect?: RequestRedirect;
+  duplex?: "half";
+  cache?: string;
+  credentials?: string;
+  integrity?: string;
+  keepalive?: boolean;
+  mode?: string;
+  priority?: string;
+  referrer?: string;
+  referrerPolicy?: string;
+  window?: null;
 }
+
+const parseURL = (input: string): URL => {
+  const url = new URL(input);
+  if (url.username !== "" || url.password !== "") {
+    throw new TypeError(`the URL ${JSON.stringify(input)} includes credentials; send them in an Authorization header`);
+  }
+  return url;
+};
 
 export class Request extends Body {
   readonly url: string;
   readonly method: string;
   readonly headers: Headers;
   readonly signal: AbortSignal;
-  readonly redirect: "follow" | "manual" | "error";
+  readonly redirect: RequestRedirect;
+  readonly duplex = "half";
+  readonly cache: string;
+  readonly credentials: string;
+  readonly destination = "";
+  readonly integrity: string;
+  readonly keepalive: boolean;
+  readonly mode: string;
+  readonly referrer: string;
+  readonly referrerPolicy: string;
 
   constructor(input: string | URL | Request, init: RequestInit = {}) {
     const base = input instanceof Request ? input : undefined;
-    const headers = new Headers(init.headers ?? base?.headers);
+    const url = base ? base.url : parseURL(String(input)).href;
     const method = init.method === undefined ? base?.method ?? "GET" : String(init.method);
-    const normalized = methods.includes(method.toUpperCase()) ? method.toUpperCase() : method;
-    let source: (() => Uint8Array) | null = null;
+    if (!token.test(method)) {
+      throw new TypeError(`${JSON.stringify(method)} is not a valid method`);
+    }
+    const upper = method.toUpperCase();
+    if (forbiddenMethods.includes(upper)) {
+      throw new TypeError(`the method ${upper} is forbidden`);
+    }
+    const normalized = standardMethods.includes(upper) ? upper : method;
+    const redirect = init.redirect ?? base?.redirect ?? "follow";
+    if (!redirects.includes(redirect)) {
+      throw new TypeError(`the redirect ${JSON.stringify(redirect)} is not one of ${redirects.join(", ")}`);
+    }
+    if (init.duplex !== undefined && init.duplex !== "half") {
+      throw new TypeError(`the duplex ${JSON.stringify(init.duplex)} is not "half"`);
+    }
+    if (init.mode === "navigate") {
+      throw new TypeError("a Request can't be made with the mode navigate");
+    }
+    const headers = new Headers(init.headers ?? base?.headers);
+    let source: Source | null = null;
     if (init.body !== undefined && init.body !== null) {
       if (normalized === "GET" || normalized === "HEAD") {
         throw new TypeError(`a ${normalized} request can't have a body`);
       }
-      const bytes = encodeBody(init.body, headers);
-      source = bytes === null ? null : () => bytes;
-    } else if (base) {
-      source = base.peek();
+      const extracted = extract(init.body);
+      if ("stream" in extracted.source && init.duplex !== "half") {
+        throw new TypeError("a request with a ReadableStream body needs duplex: \"half\"");
+      }
+      if (extracted.type !== null && !headers.has("content-type")) {
+        headers.set("content-type", extracted.type);
+      }
+      source = extracted.source;
+    } else if (base && stateOf(base).source !== null) {
+      if (normalized === "GET" || normalized === "HEAD") {
+        throw new TypeError(`a ${normalized} request can't have a body`);
+      }
+      source = takeBody(stateOf(base));
     }
-    super(source);
-    this.url = new URL(base ? base.url : String(input)).href;
+    const controller = new AbortController();
+    const signal = init.signal === undefined ? base?.signal : init.signal ?? undefined;
+    if (signal) {
+      if (signal.aborted) {
+        controller.abort(signal.reason);
+      } else {
+        signal.addEventListener("abort", () => controller.abort(signal.reason), { once: true });
+      }
+    }
+    super({ source, used: false });
+    this.url = url;
     this.method = normalized;
     this.headers = headers;
-    this.signal = init.signal ?? base?.signal ?? new AbortController().signal;
-    this.redirect = init.redirect ?? base?.redirect ?? "follow";
+    this.signal = controller.signal;
+    this.redirect = redirect;
+    this.cache = String(init.cache ?? base?.cache ?? "default");
+    this.credentials = String(init.credentials ?? base?.credentials ?? "same-origin");
+    this.integrity = String(init.integrity ?? base?.integrity ?? "");
+    this.keepalive = Boolean(init.keepalive ?? base?.keepalive ?? false);
+    this.mode = String(init.mode ?? base?.mode ?? "cors");
+    this.referrer = String(init.referrer ?? base?.referrer ?? "about:client");
+    this.referrerPolicy = String(init.referrerPolicy ?? base?.referrerPolicy ?? "");
   }
 
   clone(): Request {
-    return new Request(this);
+    const source = teeBody(stateOf(this));
+    const clone = new Request(this.url, {
+      method: this.method, headers: this.headers, signal: this.signal, redirect: this.redirect, cache: this.cache, credentials: this.credentials,
+      integrity: this.integrity, keepalive: this.keepalive, mode: this.mode, referrer: this.referrer, referrerPolicy: this.referrerPolicy,
+    });
+    stateOf(clone).source = source;
+    return clone;
   }
 
-  payload(): Uint8Array | null {
-    const source = this.peek();
-    return source === null ? null : source();
+  get [Symbol.toStringTag](): string {
+    return "Request";
   }
 }
 
@@ -295,28 +417,62 @@ export interface ResponseInit {
   headers?: HeadersInit;
 }
 
+interface ResponseFields {
+  type: "basic" | "default" | "error";
+  url: string;
+  redirected: boolean;
+  status: number;
+  statusText: string;
+  headers: Headers;
+  source: Source | null;
+  signal?: AbortSignal;
+}
+
+const nullBodyStatuses = [101, 103, 204, 205, 304];
+const reasonPhrase = /^[\t !-~\x80-\xff]*$/;
+
 export class Response extends Body {
-  readonly status: number;
-  readonly statusText: string;
-  readonly headers: Headers;
   readonly type: "basic" | "default" | "error";
   readonly url: string;
   readonly redirected: boolean;
+  readonly status: number;
+  readonly statusText: string;
+  readonly headers: Headers;
 
-  constructor(body: BodyInit = null, init: ResponseInit & { url?: string; redirected?: boolean; type?: "basic" | "error"; source?: () => Uint8Array } = {}) {
-    const headers = new Headers(init.headers);
-    const bytes = init.source ? null : encodeBody(body, headers);
-    super(init.source ?? (bytes === null ? null : () => bytes));
-    const status = init.status ?? 200;
-    if (init.type !== "error" && (!Number.isInteger(status) || status < 200 || status > 599)) {
+  constructor(body: BodyInit = null, init: ResponseInit = {}) {
+    const fields = (init as { [internal]?: ResponseFields })[internal];
+    if (fields) {
+      super({ source: fields.source, used: false, signal: fields.signal });
+      ({ type: this.type, url: this.url, redirected: this.redirected, status: this.status, statusText: this.statusText, headers: this.headers } = fields);
+      return;
+    }
+    const status = init.status === undefined ? 200 : Number(init.status);
+    if (!Number.isInteger(status) || status < 200 || status > 599) {
       throw new RangeError(`the status ${status} is outside 200 to 599`);
     }
+    const statusText = String(init.statusText ?? "");
+    if (!reasonPhrase.test(statusText)) {
+      throw new TypeError(`${JSON.stringify(statusText)} is not a valid status text`);
+    }
+    const headers = new Headers(init.headers);
+    let source: Source | null = null;
+    if (body !== null && body !== undefined) {
+      if (nullBodyStatuses.includes(status)) {
+        throw new TypeError(`a response with the status ${status} can't have a body`);
+      }
+      const extracted = extract(body);
+      if (extracted.type !== null && !headers.has("content-type")) {
+        headers.set("content-type", extracted.type);
+      }
+      source = extracted.source;
+    }
+    super({ source, used: false });
+    this.type = "default";
+    this.url = "";
+    this.redirected = false;
     this.status = status;
-    this.statusText = init.statusText ?? "";
+    this.statusText = statusText;
     this.headers = headers;
-    this.type = init.type ?? "default";
-    this.url = init.url ?? "";
-    this.redirected = init.redirected ?? false;
   }
 
   get ok(): boolean {
@@ -324,34 +480,103 @@ export class Response extends Body {
   }
 
   clone(): Response {
-    const source = this.peek();
+    const source = teeBody(stateOf(this));
+    const headers = new Headers(this.headers);
     return new Response(null, {
-      status: this.status, statusText: this.statusText, headers: this.headers, url: this.url, redirected: this.redirected,
-      type: this.type === "error" ? "error" : "basic", source: source ?? (() => new Uint8Array(0)),
-    });
+      [internal]: { type: this.type, url: this.url, redirected: this.redirected, status: this.status, statusText: this.statusText, headers: guard(headers, this.type === "default" ? "none" : "immutable"), source, signal: stateOf(this).signal },
+    } as ResponseInit);
   }
 
   static error(): Response {
-    return new Response(null, { status: 0, type: "error" });
+    return new Response(null, { [internal]: { type: "error", url: "", redirected: false, status: 0, statusText: "", headers: guard(new Headers(), "immutable"), source: null } } as ResponseInit);
   }
 
   static json(data: unknown, init: ResponseInit = {}): Response {
+    const text = JSON.stringify(data);
+    if (text === undefined) {
+      throw new TypeError("the data can't be serialized to JSON");
+    }
     const headers = new Headers(init.headers);
     if (!headers.has("content-type")) {
       headers.set("content-type", "application/json");
     }
-    return new Response(JSON.stringify(data), { ...init, headers });
+    return new Response(text, { ...init, headers });
   }
 
   static redirect(url: string | URL, status = 302): Response {
     if (![301, 302, 303, 307, 308].includes(status)) {
       throw new RangeError(`${status} is not a redirect status`);
     }
-    return new Response(null, { status, headers: { location: new URL(String(url)).href } });
+    const headers = guard(new Headers({ location: new URL(String(url)).href }), "immutable");
+    return new Response(null, { [internal]: { type: "default", url: "", redirected: false, status, statusText: "", headers, source: null } } as ResponseInit);
+  }
+
+  get [Symbol.toStringTag](): string {
+    return "Response";
   }
 }
 
+const basic = (url: string, status: number, statusText: string, headers: Headers, source: Source | null, extra: Partial<ResponseFields> = {}) =>
+  new Response(null, { [internal]: { type: "basic", url, redirected: false, status, statusText, headers: guard(headers, "immutable"), source, ...extra } } as ResponseInit);
+
+const percentDecode = (text: string): Uint8Array => {
+  const bytes = new TextEncoder().encode(text);
+  const out = new Uint8Array(bytes.length);
+  let written = 0;
+  const hex = (byte: number) => byte >= 0x30 && byte <= 0x39 ? byte - 0x30 : (byte | 0x20) >= 0x61 && (byte | 0x20) <= 0x66 ? (byte | 0x20) - 0x57 : -1;
+  for (let index = 0; index < bytes.length; index++) {
+    const high = bytes[index] === 0x25 ? hex(bytes[index + 1]) : -1;
+    const low = high >= 0 ? hex(bytes[index + 2]) : -1;
+    if (low >= 0) {
+      out[written++] = (high << 4) | low;
+      index += 2;
+    } else {
+      out[written++] = bytes[index];
+    }
+  }
+  return out.slice(0, written);
+};
+
+const dataResponse = (url: URL): Response => {
+  const href = url.href.replace(/#.*$/s, "");
+  const content = href.slice("data:".length);
+  const comma = content.indexOf(",");
+  if (comma < 0) {
+    throw new TypeError("the data: URL has no comma");
+  }
+  let type = content.slice(0, comma).replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, "");
+  let bytes = percentDecode(content.slice(comma + 1));
+  const base64 = /;[\t\n\f\r ]*base64[\t\n\f\r ]*$/i.exec(type);
+  if (base64) {
+    type = type.slice(0, base64.index);
+    let decoded: string;
+    try {
+      decoded = atob(new TextDecoder().decode(bytes));
+    } catch {
+      throw new TypeError("the data: URL is not valid base64");
+    }
+    bytes = Uint8Array.from(decoded, character => character.charCodeAt(0));
+  }
+  type = type.replace(/[\t\n\f\r ;]+$/, "");
+  if (type.startsWith(";")) {
+    type = `text/plain${type}`;
+  }
+  if (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+\/[!#$%&'*+\-.^_`|~0-9A-Za-z]+/.test(type)) {
+    type = "text/plain;charset=US-ASCII";
+  }
+  return basic(href, 200, "OK", new Headers({ "content-type": type }), { bytes });
+};
+
+const blobResponse = (url: URL, method: string): Response => {
+  const blob = objectURL(url.href);
+  if (method !== "GET" || blob === undefined) {
+    throw new TypeError(blob === undefined ? `the blob URL ${url.href} was revoked or never created` : "a blob URL can only be fetched with GET");
+  }
+  return basic(url.href.replace(/#.*$/s, ""), 200, "OK", new Headers({ "content-type": blob.type, "content-length": String(blob.size) }), { bytes: blobBytes(blob).slice() });
+};
+
 interface Fetched {
+  request: string;
   status: number;
   statusText: string;
   url: string;
@@ -362,21 +587,59 @@ interface Fetched {
 
 export async function fetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
   const request = new Request(input, init);
-  const scheme = new URL(request.url).protocol;
-  if (scheme !== "http:" && scheme !== "https:") {
-    throw new TypeError(`fetch supports http: and https:, not ${scheme}`);
+  const { signal } = request;
+  signal.throwIfAborted();
+  const url = new URL(request.url);
+  switch (url.protocol) {
+    case "data:":
+      return dataResponse(url);
+    case "blob:":
+      return blobResponse(url, request.method);
+    case "http:":
+    case "https:":
+      break;
+    default:
+      throw new TypeError(`fetch supports http:, https:, data: and blob:, not ${url.protocol}`);
   }
-  const payload = request.payload();
-  const fetched = await invoke<Fetched>("fetch", [{
-    url: request.url,
-    method: request.method,
-    headers: request.headers.list(),
-    body: payload === null ? "" : native.put(payload),
-    redirect: request.redirect,
-  }], { signal: request.signal });
-  let body: Uint8Array | undefined;
-  return new Response(null, {
-    status: fetched.status, statusText: fetched.statusText, headers: fetched.headers, url: fetched.url,
-    redirected: fetched.redirected, type: "basic", source: () => (body ??= fetched.body === "" ? new Uint8Array(0) : native.take(fetched.body)),
-  });
+  const source = takeBody(stateOf(request));
+  let body = "";
+  let stream = "";
+  if (source !== null && "bytes" in source) {
+    body = native.put(source.bytes);
+  } else if (source !== null) {
+    const id = takeNative(source.stream);
+    if (id !== null) {
+      stream = id;
+    } else {
+      const [reader, writer] = native.pipe();
+      stream = reader;
+      const accept = (chunk: unknown) => {
+        if (!(chunk instanceof Uint8Array)) {
+          throw new TypeError("the request body stream produced a chunk that is not a Uint8Array");
+        }
+        return chunk;
+      };
+      source.stream.pipeTo(nativeWritable(writer, accept), { signal }).catch(() => {});
+    }
+  }
+  let fetched: Fetched;
+  try {
+    fetched = await invoke<Fetched>("fetch", [{ url: request.url, method: request.method, headers: headerList(request.headers), body, stream, redirect: request.redirect }], { signal });
+  } catch (error) {
+    if (stream !== "") {
+      native.release(stream, "the request failed");
+    }
+    throw error;
+  }
+  const headers = new Headers(fetched.headers);
+  if (fetched.body === "") {
+    return basic(new URL(fetched.url).href, fetched.status, fetched.statusText, headers, null, { redirected: fetched.redirected });
+  }
+  const abort = () => {
+    errorNative(readable, signal.reason);
+    native.release(fetched.request, failureOf(signal.reason));
+  };
+  const readable = nativeReadable(fetched.body, () => signal.removeEventListener("abort", abort));
+  signal.addEventListener("abort", abort, { once: true });
+  return basic(new URL(fetched.url).href, fetched.status, fetched.statusText, headers, { stream: readable }, { redirected: fetched.redirected, signal });
 }

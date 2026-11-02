@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { build } from "esbuild";
 
-const shared = { bundle: true, format: "iife", target: "es2022", platform: "neutral", mainFields: ["module", "main"], minify: true, legalComments: "inline" };
+const shared = { bundle: true, format: "iife", target: "es2022", platform: "neutral", mainFields: ["module", "main"], minify: true, keepNames: true, legalComments: "inline" };
 
 await build({ ...shared, entryPoints: ["src/extension/index.ts"], inject: ["src/extension/encoding.ts"], globalName: "__swiptRuntime", outfile: "../runtime.js" });
 await build({ ...shared, entryPoints: ["src/extension/rewrite.ts"], globalName: "__swiptRewrite", outfile: "../rewrite.js" });

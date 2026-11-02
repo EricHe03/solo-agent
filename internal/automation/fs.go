@@ -6,6 +6,8 @@ import (
 	"context"
 
 	"github.com/sagernet/sing/common"
+	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/swipt-automation/swipt/internal/jsc"
 )
 
 func (e *engine) fileRoot(kind string) (*fileRoot, error) {
@@ -91,7 +93,7 @@ func fsRead(_ context.Context, call *operation) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return call.engine.putBlob(data), nil
+	return jsc.Bytes(data), nil
 }
 
 func fsWrite(_ context.Context, call *operation) (any, error) {
@@ -109,6 +111,21 @@ func fsWrite(_ context.Context, call *operation) (any, error) {
 		return nil, err
 	}
 	return nil, at.root.write(at.name, data)
+}
+
+func fsWriter(_ context.Context, call *operation) (any, error) {
+	at, err := call.oneFileLocation()
+	if err != nil {
+		return nil, err
+	}
+	file, err := at.root.create(at.name)
+	if err != nil {
+		_ = at.root.Close()
+		return nil, err
+	}
+	return call.engine.addResource(&resource{writer: file, finish: func(abort error) error {
+		return E.Errors(file.finish(abort), at.root.Close())
+	}}), nil
 }
 
 func fsMkdir(_ context.Context, call *operation) (any, error) {

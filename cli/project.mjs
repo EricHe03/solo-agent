@@ -178,9 +178,16 @@ function describeExtension(source) {
     },
   };
   const ignored = () => 0;
+  const webGlobals = [
+    "MessageEvent", "CloseEvent", "ErrorEvent", "File", "FormData", "ReadableStream", "ReadableStreamDefaultReader", "ReadableStreamBYOBReader",
+    "ReadableStreamBYOBRequest", "ReadableStreamDefaultController", "ReadableByteStreamController", "WritableStream", "WritableStreamDefaultWriter",
+    "WritableStreamDefaultController", "TransformStream", "TransformStreamDefaultController", "ByteLengthQueuingStrategy", "CountQueuingStrategy",
+    "TextEncoderStream", "TextDecoderStream", "CompressionStream", "DecompressionStream", "WebSocket", "EventSource",
+  ];
   const context = vm.createContext({
     console, URL, URLSearchParams, TextEncoder, TextDecoder, atob, btoa, structuredClone, queueMicrotask, crypto,
     AbortController, AbortSignal, Event, EventTarget, CustomEvent, DOMException, Headers, Request, Response, Blob,
+    ...Object.fromEntries(webGlobals.map(name => [name, globalThis[name]])),
     fetch: loading("fetch"),
     setTimeout: ignored, setInterval: ignored, clearTimeout: ignored, clearInterval: ignored,
     navigator: { userAgent: "Swipt", language: "en", languages: ["en"] },

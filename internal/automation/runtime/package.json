@@ -23,6 +23,7 @@
     "esbuild": "^0.28.2",
     "meriyah": "^7.4.1",
     "typescript": "^7.0.2",
+    "web-streams-polyfill": "^4.3.0",
     "whatwg-url-minimum": "^0.2.0"
   }
 }

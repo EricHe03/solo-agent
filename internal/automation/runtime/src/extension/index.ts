@@ -5,12 +5,21 @@ import { deliver, end, settle, sleep } from "./async";
 import { crypto } from "./crypto";
 import { atob, btoa, TextDecoder, TextEncoder } from "./encoding";
 import { DOMException } from "./errors";
-import { AbortController, AbortSignal, CustomEvent, Event, EventTarget } from "./events";
+import { Blob, createObjectURL, File, revokeObjectURL } from "./blob";
+import { AbortController, AbortSignal, CloseEvent, CustomEvent, ErrorEvent, Event, EventTarget, MessageEvent } from "./events";
+import { EventSource } from "./eventsource";
 import { hooks } from "./extension";
-import { Blob, fetch, Headers, Request, Response } from "./fetch";
+import { fetch, Headers, Request, Response } from "./fetch";
+import { FormData } from "./form";
 import { describe, formatAll } from "./format";
 import { bind, native, type Native } from "./native";
 import { launch, replGlobals } from "./repl";
+import {
+  ByteLengthQueuingStrategy, CompressionStream, CountQueuingStrategy, DecompressionStream, ReadableByteStreamController, ReadableStream,
+  ReadableStreamBYOBReader, ReadableStreamBYOBRequest, ReadableStreamDefaultController, ReadableStreamDefaultReader, TextDecoderStream,
+  TextEncoderStream, TransformStream, TransformStreamDefaultController, WritableStream, WritableStreamDefaultController, WritableStreamDefaultWriter,
+} from "./streams";
+import { WebSocket } from "./websocket";
 
 const define = (values: Record<string, unknown>) => {
   for (const [name, value] of Object.entries(values)) {
@@ -22,10 +31,17 @@ const print = (level: string) => (...values: unknown[]) => native.print(level, f
 
 export function install(binding: Native) {
   bind(binding);
+  Object.defineProperties(URL, {
+    createObjectURL: { value: createObjectURL, writable: true, configurable: true },
+    revokeObjectURL: { value: revokeObjectURL, writable: true, configurable: true },
+  });
   define({
-    AbortController, AbortSignal, Event, EventTarget, CustomEvent, DOMException, TextEncoder, TextDecoder, atob, btoa,
-    structuredClone: (value: unknown) => structuredClone(value), URL, URLSearchParams, crypto, fetch, Headers, Request,
-    Response, Blob, sleep,
+    AbortController, AbortSignal, Event, EventTarget, CustomEvent, MessageEvent, CloseEvent, ErrorEvent, DOMException, TextEncoder, TextDecoder,
+    atob, btoa, structuredClone: (value: unknown) => structuredClone(value), URL, URLSearchParams, crypto, fetch, Headers, Request, Response,
+    Blob, File, FormData, WebSocket, EventSource, ReadableStream, ReadableStreamDefaultReader, ReadableStreamBYOBReader, ReadableStreamBYOBRequest,
+    ReadableStreamDefaultController, ReadableByteStreamController, WritableStream, WritableStreamDefaultWriter, WritableStreamDefaultController,
+    TransformStream, TransformStreamDefaultController, ByteLengthQueuingStrategy, CountQueuingStrategy, TextEncoderStream, TextDecoderStream,
+    CompressionStream, DecompressionStream, sleep,
     queueMicrotask: (callback: () => void) => {
       if (typeof callback !== "function") {
         throw new TypeError("the callback is not a function");

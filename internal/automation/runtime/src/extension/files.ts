@@ -1,8 +1,9 @@
 import { directoryURI, fileURI, joinRelative, nameOf } from "../shared/paths";
 import { invoke } from "./async";
+import { Blob } from "./blob";
 import { TextDecoder, TextEncoder } from "./encoding";
-import { Blob } from "./fetch";
 import { native } from "./native";
+import { nativeWritable, ReadableStream, takeNative } from "./streams";
 
 type Root = "data" | "assets" | "cache";
 
@@ -47,7 +48,7 @@ const bytesOf = async (data: unknown): Promise<Uint8Array> => {
   if (data instanceof Blob) {
     return data.bytes();
   }
-  throw new TypeError("the data must be a string, a Uint8Array or a Blob");
+  throw new TypeError("the data must be a string, a Uint8Array, a Blob or a ReadableStream");
 };
 
 const guard = (key: symbol) => {
@@ -128,16 +129,29 @@ export class FileHandle {
 
   async bytes(): Promise<Uint8Array> {
     const { root, path } = at(this);
-    return native.take(await call<string>("read", root, path));
+    return call<Uint8Array>("read", root, path);
   }
 
   async text(): Promise<string> {
     return new TextDecoder().decode(await this.bytes());
   }
 
-  async write(data: string | Uint8Array | Blob): Promise<void> {
+  async write(data: string | Uint8Array | Blob | ReadableStream<Uint8Array>): Promise<void> {
     const { root, path } = at(this);
-    await call("write", root, path, native.put(await bytesOf(data)));
+    if (!(data instanceof ReadableStream)) {
+      await call("write", root, path, native.put(await bytesOf(data)));
+      return;
+    }
+    if (data.locked) {
+      throw new TypeError("the stream is locked");
+    }
+    const writer = await call<string>("writer", root, path);
+    const source = takeNative(data);
+    if (source === null) {
+      await data.pipeTo(nativeWritable(writer));
+    } else {
+      await invoke("stream.pipe", [source, writer]);
+    }
   }
 
   async copy(to: FileHandle): Promise<void> {

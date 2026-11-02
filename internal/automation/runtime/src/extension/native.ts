@@ -25,6 +25,11 @@ export interface Native {
   preferredLocalizations(localizations: string): string[];
   locate(line: number, column: number): Position | undefined;
   sqlite(request: string): unknown;
+  encodeText(text: string): Uint8Array;
+  decodeText(data: Uint8Array, fatal: number): string | undefined;
+  release(id: string, reason?: string): void;
+  pipe(): [reader: string, writer: string];
+  compression(format: string, mode: "compress" | "decompress"): [writer: string, reader: string];
   readonly graphics?: GraphicsNative;
 }
 

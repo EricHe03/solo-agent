@@ -157,31 +157,55 @@ func (r *fileRoot) read(name string) ([]byte, error) {
 	return data, nil
 }
 
-func (r *fileRoot) write(name string, data []byte) error {
+type fileWriter struct {
+	*os.File
+	root      *fileRoot
+	name      string
+	temporary string
+}
+
+func (r *fileRoot) create(name string) (*fileWriter, error) {
 	if r.readOnly {
-		return r.readOnlyError()
+		return nil, r.readOnlyError()
 	}
 	if err := r.notRoot(name); err != nil {
-		return err
+		return nil, err
 	}
 	if err := r.root.MkdirAll(filepath.Dir(name), 0o755); err != nil {
-		return r.error(filepath.Dir(name), err)
+		return nil, r.error(filepath.Dir(name), err)
 	}
 	temporary := filepath.Join(filepath.Dir(name), ".write-"+rand.Text())
 	file, err := r.root.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
-		return err
+		return nil, r.error(name, err)
 	}
-	_, err = file.Write(data)
-	err = E.Errors(err, file.Close())
-	if err == nil {
-		err = r.root.Rename(temporary, name)
+	return &fileWriter{File: file, root: r, name: name, temporary: temporary}, nil
+}
+
+func (w *fileWriter) finish(abort error) error {
+	err := w.File.Close()
+	if abort == nil && err == nil {
+		err = w.root.root.Rename(w.temporary, w.name)
+	}
+	if abort != nil || err != nil {
+		_ = w.root.root.Remove(w.temporary)
 	}
 	if err != nil {
-		_ = r.root.Remove(temporary)
-		return r.error(name, err)
+		return w.root.error(w.name, err)
 	}
 	return nil
+}
+
+func (r *fileRoot) write(name string, data []byte) error {
+	file, err := r.create(name)
+	if err != nil {
+		return err
+	}
+	if _, err = file.Write(data); err != nil {
+		_ = file.finish(err)
+		return r.error(name, err)
+	}
+	return file.finish(nil)
 }
 
 func (r *fileRoot) mkdir(name string) error {

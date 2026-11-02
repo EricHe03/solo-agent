@@ -64,7 +64,15 @@ func init() {
 		"fs.copy":                       fsTransfer(false),
 		"fs.move":                       fsTransfer(true),
 		"dialog":                        presentDialog,
+		"fs.writer":                     fsWriter,
 		"fetch":                         fetch,
+		"stream.read":                   streamRead,
+		"stream.readAll":                streamReadAll,
+		"stream.write":                  streamWrite,
+		"stream.close":                  streamClose,
+		"stream.pipe":                   streamPipe,
+		"websocket.send":                webSocketSend,
+		"websocket.close":               webSocketClose,
 		"graphics":                      graphicsRun,
 	}
 }
@@ -120,7 +128,7 @@ func screenAction(act func(ctx context.Context, phone *device.Phone, call *opera
 	}
 }
 
-var terseErrors = []error{ErrInvalid, ErrNotFound, ErrNotAllowed, device.ErrNotFound, device.ErrTimeout}
+var terseErrors = []error{ErrInvalid, ErrNotFound, ErrNotAllowed, errNetwork, device.ErrNotFound, device.ErrTimeout}
 
 func Message(err error) string {
 	message := err.Error()
@@ -153,7 +161,7 @@ func FailureOf(err error) string {
 		out.Name = "TimeoutError"
 	case errors.Is(err, ErrDismissed), E.IsCanceled(err):
 		out.Name = "AbortError"
-	case errors.Is(err, ErrInvalid):
+	case E.IsMulti(err, ErrInvalid, errNetwork):
 		out.Name = "TypeError"
 	case E.IsMulti(err, ErrNotFound, device.ErrNotFound):
 		out.Name = "NotFoundError"

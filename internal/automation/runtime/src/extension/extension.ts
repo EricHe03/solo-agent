@@ -104,7 +104,7 @@ const modules: Record<string, () => object> = {
   "@swipt/api/screen": () => ({ __esModule: true, ...screen }),
   "@swipt/api/image": () => ({ __esModule: true, ...image }),
   "expo-localization": () => ({ __esModule: true, getLocales, getCalendars }),
-  "expo-sqlite": () => sqlite,
+  "expo-sqlite": sqlite,
 };
 
 const require = (specifier: string): object => {

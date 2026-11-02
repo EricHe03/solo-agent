@@ -3,7 +3,9 @@ import { stream } from "./async";
 import { DOMException } from "./errors";
 import { native } from "./native";
 
-export const { exports: sqlite } = createSQLite({
+let module: ReturnType<typeof createSQLite>["exports"] | undefined;
+
+export const sqlite = () => module ??= createSQLite({
   request: call => native.sqlite(JSON.stringify(call)),
   get defaultDirectory() {
     return native.dataDirectory;
@@ -23,4 +25,4 @@ export const { exports: sqlite } = createSQLite({
     })();
     return () => controller.abort(new DOMException("the listener was removed", "AbortError"));
   },
-});
+}).exports;

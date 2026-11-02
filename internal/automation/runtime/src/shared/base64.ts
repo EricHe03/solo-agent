@@ -1,5 +1,4 @@
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-const values = new Map([...alphabet].map((character, index) => [character, index]));
 
 export const encodeBase64 = (bytes: Uint8Array): string => {
   let out = "";
@@ -15,19 +14,27 @@ export const encodeBase64 = (bytes: Uint8Array): string => {
   return out;
 };
 
+const lookup = new Uint8Array(128).fill(255);
+for (let index = 0; index < alphabet.length; index++) {
+  lookup[alphabet.charCodeAt(index)] = index;
+}
+
 export const decodeBase64 = (text: string): Uint8Array => {
-  const clean = text.replace(/[^A-Za-z0-9+/]/g, "");
-  const out = new Uint8Array(Math.floor(clean.length * 3 / 4));
+  const out = new Uint8Array(Math.floor(text.length * 3 / 4) + 3);
   let written = 0;
-  for (let index = 0; index < clean.length; index += 4) {
-    const chunk = [0, 1, 2, 3].map(offset => values.get(clean[index + offset]) ?? 0);
-    const value = (chunk[0] << 18) | (chunk[1] << 12) | (chunk[2] << 6) | chunk[3];
-    out[written++] = value >> 16;
-    if (index + 2 < clean.length) {
-      out[written++] = (value >> 8) & 255;
+  let buffer = 0;
+  let bits = 0;
+  for (let index = 0; index < text.length; index++) {
+    const code = text.charCodeAt(index);
+    const value = code < 128 ? lookup[code] : 255;
+    if (value === 255) {
+      continue;
     }
-    if (index + 3 < clean.length) {
-      out[written++] = value & 255;
+    buffer = ((buffer << 6) | value) & 0xffffff;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out[written++] = (buffer >> bits) & 255;
     }
   }
   return out.subarray(0, written);

@@ -156,9 +156,11 @@ type engine struct {
 	results       map[string]completion
 	subscriptions map[string]*subscription
 
-	access       sync.Mutex
-	blobs        map[string][]byte
-	blobSequence int
+	access           sync.Mutex
+	blobs            map[string][]byte
+	blobSequence     int
+	resources        map[string]*resource
+	resourceSequence int
 }
 
 func (h *Host) Call(ctx context.Context, request CallRequest) (json.RawMessage, error) {
@@ -256,7 +258,7 @@ func (h *Host) newEngine(swiplet Swiplet, dialog Dialog, logger log.ContextLogge
 		host: h, swiplet: swiplet, dialog: dialog, logger: logger,
 		context: jsc.New(), snapshots: newSnapshotStore(), completions: make(chan completion, completionBacklog), wake: make(chan struct{}, 1),
 		executions: make(map[string]*execution), ops: make(map[string]*pendingOperation), results: make(map[string]completion),
-		subscriptions: make(map[string]*subscription), blobs: make(map[string][]byte),
+		subscriptions: make(map[string]*subscription), blobs: make(map[string][]byte), resources: make(map[string]*resource),
 		sources: sync.OnceValue(func() *sourcemap.Consumer {
 			data, err := os.ReadFile(filepath.Join(swiplet.Directory, SourceFolder, ExtensionMap))
 			if err != nil {
@@ -358,6 +360,7 @@ func (e *engine) enter(exec *execution, run func() error) error {
 func (e *engine) close() {
 	e.cancel(errEnded)
 	e.dropWork()
+	e.closeResources()
 	e.host.CloseDatabases(e, "")
 	e.uninstallGraphics()
 	e.context.Close()
@@ -399,6 +402,11 @@ func (e *engine) natives() map[string]jsc.Function {
 		"preferredLocalizations": e.preferredLocalizations,
 		"locate":                 e.locate,
 		"sqlite":                 e.sqlite,
+		"release":                e.release,
+		"pipe":                   e.pipe,
+		"compression":            e.compression,
+		"encodeText":             e.encodeText,
+		"decodeText":             e.decodeText,
 	}
 }
 
@@ -447,7 +455,7 @@ func (e *engine) startOperation(arguments []jsc.Value) (any, error) {
 	go func() {
 		started := time.Now()
 		value, err := run(ctx, call)
-		if err != nil && ctx.Err() == nil && errors.Is(err, context.Canceled) {
+		if _, scripted := errors.AsType[*Failure](err); err != nil && !scripted && ctx.Err() == nil && errors.Is(err, context.Canceled) {
 			err = E.Extend(device.ErrDisconnected, "the connection dropped during ", name)
 		}
 		if slices.Contains(timelineOperations, name) && e.host.timeline.active() {
@@ -544,7 +552,7 @@ func (e *engine) subscribe(arguments []jsc.Value) (any, error) {
 		return nil, E.Cause(err, "decode the arguments of ", kind)
 	}
 	ctx, cancel := context.WithCancel(e.current.ctx)
-	it := &subscription{cancel: cancel, exec: e.current, queue: kind == "device.applicationEvents" || kind == "sqlite.changes"}
+	it := &subscription{cancel: cancel, exec: e.current, queue: kind == "device.applicationEvents" || kind == "sqlite.changes" || kind == "websocket"}
 	e.subscriptions[id] = it
 	publish := func(value any, failure error) {
 		it.access.Lock()
