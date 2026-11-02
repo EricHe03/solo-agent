@@ -257,17 +257,14 @@ final class Platform {
         try await blocking { try box.value.removeSwiplet(swiplet) }
     }
 
+    func clearSwipletData(_ swiplet: String) async throws {
+        let box = UncheckedSendable(value: core)
+        try await blocking { try box.value.clearSwipletData(swiplet) }
+    }
+
     func exportSwiplet(_ swiplet: String, to file: URL) async throws {
         let box = UncheckedSendable(value: core)
         try await blocking { try box.value.exportSwiplet(swiplet, destination: file.path) }
-    }
-
-    func attribute(_ name: String, of swiplet: String) -> String {
-        core.swipletAttribute(swiplet, name: name)
-    }
-
-    func setAttribute(_ name: String, _ value: String, of swiplet: String) throws {
-        try core.setSwipletAttribute(swiplet, name: name, value: value)
     }
 
 

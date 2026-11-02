@@ -2,9 +2,10 @@ import Perception
 import SwiftUI
 
 @available(iOS 27, *)
-struct AutomationView: View {
+struct SwipletsView: View {
     @State private var isAddingSwiplet = false
     @State private var swipletToDelete: String?
+    @State private var swipletInfo: String?
     @State private var alert: AlertState?
 
     private let swiplets = SwipletStore.shared
@@ -14,7 +15,10 @@ struct AutomationView: View {
             Form {
                 swipletsSection
             }
-            .navigationTitle("Automation")
+            .navigationTitle("Swiplets")
+            .navigationDestination(item: $swipletInfo) { id in
+                SwipletInfoView(id: id)
+            }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -65,6 +69,11 @@ struct AutomationView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(swiplets.ids, id: \.self, content: swipletRow)
+                    .onMove { source, destination in
+                        var ids = swiplets.ids
+                        ids.move(fromOffsets: source, toOffset: destination)
+                        swiplets.reorder(ids)
+                    }
             }
         }
     }
@@ -97,7 +106,14 @@ struct AutomationView: View {
             .tint(.red)
         }
         .contextMenu {
-            ShareLink(item: SwipletFile(id: name), preview: SharePreview(swiplets.titles[name] ?? name)) {
+            Button {
+                swipletInfo = name
+            } label: {
+                Label("Info", systemImage: "info.circle")
+            }
+            Button {
+                share(name)
+            } label: {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
             if let update = swiplets.updates[name] {
@@ -148,6 +164,27 @@ struct AutomationView: View {
             } catch {
                 let title = swiplets.titles[name] ?? name
                 alert = AlertState(enabled ? String(localized: "Can’t Turn On “\(title)”") : String(localized: "Can’t Turn Off “\(title)”"), error: error)
+            }
+        }
+    }
+
+    private func share(_ name: String) {
+        Task {
+            do {
+                let file = try await swiplets.export(name)
+                guard let top = topViewController() else { return }
+                let controller = UIActivityViewController(activityItems: [file], applicationActivities: nil)
+                controller.completionWithItemsHandler = { _, _, _, _ in
+                    try? FileManager.default.removeItem(at: file.deletingLastPathComponent())
+                }
+                if let popover = controller.popoverPresentationController {
+                    popover.sourceView = top.view
+                    popover.sourceRect = CGRect(origin: CGPoint(x: top.view.bounds.midX, y: top.view.bounds.midY), size: .zero)
+                    popover.permittedArrowDirections = []
+                }
+                top.present(controller, animated: true)
+            } catch {
+                alert = AlertState(String(localized: "Can’t Share the Swiplet"), error: error)
             }
         }
     }

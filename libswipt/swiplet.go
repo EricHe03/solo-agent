@@ -14,7 +14,6 @@ import (
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/automation"
-	"golang.org/x/sys/unix"
 )
 
 var archiveMagic = []byte("PK\x03\x04")
@@ -132,44 +131,8 @@ func (p *Platform) RemoveSwiplet(swiplet string) error {
 	return p.host.Remove(swiplet)
 }
 
-const (
-	SwipletAttributeETag = "etag"
-
-	attributePrefix = "io.nekohasekai.swipt."
-)
-
-func (p *Platform) SwipletAttribute(swiplet string, name string) string {
-	installed, err := p.host.Swiplet(swiplet)
-	if err != nil {
-		return ""
-	}
-	manifest := filepath.Join(installed.Directory, automation.ManifestFile)
-	size, err := unix.Getxattr(manifest, attributePrefix+name, nil)
-	if err != nil || size <= 0 {
-		return ""
-	}
-	value := make([]byte, size)
-	size, err = unix.Getxattr(manifest, attributePrefix+name, value)
-	if err != nil {
-		return ""
-	}
-	return string(value[:size])
-}
-
-func (p *Platform) SetSwipletAttribute(swiplet string, name string, value string) error {
-	installed, err := p.host.Swiplet(swiplet)
-	if err != nil {
-		return err
-	}
-	manifest := filepath.Join(installed.Directory, automation.ManifestFile)
-	if value == "" {
-		err = unix.Removexattr(manifest, attributePrefix+name)
-		if errors.Is(err, unix.ENOATTR) {
-			return nil
-		}
-		return err
-	}
-	return unix.Setxattr(manifest, attributePrefix+name, []byte(value), 0)
+func (p *Platform) ClearSwipletData(swiplet string) error {
+	return p.host.ClearData(swiplet)
 }
 
 func (p *Platform) ExportSwiplet(swiplet string, destination string) error {

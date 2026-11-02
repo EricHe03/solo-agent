@@ -23,8 +23,8 @@ nonisolated enum AppDirectory {
     static let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
     #endif
 
-    static func cacheSize() -> Int64 {
-        guard let enumerator = FileManager.default.enumerator(at: caches, includingPropertiesForKeys: [.totalFileAllocatedSizeKey]) else {
+    static func size(of directory: URL) -> Int64 {
+        guard let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: [.totalFileAllocatedSizeKey]) else {
             return 0
         }
         var size: Int64 = 0

@@ -12,13 +12,13 @@ final class HomeRequest {
 }
 
 enum HomeTab: Hashable {
-    case automation
+    case swiplets
     case developer
     case settings
 }
 
 struct HomeView: View {
-    @State private var selection: HomeTab = .automation
+    @State private var selection: HomeTab = .swiplets
     private let homeRequest = HomeRequest.shared
     #if os(iOS)
     @Environment(\.scenePhase) private var scenePhase
@@ -49,9 +49,9 @@ struct HomeView: View {
                 LoopbackRequiredView()
             } else if #available(iOS 18, *) {
                 TabView(selection: $selection) {
-                    Tab("Automation", systemImage: "wand.and.stars", value: HomeTab.automation) {
+                    Tab("Swiplets", systemImage: "wand.and.stars", value: HomeTab.swiplets) {
                         NavigationStackCompat {
-                            automationView
+                            swipletsView
                         }
                     }
                     Tab("Developer", systemImage: "terminal", value: HomeTab.developer) {
@@ -71,10 +71,10 @@ struct HomeView: View {
             } else {
                 TabView(selection: $selection) {
                     NavigationStackCompat {
-                        automationView
+                        swipletsView
                     }
-                    .tabItem { Label("Automation", systemImage: "wand.and.stars") }
-                    .tag(HomeTab.automation)
+                    .tabItem { Label("Swiplets", systemImage: "wand.and.stars") }
+                    .tag(HomeTab.swiplets)
                     NavigationStackCompat {
                         developerView
                     }
@@ -102,8 +102,8 @@ struct HomeView: View {
         #else
         NavigationSplitView {
             List(selection: Binding(get: { selection }, set: { if let page = $0 { selection = page } })) {
-                Label("Automation", systemImage: "wand.and.stars")
-                    .tag(HomeTab.automation)
+                Label("Swiplets", systemImage: "wand.and.stars")
+                    .tag(HomeTab.swiplets)
                 Label("Developer", systemImage: "terminal")
                     .tag(HomeTab.developer)
                 Label("Settings", systemImage: "gearshape")
@@ -113,9 +113,9 @@ struct HomeView: View {
         } detail: {
             NavigationStack {
                 switch selection {
-                case .automation:
+                case .swiplets:
                     ContentUnavailableView("Not Available on Mac", systemImage: "desktopcomputer")
-                        .navigationTitle("Automation")
+                        .navigationTitle("Swiplets")
                 case .developer:
                     ContentUnavailableView("Not Available on Mac", systemImage: "desktopcomputer")
                         .navigationTitle("Developer")
@@ -130,11 +130,11 @@ struct HomeView: View {
 
     #if os(iOS)
     @ViewBuilder
-    private var automationView: some View {
+    private var swipletsView: some View {
         if #available(iOS 27, *), Platform.isSupported {
-            AutomationView()
+            SwipletsView()
         } else {
-            PlatformUnsupportedView(title: "Automation")
+            PlatformUnsupportedView(title: "Swiplets")
         }
     }
 

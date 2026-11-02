@@ -1,12 +1,21 @@
 import SwiftUI
 
+@MainActor
+func topViewController() -> UIViewController? {
+    let scene = UIApplication.shared.connectedScenes.lazy.compactMap { $0 as? UIWindowScene }.first { $0.activationState == .foregroundActive }
+    guard var top = scene?.keyWindow?.rootViewController else { return nil }
+    while let presented = top.presentedViewController {
+        top = presented
+    }
+    return top
+}
+
 // Pushing a view that holds a NavigationStack onto another NavigationStack hangs the main thread (iOS 27.2 24B115).
 @available(iOS 27, *)
 @MainActor
 enum SwipletPresentation {
     static func open(name: String, entry: SwipletEntry) {
-        let scene = UIApplication.shared.connectedScenes.lazy.compactMap { $0 as? UIWindowScene }.first { $0.activationState == .foregroundActive }
-        guard var top = scene?.keyWindow?.rootViewController else {
+        guard let top = topViewController() else {
             var token: NSObjectProtocol?
             token = NotificationCenter.default.addObserver(forName: UIScene.didActivateNotification, object: nil, queue: .main) { _ in
                 if let token {
@@ -15,9 +24,6 @@ enum SwipletPresentation {
                 open(name: name, entry: entry)
             }
             return
-        }
-        while let presented = top.presentedViewController {
-            top = presented
         }
         top.present(SwipletPresentationController(name: name, entry: entry), animated: true)
     }

@@ -310,6 +310,35 @@ func swap(directory, staging string) error {
 	return nil
 }
 
+func (h *Host) ClearData(id string) error {
+	h.installAccess.Lock()
+	defer h.installAccess.Unlock()
+	swiplet, err := h.Swiplet(id)
+	if err != nil {
+		return err
+	}
+	r, err := h.runner(id)
+	if err != nil {
+		return err
+	}
+	r.access.Lock()
+	r.stopLocked()
+	previous := r.done
+	r.access.Unlock()
+	if previous != nil {
+		<-previous
+	}
+	data := filepath.Join(swiplet.Directory, DataFolder)
+	err = E.Errors(os.RemoveAll(data), os.Mkdir(data, 0o755))
+	_, markerErr := os.Stat(filepath.Join(swiplet.Directory, serviceFile))
+	r.access.Lock()
+	defer r.access.Unlock()
+	if swiplet.Manifest.Service && markerErr == nil {
+		r.startLocked()
+	}
+	return err
+}
+
 func (h *Host) Remove(id string) error {
 	err := h.remove(id)
 	if err != nil {

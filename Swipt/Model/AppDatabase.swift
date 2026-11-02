@@ -54,7 +54,7 @@ enum AppDatabase {
 
     private static let migrator: DatabaseMigrator = {
         var migrator = DatabaseMigrator()
-        migrator.registerMigration("1.0.0", migrate: createTables)
+        migrator.registerMigration("0.1.0", migrate: createTables)
         return migrator
     }()
 
@@ -62,6 +62,36 @@ enum AppDatabase {
         try db.create(table: "preferences", options: .ifNotExists) { t in
             t.primaryKey("name", .text)
             t.column("data", .blob).notNull()
+        }
+        try db.create(table: "swiplets", options: .ifNotExists) { t in
+            t.primaryKey("id", .text)
+            t.column("position", .integer).notNull()
+            t.column("etag", .text).notNull()
+        }
+        try db.create(table: "repositories", options: .ifNotExists) { t in
+            t.primaryKey("url", .text)
+            t.column("position", .integer).notNull()
+            t.column("name", .text).notNull()
+            t.column("localizedNames", .text)
+            t.column("iconColor", .text)
+            t.column("iconSymbol", .text)
+            t.column("image", .blob)
+            t.column("etag", .text).notNull()
+        }
+        try db.create(table: "repositorySwiplets", options: .ifNotExists) { t in
+            t.column("repository", .text).notNull().references("repositories", onDelete: .cascade)
+            t.column("position", .integer).notNull()
+            t.column("id", .text).notNull()
+            t.column("name", .text).notNull()
+            t.column("localizedNames", .text).notNull()
+            t.column("description", .text).notNull()
+            t.column("version", .text).notNull()
+            t.column("versionCode", .integer).notNull()
+            t.column("iconColor", .text)
+            t.column("iconSymbol", .text)
+            t.column("url", .text).notNull()
+            t.column("sha256", .text).notNull()
+            t.primaryKey(["repository", "id"])
         }
     }
 }

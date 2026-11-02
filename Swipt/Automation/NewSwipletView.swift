@@ -39,8 +39,8 @@ struct NewSwipletView: View {
                     }
                 }
                 .onDelete { offsets in
-                    for offset in offsets {
-                        swiplets.removeRepository(swiplets.repositories[offset].url)
+                    for url in offsets.map({ swiplets.repositories[$0].url }) {
+                        swiplets.removeRepository(url)
                     }
                 }
             }

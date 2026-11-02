@@ -122,7 +122,7 @@ private struct AppSettingsView: View {
         .navigationTitle("App")
         .alert($alert)
         .task {
-            cacheSize = await Task.detached(priority: .utility) { AppDirectory.cacheSize() }.value
+            cacheSize = await Task.detached(priority: .utility) { AppDirectory.size(of: AppDirectory.caches) }.value
         }
     }
 
@@ -133,7 +133,7 @@ private struct AppSettingsView: View {
         } catch {
             alert = AlertState(String(localized: "Couldn’t Clear the Cache"), error: error)
         }
-        cacheSize = await Task.detached(priority: .utility) { AppDirectory.cacheSize() }.value
+        cacheSize = await Task.detached(priority: .utility) { AppDirectory.size(of: AppDirectory.caches) }.value
     }
 
     #if os(macOS)
