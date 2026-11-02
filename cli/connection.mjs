@@ -33,7 +33,7 @@ function save(devices) {
   fs.writeFileSync(storeFile, `${JSON.stringify(devices, null, 2)}\n`, { mode: 0o600 });
 }
 
-function label(name) {
+export function label(name) {
   const slug = [...name.replaceAll(/['’]/g, "")]
     .map(character => (/[A-Za-z0-9]/.test(character) ? character : "-"))
     .join("")
@@ -43,7 +43,7 @@ function label(name) {
   return slug === "" ? name : slug;
 }
 
-const sameName = (a, b) => a.toLowerCase() === b.toLowerCase();
+export const sameName = (a, b) => a.toLowerCase() === b.toLowerCase();
 
 const storedName = (stored, name) => Object.keys(stored).find(it => sameName(it, name));
 

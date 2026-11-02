@@ -6,7 +6,7 @@ import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
-import { attach } from "@swipt/cli/connection.mjs";
+import { attach, label, sameName } from "@swipt/cli/connection.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const runtime = path.join(root, "internal/automation/runtime");
@@ -187,61 +187,43 @@ async function unlock(client) {
   }
 }
 
-async function waitForInfo(client, limit) {
-  const deadline = Date.now() + limit;
-  while (Date.now() < deadline) {
-    const info = await infoOf(client);
-    if (info !== undefined) {
-      return info;
-    }
-    await sleep(1000, undefined, { signal: interrupt.signal });
+function coreDevice(given) {
+  const devices = devicectl(["list", "devices"], { parse: true }).result.devices
+    .filter(device => device.hardwareProperties.platform === "iOS" && device.hardwareProperties.reality === "physical")
+    .map(device => ({ name: device.deviceProperties.name, udid: device.hardwareProperties.udid }));
+  const matches = given ? devices.filter(device => sameName(device.udid, given) || sameName(label(device.name), label(given))) : devices;
+  if (matches.length !== 1) {
+    const found = matches.length === 0 ? "no" : "more than one";
+    throw new Error(given ? `${found} iOS device is named ${given}` : `${found} iOS device is paired; choose one with -d NAME|UDID`);
   }
-  return undefined;
+  return matches[0];
 }
 
-function udidByName(name) {
-  const devices = devicectl(["list", "devices"], { parse: true }).result.devices
-    .map(device => ({ name: device.deviceProperties.name, udid: device.hardwareProperties.udid }))
-    .filter(device => device.name === name);
-  if (devices.length !== 1) {
-    throw new Error(`${devices.length === 0 ? "no" : `${devices.length}`} CoreDevice devices are named ${JSON.stringify(name)}; pass the UDID with --udid`);
+async function swipt(name) {
+  try {
+    const client = await attach({ options: { device: label(name) }, target: { url: "" }, signal: interrupt.signal });
+    return (await infoOf(client)) === undefined ? undefined : client;
+  } catch (error) {
+    if (interrupt.signal.aborted) {
+      throw error;
+    }
+    return undefined;
   }
-  return devices[0].udid;
 }
 
 async function installApp(options) {
+  const device = coreDevice(options.device ?? process.env.SWIPT_DEVICE);
   const stamp = String(Math.floor(Date.now() / 1000));
   buildRuntime();
   buildLib();
   const app = build("ios", [`CURRENT_PROJECT_VERSION=${stamp}`]);
 
-  const context = { options: { device: options.device }, target: { url: "" }, signal: interrupt.signal };
-  const client = await attach(context);
-  let info = await infoOf(client);
-  let udid = options.udid ?? info?.udid;
-  if (info === undefined) {
-    if (udid === undefined) {
-      udid = udidByName(context.options.device ?? process.env.SWIPT_DEVICE ?? "");
-    }
-    console.log(`Swipt is not answering at ${context.target.url}; launching the installed one`);
-    devicectl(["device", "process", "launch", "--device", udid, bundleId]);
-    info = await waitForInfo(client, 20000);
+  const client = await swipt(device.name);
+  if (client !== undefined) {
+    await unlock(client).catch(() => {});
   }
-  if (info === undefined) {
-    console.log("Swipt is still not answering; if the device is locked, unlock it");
-  } else {
-    await unlock(client);
-  }
-  devicectl(["device", "install", "app", "--device", udid, app]);
-  devicectl(["device", "process", "launch", "--terminate-existing", "--device", udid, bundleId]);
-  info = await waitForInfo(client, 60000);
-  if (info === undefined) {
-    throw new Error(`Swipt was installed and launched, but does not answer at ${context.target.url}`);
-  }
-  if (info.appBuild !== stamp) {
-    throw new Error(`the device runs Swipt build ${info.appBuild}, not the one just built (${stamp})`);
-  }
-  console.log(`Swipt ${info.appVersion} (${info.appBuild}) is running on ${info.deviceName}`);
+  devicectl(["device", "install", "app", "--device", device.udid, app]);
+  devicectl(["device", "process", "launch", "--terminate-existing", "--device", device.udid, bundleId]);
 }
 
 function parse(argv) {
@@ -270,7 +252,7 @@ const commands = [
   ["archive", "Archive Release with the built lib and frameworks into build/Swipt.ipa; also runs ui"],
   ["ipa", "Build runtime, lib and frameworks, then archive"],
   ["icon", "Export the AltStore icon into build/altstore/icon.png"],
-  ["install [-d NAME|URL] [--udid UDID]", "Build runtime, lib and the ios app, unlock the device, install, launch, and check the build that answers"],
+  ["install [-d NAME|UDID]", "Build runtime, lib and the ios app, then install and launch it on the device"],
 ];
 
 const usage = `usage: bun dev COMMAND
@@ -278,9 +260,8 @@ const usage = `usage: bun dev COMMAND
 commands:
 ${commands.map(([use, help]) => `  ${use.padEnd(38)}${help}`).join("\n")}
 
-install picks the device like swipt: -d or SWIPT_DEVICE names a device saved by swipt device add, or the only one. Its CoreDevice identity comes from the running Swipt; when none answers, from the CoreDevice device with the same name, or --udid.
-XCODEBUILD_FLAGS adds flags to every xcodebuild run.
-The build fails when the app's build number differs from the one just built, which catches a stale install.`;
+install picks the paired iOS device that -d or SWIPT_DEVICE names by CoreDevice name or UDID, or the only one; when Swipt answers on it, it unlocks the device first.
+XCODEBUILD_FLAGS adds flags to every xcodebuild run.`;
 
 async function main() {
   const { options, positional } = parse(process.argv.slice(2));
