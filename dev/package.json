@@ -1,0 +1,8 @@
+{
+  "name": "swipt-dev",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@swipt/cli": "workspace:*"
+  }
+}

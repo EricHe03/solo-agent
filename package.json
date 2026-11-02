@@ -4,9 +4,13 @@
   "workspaces": [
     "api",
     "cli",
+    "dev",
     "internal/automation/runtime",
     "internal/automation/runtime/modules/*"
   ],
+  "scripts": {
+    "dev": "node dev/main.mjs"
+  },
   "dependencies": {
     "swipt-runtime": "workspace:*"
   },
