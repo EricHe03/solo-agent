@@ -22,7 +22,8 @@
     "autolinking": {
       "exclude": [
         "@expo/dom-webview",
-        "@expo/log-box"
+        "@expo/log-box",
+        "expo-file-system"
       ]
     }
   }

@@ -61,10 +61,6 @@
       "frameworkName": "hermesvm"
     },
     {
-      "id": "expo-file-system",
-      "frameworkName": "ExpoFileSystem"
-    },
-    {
       "id": "expo-font",
       "frameworkName": "ExpoFont"
     },
