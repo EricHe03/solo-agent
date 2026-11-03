@@ -70,6 +70,14 @@ func init() {
 		"stream.close":                  streamClose,
 		"stream.pipe":                   streamPipe,
 		"graphics":                      graphicsRun,
+		"crypto.encrypt":                cryptoEncrypt,
+		"crypto.decrypt":                cryptoDecrypt,
+		"crypto.sign":                   cryptoSign,
+		"crypto.verify":                 cryptoVerify,
+		"crypto.derive":                 cryptoDerive,
+		"crypto.generate":               cryptoGenerate,
+		"crypto.import":                 cryptoImport,
+		"crypto.export":                 cryptoExport,
 	}
 }
 

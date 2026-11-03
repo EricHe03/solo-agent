@@ -807,19 +807,27 @@ func (e *engine) digest(arguments []jsc.Value) (any, error) {
 	if !isBytes {
 		return nil, E.New("the data is not a Uint8Array")
 	}
+	sum, err := digestOf(algorithm, data)
+	if err != nil {
+		return nil, err
+	}
+	return jsc.Bytes(sum), nil
+}
+
+func digestOf(algorithm string, data []byte) ([]byte, error) {
 	switch algorithm {
 	case "SHA-1":
 		sum := sha1.Sum(data)
-		return jsc.Bytes(sum[:]), nil
+		return sum[:], nil
 	case "SHA-256":
 		sum := sha256.Sum256(data)
-		return jsc.Bytes(sum[:]), nil
+		return sum[:], nil
 	case "SHA-384":
 		sum := sha512.Sum384(data)
-		return jsc.Bytes(sum[:]), nil
+		return sum[:], nil
 	case "SHA-512":
 		sum := sha512.Sum512(data)
-		return jsc.Bytes(sum[:]), nil
+		return sum[:], nil
 	}
 	return nil, E.New("unknown digest ", algorithm)
 }

@@ -3,6 +3,7 @@ module github.com/swipt-automation/swipt
 go 1.26.8
 
 require (
+	filippo.io/bigmod v0.1.0
 	github.com/andybalholm/brotli v1.2.3
 	github.com/coder/websocket v1.8.15
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
