@@ -466,6 +466,8 @@ export function sourceCommand(root, given) {
   console.log(path.relative(process.cwd(), path.join(dist, "swiplets.json")));
 }
 
+const swiptRange = version.includes("-") ? version : `>=${version}-0 <=${version}`;
+
 const idOf = name => name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^[._-]+/, "").slice(0, 128).replace(/[._-]+$/, "") || "swiplet";
 
 const templates = {
@@ -486,8 +488,8 @@ const templates = {
         scripts: { build: "swipt project build", check: "tsc" },
         dependencies: { zod: "^4.6.7" },
         devDependencies: {
-          "@swipt/api": version,
-          "@swipt/cli": version,
+          "@swipt/api": swiptRange,
+          "@swipt/cli": swiptRange,
           typescript: "^7.0.2",
           ...Object.fromEntries(["@expo/ui", "@types/react", "react"].map(name => [name, peerDependencies[name]])),
         },
