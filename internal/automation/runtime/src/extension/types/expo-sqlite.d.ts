@@ -1,5 +1,7 @@
-export type SQLiteBindValue = string | number | boolean | bigint | null | Uint8Array;
-export type SQLiteBindParams = Record<string, SQLiteBindValue> | SQLiteBindValue[];
+export type SQLiteBindValue =
+  string | number | boolean | bigint | null | Uint8Array;
+export type SQLiteBindParams =
+  Record<string, SQLiteBindValue> | SQLiteBindValue[];
 export type SQLiteVariadicBindParams = SQLiteBindValue[];
 
 export interface SQLiteOpenOptions {
@@ -31,22 +33,40 @@ export interface SQLiteExecuteAsyncResult<T> extends AsyncIterableIterator<T> {
 
 export interface SQLiteStatement {
   executeSync<T>(params: SQLiteBindParams): SQLiteExecuteSyncResult<T>;
-  executeSync<T>(...params: SQLiteVariadicBindParams): SQLiteExecuteSyncResult<T>;
-  executeForRawResultSync<T extends unknown[]>(params: SQLiteBindParams): SQLiteExecuteSyncResult<T>;
-  executeForRawResultSync<T extends unknown[]>(...params: SQLiteVariadicBindParams): SQLiteExecuteSyncResult<T>;
-  executeAsync<T>(params: SQLiteBindParams): Promise<SQLiteExecuteAsyncResult<T>>;
-  executeAsync<T>(...params: SQLiteVariadicBindParams): Promise<SQLiteExecuteAsyncResult<T>>;
-  executeForRawResultAsync<T extends unknown[]>(params: SQLiteBindParams): Promise<SQLiteExecuteAsyncResult<T>>;
-  executeForRawResultAsync<T extends unknown[]>(...params: SQLiteVariadicBindParams): Promise<SQLiteExecuteAsyncResult<T>>;
+  executeSync<T>(
+    ...params: SQLiteVariadicBindParams
+  ): SQLiteExecuteSyncResult<T>;
+  executeForRawResultSync<T extends unknown[]>(
+    params: SQLiteBindParams,
+  ): SQLiteExecuteSyncResult<T>;
+  executeForRawResultSync<T extends unknown[]>(
+    ...params: SQLiteVariadicBindParams
+  ): SQLiteExecuteSyncResult<T>;
+  executeAsync<T>(
+    params: SQLiteBindParams,
+  ): Promise<SQLiteExecuteAsyncResult<T>>;
+  executeAsync<T>(
+    ...params: SQLiteVariadicBindParams
+  ): Promise<SQLiteExecuteAsyncResult<T>>;
+  executeForRawResultAsync<T extends unknown[]>(
+    params: SQLiteBindParams,
+  ): Promise<SQLiteExecuteAsyncResult<T>>;
+  executeForRawResultAsync<T extends unknown[]>(
+    ...params: SQLiteVariadicBindParams
+  ): Promise<SQLiteExecuteAsyncResult<T>>;
   getColumnNamesSync(): string[];
   getColumnNamesAsync(): Promise<string[]>;
   finalizeSync(): void;
   finalizeAsync(): Promise<void>;
 }
 
-export declare const SQLiteStatement: abstract new (...args: never) => SQLiteStatement;
+export declare const SQLiteStatement: abstract new (
+  ...args: never
+) => SQLiteStatement;
 
-export interface SQLiteTaggedQuery<T = unknown> extends PromiseLike<T[] | SQLiteRunResult> {
+export interface SQLiteTaggedQuery<T = unknown> extends PromiseLike<
+  T[] | SQLiteRunResult
+> {
   values(): Promise<unknown[][]>;
   first(): Promise<T | null>;
   each(): AsyncIterableIterator<T>;
@@ -56,13 +76,18 @@ export interface SQLiteTaggedQuery<T = unknown> extends PromiseLike<T[] | SQLite
   eachSync(): IterableIterator<T>;
 }
 
-export declare const SQLiteTaggedQuery: abstract new (...args: never) => SQLiteTaggedQuery;
+export declare const SQLiteTaggedQuery: abstract new (
+  ...args: never
+) => SQLiteTaggedQuery;
 
 export interface SQLiteDatabase {
   readonly databasePath: string;
   readonly options: SQLiteOpenOptions;
   readonly databaseName: string;
-  sql<T = unknown>(strings: TemplateStringsArray, ...values: SQLiteBindValue[]): SQLiteTaggedQuery<T>;
+  sql<T = unknown>(
+    strings: TemplateStringsArray,
+    ...values: SQLiteBindValue[]
+  ): SQLiteTaggedQuery<T>;
   isInTransactionSync(): boolean;
   isInTransactionAsync(): Promise<boolean>;
   interruptSync(): void;
@@ -75,22 +100,45 @@ export interface SQLiteDatabase {
   runSync(source: string, params: SQLiteBindParams): SQLiteRunResult;
   runSync(source: string, ...params: SQLiteVariadicBindParams): SQLiteRunResult;
   runAsync(source: string, params: SQLiteBindParams): Promise<SQLiteRunResult>;
-  runAsync(source: string, ...params: SQLiteVariadicBindParams): Promise<SQLiteRunResult>;
+  runAsync(
+    source: string,
+    ...params: SQLiteVariadicBindParams
+  ): Promise<SQLiteRunResult>;
   getFirstSync<T>(source: string, params: SQLiteBindParams): T | null;
-  getFirstSync<T>(source: string, ...params: SQLiteVariadicBindParams): T | null;
+  getFirstSync<T>(
+    source: string,
+    ...params: SQLiteVariadicBindParams
+  ): T | null;
   getFirstAsync<T>(source: string, params: SQLiteBindParams): Promise<T | null>;
-  getFirstAsync<T>(source: string, ...params: SQLiteVariadicBindParams): Promise<T | null>;
+  getFirstAsync<T>(
+    source: string,
+    ...params: SQLiteVariadicBindParams
+  ): Promise<T | null>;
   getAllSync<T>(source: string, params: SQLiteBindParams): T[];
   getAllSync<T>(source: string, ...params: SQLiteVariadicBindParams): T[];
   getAllAsync<T>(source: string, params: SQLiteBindParams): Promise<T[]>;
-  getAllAsync<T>(source: string, ...params: SQLiteVariadicBindParams): Promise<T[]>;
+  getAllAsync<T>(
+    source: string,
+    ...params: SQLiteVariadicBindParams
+  ): Promise<T[]>;
   getEachSync<T>(source: string, params: SQLiteBindParams): IterableIterator<T>;
-  getEachSync<T>(source: string, ...params: SQLiteVariadicBindParams): IterableIterator<T>;
-  getEachAsync<T>(source: string, params: SQLiteBindParams): AsyncIterableIterator<T>;
-  getEachAsync<T>(source: string, ...params: SQLiteVariadicBindParams): AsyncIterableIterator<T>;
+  getEachSync<T>(
+    source: string,
+    ...params: SQLiteVariadicBindParams
+  ): IterableIterator<T>;
+  getEachAsync<T>(
+    source: string,
+    params: SQLiteBindParams,
+  ): AsyncIterableIterator<T>;
+  getEachAsync<T>(
+    source: string,
+    ...params: SQLiteVariadicBindParams
+  ): AsyncIterableIterator<T>;
   withTransactionSync(task: () => void): void;
   withTransactionAsync(task: () => Promise<void>): Promise<void>;
-  withExclusiveTransactionAsync(task: (transaction: SQLiteDatabase) => Promise<void>): Promise<void>;
+  withExclusiveTransactionAsync(
+    task: (transaction: SQLiteDatabase) => Promise<void>,
+  ): Promise<void>;
   serializeSync(databaseName?: string): Uint8Array;
   serializeAsync(databaseName?: string): Promise<Uint8Array>;
   loadExtensionSync(libPath: string, entryPoint?: string): never;
@@ -100,11 +148,15 @@ export interface SQLiteDatabase {
   syncLibSQL(): Promise<never>;
 }
 
-export declare const SQLiteDatabase: abstract new (...args: never) => SQLiteDatabase;
+export declare const SQLiteDatabase: abstract new (
+  ...args: never
+) => SQLiteDatabase;
 
 export interface SQLiteSession {}
 
-export declare const SQLiteSession: abstract new (...args: never) => SQLiteSession;
+export declare const SQLiteSession: abstract new (
+  ...args: never
+) => SQLiteSession;
 
 export interface DatabaseChangeEvent {
   databaseName: string;
@@ -126,17 +178,47 @@ export interface SQLiteProviderAssetSource {
 }
 
 export declare const defaultDatabaseDirectory: string;
-export declare const bundledExtensions: Readonly<Record<string, { libPath: string; entryPoint: string } | undefined>>;
-export declare function openDatabaseSync(databaseName: string, options?: SQLiteOpenOptions, directory?: string): SQLiteDatabase;
-export declare function openDatabaseAsync(databaseName: string, options?: SQLiteOpenOptions, directory?: string): Promise<SQLiteDatabase>;
-export declare function deserializeDatabaseSync(serializedData: Uint8Array, options?: SQLiteOpenOptions): SQLiteDatabase;
-export declare function deserializeDatabaseAsync(serializedData: Uint8Array, options?: SQLiteOpenOptions): Promise<SQLiteDatabase>;
-export declare function deleteDatabaseSync(databaseName: string, directory?: string): void;
-export declare function deleteDatabaseAsync(databaseName: string, directory?: string): Promise<void>;
-export declare function importDatabaseFromAssetAsync(databaseName: string, assetSource: SQLiteProviderAssetSource, directory?: string): Promise<void>;
+export declare const bundledExtensions: Readonly<
+  Record<string, { libPath: string; entryPoint: string } | undefined>
+>;
+export declare function openDatabaseSync(
+  databaseName: string,
+  options?: SQLiteOpenOptions,
+  directory?: string,
+): SQLiteDatabase;
+export declare function openDatabaseAsync(
+  databaseName: string,
+  options?: SQLiteOpenOptions,
+  directory?: string,
+): Promise<SQLiteDatabase>;
+export declare function deserializeDatabaseSync(
+  serializedData: Uint8Array,
+  options?: SQLiteOpenOptions,
+): SQLiteDatabase;
+export declare function deserializeDatabaseAsync(
+  serializedData: Uint8Array,
+  options?: SQLiteOpenOptions,
+): Promise<SQLiteDatabase>;
+export declare function deleteDatabaseSync(
+  databaseName: string,
+  directory?: string,
+): void;
+export declare function deleteDatabaseAsync(
+  databaseName: string,
+  directory?: string,
+): Promise<void>;
+export declare function importDatabaseFromAssetAsync(
+  databaseName: string,
+  assetSource: SQLiteProviderAssetSource,
+  directory?: string,
+): Promise<void>;
 export declare function backupDatabaseSync(options: SQLiteBackupOptions): void;
-export declare function backupDatabaseAsync(options: SQLiteBackupOptions): Promise<void>;
-export declare function addDatabaseChangeListener(listener: (event: DatabaseChangeEvent) => void): { remove(): void };
+export declare function backupDatabaseAsync(
+  options: SQLiteBackupOptions,
+): Promise<void>;
+export declare function addDatabaseChangeListener(
+  listener: (event: DatabaseChangeEvent) => void,
+): { remove(): void };
 export declare function deepEqual(a: unknown, b: unknown): boolean;
 export declare function configureWeb(options?: unknown): void;
 export declare function SQLiteProvider(props: unknown): never;

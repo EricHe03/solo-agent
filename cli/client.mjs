@@ -33,7 +33,16 @@ export class RpcError extends Error {
   }
 }
 
-const httpStatusCodes = { 400: Code.Internal, 401: Code.Unauthenticated, 403: Code.Unauthenticated, 404: Code.Unimplemented, 429: Code.Unavailable, 502: Code.Unavailable, 503: Code.Unavailable, 504: Code.Unavailable };
+const httpStatusCodes = {
+  400: Code.Internal,
+  401: Code.Unauthenticated,
+  403: Code.Unauthenticated,
+  404: Code.Unimplemented,
+  429: Code.Unavailable,
+  502: Code.Unavailable,
+  503: Code.Unavailable,
+  504: Code.Unavailable,
+};
 
 function statusMessage(text) {
   if (text === undefined || text === null) {
@@ -46,7 +55,7 @@ function statusMessage(text) {
   }
 }
 
-const transportError = error => {
+const transportError = (error) => {
   if (error instanceof RpcError) {
     return error;
   }
@@ -54,7 +63,10 @@ const transportError = error => {
     return new RpcError(Code.Canceled, "the call was canceled");
   }
   const cause = error?.cause;
-  return new RpcError(Code.Unavailable, cause?.message || cause?.code || error?.message || String(error));
+  return new RpcError(
+    Code.Unavailable,
+    cause?.message || cause?.code || error?.message || String(error),
+  );
 };
 
 function frame(schema, init) {
@@ -71,7 +83,9 @@ function parseMetadata(body) {
   for (const line of Buffer.from(body).toString().split("\r\n")) {
     const separator = line.indexOf(":");
     if (separator > 0) {
-      headers[line.slice(0, separator).trim().toLowerCase()] = line.slice(separator + 1).trim();
+      headers[line.slice(0, separator).trim().toLowerCase()] = line
+        .slice(separator + 1)
+        .trim();
     }
   }
   return headers;
@@ -85,18 +99,28 @@ class FrameReader {
   }
 
   push(chunk) {
-    this.pending = this.pending.length === 0 ? Buffer.from(chunk) : Buffer.concat([this.pending, Buffer.from(chunk)]);
+    this.pending =
+      this.pending.length === 0
+        ? Buffer.from(chunk)
+        : Buffer.concat([this.pending, Buffer.from(chunk)]);
     const frames = [];
     while (this.pending.length >= 5) {
       const length = this.pending.readUInt32BE(1);
       if (length > largestMessage) {
-        throw new RpcError(Code.Internal, `the server sent a message of ${length} bytes`);
+        throw new RpcError(
+          Code.Internal,
+          `the server sent a message of ${length} bytes`,
+        );
       }
       if (this.pending.length < 5 + length) {
         break;
       }
       const body = this.pending.subarray(5, 5 + length);
-      frames.push((this.pending[0] & 0x80) !== 0 ? { trailers: parseMetadata(body) } : { message: fromBinary(this.schema, body) });
+      frames.push(
+        (this.pending[0] & 0x80) !== 0
+          ? { trailers: parseMetadata(body) }
+          : { message: fromBinary(this.schema, body) },
+      );
       this.pending = this.pending.subarray(5 + length);
     }
     return frames;
@@ -126,19 +150,25 @@ function requestHeaders(connection) {
 async function* invokeHTTP(connection, method, input, { signal }) {
   let response;
   try {
-    response = await fetch(`${connection.base}/${method.parent.typeName}/${method.name}`, {
-      method: "POST",
-      headers: requestHeaders(connection),
-      body: frame(method.input, input),
-      signal,
-    });
+    response = await fetch(
+      `${connection.base}/${method.parent.typeName}/${method.name}`,
+      {
+        method: "POST",
+        headers: requestHeaders(connection),
+        body: frame(method.input, input),
+        signal,
+      },
+    );
   } catch (error) {
     throw transportError(error);
   }
   const headers = Object.fromEntries(response.headers);
   if (response.status !== 200) {
     await response.body?.cancel();
-    throw new RpcError(httpStatusCodes[response.status] ?? Code.Unknown, `HTTP ${response.status}`);
+    throw new RpcError(
+      httpStatusCodes[response.status] ?? Code.Unknown,
+      `HTTP ${response.status}`,
+    );
   }
   if (checkStatus(headers)) {
     await response.body?.cancel();
@@ -166,7 +196,10 @@ async function* invokeHTTP(connection, method, input, { signal }) {
 }
 
 async function* invokeWebSocket(connection, method, input, { signal }) {
-  const socket = new WebSocket(`${connection.webSocketBase}/${method.parent.typeName}/${method.name}`, [webSocketSubprotocol]);
+  const socket = new WebSocket(
+    `${connection.webSocketBase}/${method.parent.typeName}/${method.name}`,
+    [webSocketSubprotocol],
+  );
   socket.binaryType = "arraybuffer";
   const reader = new FrameReader(method.output);
   const messages = [];
@@ -179,17 +212,28 @@ async function* invokeWebSocket(connection, method, input, { signal }) {
     wake = () => {};
     current();
   };
-  const fail = error => {
+  const fail = (error) => {
     failure ??= error;
     socket.close();
     notify();
   };
-  const abort = () => fail(new RpcError(Code.Canceled, "the call was canceled"));
+  const abort = () =>
+    fail(new RpcError(Code.Canceled, "the call was canceled"));
   const opened = new Promise((resolve, reject) => {
     socket.addEventListener("open", resolve, { once: true });
-    socket.addEventListener("error", () => reject(new RpcError(Code.Unavailable, `cannot connect to ${connection.webSocketBase}`)), { once: true });
+    socket.addEventListener(
+      "error",
+      () =>
+        reject(
+          new RpcError(
+            Code.Unavailable,
+            `cannot connect to ${connection.webSocketBase}`,
+          ),
+        ),
+      { once: true },
+    );
   });
-  socket.addEventListener("message", event => {
+  socket.addEventListener("message", (event) => {
     try {
       for (const found of reader.push(new Uint8Array(event.data))) {
         if (found.message) {
@@ -207,21 +251,33 @@ async function* invokeWebSocket(connection, method, input, { signal }) {
     }
     notify();
   });
-  socket.addEventListener("close", event => {
+  socket.addEventListener("close", (event) => {
     if (!closed) {
-      failure ??= new RpcError(Code.Unavailable, event.reason || "the connection closed before the response");
+      failure ??= new RpcError(
+        Code.Unavailable,
+        event.reason || "the connection closed before the response",
+      );
     }
     closed = true;
     notify();
   });
   socket.addEventListener("error", () => {
-    failure ??= new RpcError(Code.Unavailable, `cannot connect to ${connection.webSocketBase}`);
+    failure ??= new RpcError(
+      Code.Unavailable,
+      `cannot connect to ${connection.webSocketBase}`,
+    );
   });
   signal?.addEventListener("abort", abort, { once: true });
   try {
     await opened;
     const headers = requestHeaders(connection);
-    socket.send(Buffer.from(`${Object.entries(headers).map(([key, value]) => `${key}: ${value}\r\n`).join("")}`));
+    socket.send(
+      Buffer.from(
+        `${Object.entries(headers)
+          .map(([key, value]) => `${key}: ${value}\r\n`)
+          .join("")}`,
+      ),
+    );
     const sender = (async () => {
       try {
         const body = method.methodKind === "client_streaming" ? input : [input];
@@ -229,7 +285,9 @@ async function* invokeWebSocket(connection, method, input, { signal }) {
           if (closed) {
             return;
           }
-          socket.send(Buffer.concat([Buffer.from([0]), frame(method.input, message)]));
+          socket.send(
+            Buffer.concat([Buffer.from([0]), frame(method.input, message)]),
+          );
         }
         if (!closed) {
           socket.send(Buffer.from([1]));
@@ -246,7 +304,7 @@ async function* invokeWebSocket(connection, method, input, { signal }) {
       if (closed) {
         break;
       }
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         wake = resolve;
       });
     }
@@ -276,17 +334,31 @@ async function single(iterable) {
 function bind(service, connection) {
   const client = {};
   for (const method of service.methods) {
-    const streamsInput = method.methodKind === "client_streaming" || method.methodKind === "bidi_streaming";
+    const streamsInput =
+      method.methodKind === "client_streaming" ||
+      method.methodKind === "bidi_streaming";
     client[method.localName] = (input, options = {}) => {
-      const call = (streamsInput ? invokeWebSocket : invokeHTTP)(connection, method, input, { signal: options.signal });
-      return method.methodKind === "unary" || method.methodKind === "client_streaming" ? single(call) : call;
+      const call = (streamsInput ? invokeWebSocket : invokeHTTP)(
+        connection,
+        method,
+        input,
+        { signal: options.signal },
+      );
+      return method.methodKind === "unary" ||
+        method.methodKind === "client_streaming"
+        ? single(call)
+        : call;
     };
   }
   return client;
 }
 
 export function open({ url, token }) {
-  const connection = { token, base: url, webSocketBase: url.replace(/^http/, "ws") };
+  const connection = {
+    token,
+    base: url,
+    webSocketBase: url.replace(/^http/, "ws"),
+  };
   return {
     system: bind(SystemService, connection),
     logs: bind(LogService, connection),
@@ -295,4 +367,5 @@ export function open({ url, token }) {
   };
 }
 
-export const unauthenticated = error => error instanceof RpcError && error.code === Code.Unauthenticated;
+export const unauthenticated = (error) =>
+  error instanceof RpcError && error.code === Code.Unauthenticated;

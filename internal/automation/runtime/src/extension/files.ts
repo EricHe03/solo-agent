@@ -3,7 +3,13 @@ import { invoke } from "./async";
 import { Blob } from "./blob";
 import { TextDecoder, TextEncoder } from "./encoding";
 import { native } from "./native";
-import { chunkBytes, nativeReadable, nativeWritable, ReadableStream, takeNative } from "./streams";
+import {
+  chunkBytes,
+  nativeReadable,
+  nativeWritable,
+  ReadableStream,
+  takeNative,
+} from "./streams";
 
 type Root = "data" | "assets" | "cache";
 
@@ -23,22 +29,34 @@ interface Stat {
 const token = Symbol("location");
 const locations = new WeakMap<FileHandle | DirectoryHandle, Location>();
 
-const rootPaths: Record<Root, () => string> = { data: () => native.dataDirectory, assets: () => native.assetsDirectory, cache: () => native.cacheDirectory };
+const rootPaths: Record<Root, () => string> = {
+  data: () => native.dataDirectory,
+  assets: () => native.assetsDirectory,
+  cache: () => native.cacheDirectory,
+};
 
 const rootPath = (root: Root): string => rootPaths[root]().replace(/\/+$/, "");
 
-const at = (handle: FileHandle | DirectoryHandle): Location => locations.get(handle)!;
+const at = (handle: FileHandle | DirectoryHandle): Location =>
+  locations.get(handle)!;
 
 export const pathOf = (handle: FileHandle | DirectoryHandle): string => {
   const location = at(handle);
-  return location.path === "" ? rootPath(location.root) : `${rootPath(location.root)}/${location.path}`;
+  return location.path === ""
+    ? rootPath(location.root)
+    : `${rootPath(location.root)}/${location.path}`;
 };
 
-const uriOf = (location: Location, directory: boolean): string => fileURI(directoryURI(rootPath(location.root)), location.path, directory);
+const uriOf = (location: Location, directory: boolean): string =>
+  fileURI(directoryURI(rootPath(location.root)), location.path, directory);
 
-const call = <T>(name: string, ...args: unknown[]): Promise<T> => invoke<T>(`fs.${name}`, args);
+const call = <T>(name: string, ...args: unknown[]): Promise<T> =>
+  invoke<T>(`fs.${name}`, args);
 
-const child = (parent: Location, path: string): Location => ({ root: parent.root, path: joinRelative(parent.path, path) });
+const child = (parent: Location, path: string): Location => ({
+  root: parent.root,
+  path: joinRelative(parent.path, path),
+});
 
 const bytesOf = async (data: unknown): Promise<Uint8Array> => {
   if (typeof data === "string") {
@@ -50,12 +68,16 @@ const bytesOf = async (data: unknown): Promise<Uint8Array> => {
   if (ArrayBuffer.isView(data) || data instanceof ArrayBuffer) {
     return chunkBytes(data);
   }
-  throw new TypeError("the data must be a string, an ArrayBuffer, an ArrayBufferView, a Blob or a ReadableStream");
+  throw new TypeError(
+    "the data must be a string, an ArrayBuffer, an ArrayBufferView, a Blob or a ReadableStream",
+  );
 };
 
 const guard = (key: symbol) => {
   if (key !== token) {
-    throw new TypeError("file handles come from dataDirectory, cacheDirectory, assets or from Swipt");
+    throw new TypeError(
+      "file handles come from dataDirectory, cacheDirectory, assets or from Swipt",
+    );
   }
 };
 
@@ -94,8 +116,16 @@ export class DirectoryHandle {
 
   async list(): Promise<(FileHandle | DirectoryHandle)[]> {
     const location = at(this);
-    const entries = await call<{ name: string; directory: boolean }[]>("list", location.root, location.path);
-    return entries.map(entry => entry.directory ? new DirectoryHandle(token, child(location, entry.name)) : new FileHandle(token, child(location, entry.name)));
+    const entries = await call<{ name: string; directory: boolean }[]>(
+      "list",
+      location.root,
+      location.path,
+    );
+    return entries.map((entry) =>
+      entry.directory
+        ? new DirectoryHandle(token, child(location, entry.name))
+        : new FileHandle(token, child(location, entry.name)),
+    );
   }
 
   async delete(): Promise<void> {
@@ -126,7 +156,9 @@ export class FileHandle {
   async stat(): Promise<{ size: number; modified: number } | null> {
     const { root, path } = at(this);
     const info = await call<Stat | null>("stat", root, path);
-    return info?.kind === "file" ? { size: info.size, modified: info.modified } : null;
+    return info?.kind === "file"
+      ? { size: info.size, modified: info.modified }
+      : null;
   }
 
   async bytes(): Promise<Uint8Array> {
@@ -143,7 +175,9 @@ export class FileHandle {
     return nativeReadable(native.openFile(root, path));
   }
 
-  async write(data: string | BufferSource | Blob | ReadableStream<BufferSource>): Promise<void> {
+  async write(
+    data: string | BufferSource | Blob | ReadableStream<BufferSource>,
+  ): Promise<void> {
     const { root, path } = at(this);
     if (!(data instanceof ReadableStream)) {
       await call("write", root, path, native.put(await bytesOf(data)));
@@ -194,11 +228,14 @@ let data: DirectoryHandle | undefined;
 let assetsRoot: DirectoryHandle | undefined;
 let cache: DirectoryHandle | undefined;
 
-export const dataDirectory = (): DirectoryHandle => data ??= new DirectoryHandle(token, { root: "data", path: "" });
+export const dataDirectory = (): DirectoryHandle =>
+  (data ??= new DirectoryHandle(token, { root: "data", path: "" }));
 
-export const assets = (): DirectoryHandle => assetsRoot ??= new DirectoryHandle(token, { root: "assets", path: "" });
+export const assets = (): DirectoryHandle =>
+  (assetsRoot ??= new DirectoryHandle(token, { root: "assets", path: "" }));
 
-export const cacheDirectory = (): DirectoryHandle => cache ??= new DirectoryHandle(token, { root: "cache", path: "" });
+export const cacheDirectory = (): DirectoryHandle =>
+  (cache ??= new DirectoryHandle(token, { root: "cache", path: "" }));
 
 export const fileOf = (value: unknown, name: string): FileHandle => {
   if (value instanceof FileHandle) {
@@ -207,16 +244,25 @@ export const fileOf = (value: unknown, name: string): FileHandle => {
   if (typeof value === "string") {
     return dataDirectory().file(value);
   }
-  throw new TypeError(`${name} must be a FileHandle or a path in the data directory`);
+  throw new TypeError(
+    `${name} must be a FileHandle or a path in the data directory`,
+  );
 };
 
 export const handleOfPath = (value: string): FileHandle => {
-  const absolute = value.startsWith("file://") ? decodeURIComponent(value.slice("file://".length)) : value;
+  const absolute = value.startsWith("file://")
+    ? decodeURIComponent(value.slice("file://".length))
+    : value;
   for (const root of ["data", "assets", "cache"] as const) {
     const prefix = `${rootPath(root)}/`;
     if (absolute.startsWith(prefix)) {
-      return new FileHandle(token, { root, path: absolute.slice(prefix.length).replace(/\/+$/, "") });
+      return new FileHandle(token, {
+        root,
+        path: absolute.slice(prefix.length).replace(/\/+$/, ""),
+      });
     }
   }
-  throw new TypeError(`${JSON.stringify(value)} is outside the directories Swipt provides`);
+  throw new TypeError(
+    `${JSON.stringify(value)} is outside the directories Swipt provides`,
+  );
 };

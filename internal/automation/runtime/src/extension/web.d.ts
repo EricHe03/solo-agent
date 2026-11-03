@@ -1,8 +1,20 @@
 declare namespace Web {
   type Fallback<T> = typeof globalThis extends { onmessage: any } ? {} : T;
-  type FallbackValue<Name extends string, T> = typeof globalThis extends { onmessage: any } ? typeof globalThis extends Record<Name, infer U> ? U : never : T;
-  type WorkerFallback<T> = typeof globalThis extends { importScripts: any } ? {} : T;
-  type WorkerFallbackValue<Name extends string, T> = typeof globalThis extends { importScripts: any } ? FallbackValue<Name, T> : T;
+  type FallbackValue<Name extends string, T> = typeof globalThis extends {
+    onmessage: any;
+  }
+    ? typeof globalThis extends Record<Name, infer U>
+      ? U
+      : never
+    : T;
+  type WorkerFallback<T> = typeof globalThis extends { importScripts: any }
+    ? {}
+    : T;
+  type WorkerFallbackValue<Name extends string, T> = typeof globalThis extends {
+    importScripts: any;
+  }
+    ? FallbackValue<Name, T>
+    : T;
 
   interface WorkerNavigator {
     readonly userAgent: string;
@@ -17,21 +29,37 @@ declare namespace Web {
   }
   var AbortController: {
     prototype: AbortController;
-    new(): AbortController;
+    new (): AbortController;
   };
   interface AbortSignal extends EventTarget {
     readonly aborted: boolean;
     onabort: ((this: AbortSignal, ev: Event) => any) | null;
     readonly reason: any;
     throwIfAborted(): void;
-    addEventListener<K extends keyof AbortSignalEventMap>(type: K, listener: (this: AbortSignal, ev: AbortSignalEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-    addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
-    removeEventListener<K extends keyof AbortSignalEventMap>(type: K, listener: (this: AbortSignal, ev: AbortSignalEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-    removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    addEventListener<K extends keyof AbortSignalEventMap>(
+      type: K,
+      listener: (this: AbortSignal, ev: AbortSignalEventMap[K]) => any,
+      options?: boolean | AddEventListenerOptions,
+    ): void;
+    addEventListener(
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+      options?: boolean | AddEventListenerOptions,
+    ): void;
+    removeEventListener<K extends keyof AbortSignalEventMap>(
+      type: K,
+      listener: (this: AbortSignal, ev: AbortSignalEventMap[K]) => any,
+      options?: boolean | EventListenerOptions,
+    ): void;
+    removeEventListener(
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+      options?: boolean | EventListenerOptions,
+    ): void;
   }
   var AbortSignal: {
     prototype: AbortSignal;
-    new(): AbortSignal;
+    new (): AbortSignal;
     abort(reason?: any): AbortSignal;
     any(signals: AbortSignal[]): AbortSignal;
     timeout(milliseconds: number): AbortSignal;
@@ -62,28 +90,41 @@ declare namespace Web {
   }
   var Event: {
     prototype: Event;
-    new(type: string, eventInitDict?: EventInit): Event;
+    new (type: string, eventInitDict?: EventInit): Event;
     readonly NONE: 0;
     readonly CAPTURING_PHASE: 1;
     readonly AT_TARGET: 2;
     readonly BUBBLING_PHASE: 3;
   };
   interface EventTarget {
-    addEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: AddEventListenerOptions | boolean): void;
+    addEventListener(
+      type: string,
+      callback: EventListenerOrEventListenerObject | null,
+      options?: AddEventListenerOptions | boolean,
+    ): void;
     dispatchEvent(event: Event): boolean;
-    removeEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: EventListenerOptions | boolean): void;
+    removeEventListener(
+      type: string,
+      callback: EventListenerOrEventListenerObject | null,
+      options?: EventListenerOptions | boolean,
+    ): void;
   }
   var EventTarget: {
     prototype: EventTarget;
-    new(): EventTarget;
+    new (): EventTarget;
   };
   interface CustomEvent<T = any> extends Event {
     readonly detail: T | null;
-    initCustomEvent(type: string, bubbles?: boolean, cancelable?: boolean, detail?: T): void;
+    initCustomEvent(
+      type: string,
+      bubbles?: boolean,
+      cancelable?: boolean,
+      detail?: T,
+    ): void;
   }
   var CustomEvent: {
     prototype: CustomEvent;
-    new<T>(type: string, eventInitDict?: CustomEventInit<T>): CustomEvent<T>;
+    new <T>(type: string, eventInitDict?: CustomEventInit<T>): CustomEvent<T>;
   };
   interface ErrorEvent extends Event {
     readonly colno: number;
@@ -94,7 +135,7 @@ declare namespace Web {
   }
   var ErrorEvent: {
     prototype: ErrorEvent;
-    new(type: string, eventInitDict?: ErrorEventInit): ErrorEvent;
+    new (type: string, eventInitDict?: ErrorEventInit): ErrorEvent;
   };
   interface DOMException extends Error {
     readonly code: number;
@@ -128,7 +169,7 @@ declare namespace Web {
   }
   var DOMException: {
     prototype: DOMException;
-    new(message?: string, name?: string): DOMException;
+    new (message?: string, name?: string): DOMException;
     readonly INDEX_SIZE_ERR: 1;
     readonly DOMSTRING_SIZE_ERR: 2;
     readonly HIERARCHY_REQUEST_ERR: 3;
@@ -165,26 +206,38 @@ declare namespace Web {
   }
   var QuotaExceededError: {
     prototype: QuotaExceededError;
-    new(message?: string, options?: QuotaExceededErrorOptions): QuotaExceededError;
+    new (
+      message?: string,
+      options?: QuotaExceededErrorOptions,
+    ): QuotaExceededError;
   } & Omit<typeof DOMException, "prototype">;
   interface TextEncoder extends TextEncoderCommon {
     encode(input?: string): Uint8Array;
-    encodeInto(source: string, destination: Uint8Array): TextEncoderEncodeIntoResult;
+    encodeInto(
+      source: string,
+      destination: Uint8Array,
+    ): TextEncoderEncodeIntoResult;
   }
   var TextEncoder: {
     prototype: TextEncoder;
-    new(): TextEncoder;
+    new (): TextEncoder;
   };
   interface TextDecoder extends TextDecoderCommon {
-    decode(input?: AllowSharedBufferSource, options?: TextDecodeOptions): string;
+    decode(
+      input?: AllowSharedBufferSource,
+      options?: TextDecodeOptions,
+    ): string;
   }
   var TextDecoder: {
     prototype: TextDecoder;
-    new(label?: string, options?: TextDecoderOptions): TextDecoder;
+    new (label?: string, options?: TextDecoderOptions): TextDecoder;
   };
   function atob(data: string): string;
   function btoa(data: string): string;
-  function structuredClone<T = any>(value: T, options?: StructuredSerializeOptions): T;
+  function structuredClone<T = any>(
+    value: T,
+    options?: StructuredSerializeOptions,
+  ): T;
   interface URL {
     hash: string;
     host: string;
@@ -203,7 +256,7 @@ declare namespace Web {
   }
   var URL: {
     prototype: URL;
-    new(url: string | URL, base?: string | URL): URL;
+    new (url: string | URL, base?: string | URL): URL;
     canParse(url: string | URL, base?: string | URL): boolean;
     createObjectURL(obj: Blob): string;
     parse(url: string | URL, base?: string | URL): URL | null;
@@ -219,7 +272,10 @@ declare namespace Web {
     set(name: string, value: string): void;
     sort(): void;
     toString(): string;
-    forEach(callbackfn: (value: string, key: string, parent: URLSearchParams) => void, thisArg?: any): void;
+    forEach(
+      callbackfn: (value: string, key: string, parent: URLSearchParams) => void,
+      thisArg?: any,
+    ): void;
     [Symbol.iterator](): URLSearchParamsIterator<[string, string]>;
     entries(): URLSearchParamsIterator<[string, string]>;
     keys(): URLSearchParamsIterator<string>;
@@ -227,7 +283,9 @@ declare namespace Web {
   }
   var URLSearchParams: {
     prototype: URLSearchParams;
-    new(init?: string[][] | Record<string, string> | string | URLSearchParams): URLSearchParams;
+    new (
+      init?: string[][] | Record<string, string> | string | URLSearchParams,
+    ): URLSearchParams;
   };
   interface Crypto {
     readonly subtle: SubtleCrypto;
@@ -243,29 +301,197 @@ declare namespace Web {
   }
   var CryptoKey: abstract new () => CryptoKey;
   interface SubtleCrypto {
-    decrypt(algorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams, key: CryptoKey, data: BufferSource): Promise<ArrayBuffer>;
-    deriveBits(algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params, baseKey: CryptoKey, length?: number | null): Promise<ArrayBuffer>;
-    deriveKey(algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params, baseKey: CryptoKey, derivedKeyType: AlgorithmIdentifier | AesDerivedKeyParams | HmacImportParams | HkdfParams | Pbkdf2Params, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKey>;
-    digest(algorithm: AlgorithmIdentifier, data: BufferSource): Promise<ArrayBuffer>;
-    encrypt(algorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams, key: CryptoKey, data: BufferSource): Promise<ArrayBuffer>;
+    decrypt(
+      algorithm:
+        | AlgorithmIdentifier
+        | RsaOaepParams
+        | AesCtrParams
+        | AesCbcParams
+        | AesGcmParams,
+      key: CryptoKey,
+      data: BufferSource,
+    ): Promise<ArrayBuffer>;
+    deriveBits(
+      algorithm:
+        AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params,
+      baseKey: CryptoKey,
+      length?: number | null,
+    ): Promise<ArrayBuffer>;
+    deriveKey(
+      algorithm:
+        AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params,
+      baseKey: CryptoKey,
+      derivedKeyType:
+        | AlgorithmIdentifier
+        | AesDerivedKeyParams
+        | HmacImportParams
+        | HkdfParams
+        | Pbkdf2Params,
+      extractable: boolean,
+      keyUsages: KeyUsage[],
+    ): Promise<CryptoKey>;
+    digest(
+      algorithm: AlgorithmIdentifier,
+      data: BufferSource,
+    ): Promise<ArrayBuffer>;
+    encrypt(
+      algorithm:
+        | AlgorithmIdentifier
+        | RsaOaepParams
+        | AesCtrParams
+        | AesCbcParams
+        | AesGcmParams,
+      key: CryptoKey,
+      data: BufferSource,
+    ): Promise<ArrayBuffer>;
     exportKey(format: "jwk", key: CryptoKey): Promise<JsonWebKey>;
-    exportKey(format: Exclude<KeyFormat, "jwk">, key: CryptoKey): Promise<ArrayBuffer>;
-    exportKey(format: KeyFormat, key: CryptoKey): Promise<ArrayBuffer | JsonWebKey>;
-    generateKey(algorithm: "Ed25519" | { name: "Ed25519" }, extractable: boolean, keyUsages: ReadonlyArray<"sign" | "verify">): Promise<CryptoKeyPair>;
-    generateKey(algorithm: "X25519" | { name: "X25519" }, extractable: boolean, keyUsages: ReadonlyArray<"deriveBits" | "deriveKey">): Promise<CryptoKeyPair>;
-    generateKey(algorithm: RsaHashedKeyGenParams | EcKeyGenParams, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKeyPair>;
-    generateKey(algorithm: AesKeyGenParams | HmacKeyGenParams | Pbkdf2Params, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKey>;
-    generateKey(algorithm: AlgorithmIdentifier, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKeyPair | CryptoKey>;
-    importKey(format: "jwk", keyData: JsonWebKey, algorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKey>;
-    importKey(format: Exclude<KeyFormat, "jwk">, keyData: BufferSource, algorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKey>;
-    sign(algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams, key: CryptoKey, data: BufferSource): Promise<ArrayBuffer>;
-    unwrapKey(format: KeyFormat, wrappedKey: BufferSource, unwrappingKey: CryptoKey, unwrapAlgorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams, unwrappedKeyAlgorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKey>;
-    verify(algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams, key: CryptoKey, signature: BufferSource, data: BufferSource): Promise<boolean>;
-    wrapKey(format: KeyFormat, key: CryptoKey, wrappingKey: CryptoKey, wrapAlgorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams): Promise<ArrayBuffer>;
-    deriveKey(algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params, baseKey: CryptoKey, derivedKeyType: AlgorithmIdentifier | AesDerivedKeyParams | HmacImportParams | HkdfParams | Pbkdf2Params, extractable: boolean, keyUsages: Iterable<KeyUsage>): Promise<CryptoKey>;
-    generateKey(algorithm: AlgorithmIdentifier, extractable: boolean, keyUsages: Iterable<KeyUsage>): Promise<CryptoKeyPair | CryptoKey>;
-    importKey(format: Exclude<KeyFormat, "jwk">, keyData: BufferSource, algorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: Iterable<KeyUsage>): Promise<CryptoKey>;
-    unwrapKey(format: KeyFormat, wrappedKey: BufferSource, unwrappingKey: CryptoKey, unwrapAlgorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams, unwrappedKeyAlgorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: Iterable<KeyUsage>): Promise<CryptoKey>;
+    exportKey(
+      format: Exclude<KeyFormat, "jwk">,
+      key: CryptoKey,
+    ): Promise<ArrayBuffer>;
+    exportKey(
+      format: KeyFormat,
+      key: CryptoKey,
+    ): Promise<ArrayBuffer | JsonWebKey>;
+    generateKey(
+      algorithm: "Ed25519" | { name: "Ed25519" },
+      extractable: boolean,
+      keyUsages: ReadonlyArray<"sign" | "verify">,
+    ): Promise<CryptoKeyPair>;
+    generateKey(
+      algorithm: "X25519" | { name: "X25519" },
+      extractable: boolean,
+      keyUsages: ReadonlyArray<"deriveBits" | "deriveKey">,
+    ): Promise<CryptoKeyPair>;
+    generateKey(
+      algorithm: RsaHashedKeyGenParams | EcKeyGenParams,
+      extractable: boolean,
+      keyUsages: ReadonlyArray<KeyUsage>,
+    ): Promise<CryptoKeyPair>;
+    generateKey(
+      algorithm: AesKeyGenParams | HmacKeyGenParams | Pbkdf2Params,
+      extractable: boolean,
+      keyUsages: ReadonlyArray<KeyUsage>,
+    ): Promise<CryptoKey>;
+    generateKey(
+      algorithm: AlgorithmIdentifier,
+      extractable: boolean,
+      keyUsages: KeyUsage[],
+    ): Promise<CryptoKeyPair | CryptoKey>;
+    importKey(
+      format: "jwk",
+      keyData: JsonWebKey,
+      algorithm:
+        | AlgorithmIdentifier
+        | RsaHashedImportParams
+        | EcKeyImportParams
+        | HmacImportParams
+        | AesKeyAlgorithm,
+      extractable: boolean,
+      keyUsages: ReadonlyArray<KeyUsage>,
+    ): Promise<CryptoKey>;
+    importKey(
+      format: Exclude<KeyFormat, "jwk">,
+      keyData: BufferSource,
+      algorithm:
+        | AlgorithmIdentifier
+        | RsaHashedImportParams
+        | EcKeyImportParams
+        | HmacImportParams
+        | AesKeyAlgorithm,
+      extractable: boolean,
+      keyUsages: KeyUsage[],
+    ): Promise<CryptoKey>;
+    sign(
+      algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams,
+      key: CryptoKey,
+      data: BufferSource,
+    ): Promise<ArrayBuffer>;
+    unwrapKey(
+      format: KeyFormat,
+      wrappedKey: BufferSource,
+      unwrappingKey: CryptoKey,
+      unwrapAlgorithm:
+        | AlgorithmIdentifier
+        | RsaOaepParams
+        | AesCtrParams
+        | AesCbcParams
+        | AesGcmParams,
+      unwrappedKeyAlgorithm:
+        | AlgorithmIdentifier
+        | RsaHashedImportParams
+        | EcKeyImportParams
+        | HmacImportParams
+        | AesKeyAlgorithm,
+      extractable: boolean,
+      keyUsages: KeyUsage[],
+    ): Promise<CryptoKey>;
+    verify(
+      algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams,
+      key: CryptoKey,
+      signature: BufferSource,
+      data: BufferSource,
+    ): Promise<boolean>;
+    wrapKey(
+      format: KeyFormat,
+      key: CryptoKey,
+      wrappingKey: CryptoKey,
+      wrapAlgorithm:
+        | AlgorithmIdentifier
+        | RsaOaepParams
+        | AesCtrParams
+        | AesCbcParams
+        | AesGcmParams,
+    ): Promise<ArrayBuffer>;
+    deriveKey(
+      algorithm:
+        AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params,
+      baseKey: CryptoKey,
+      derivedKeyType:
+        | AlgorithmIdentifier
+        | AesDerivedKeyParams
+        | HmacImportParams
+        | HkdfParams
+        | Pbkdf2Params,
+      extractable: boolean,
+      keyUsages: Iterable<KeyUsage>,
+    ): Promise<CryptoKey>;
+    generateKey(
+      algorithm: AlgorithmIdentifier,
+      extractable: boolean,
+      keyUsages: Iterable<KeyUsage>,
+    ): Promise<CryptoKeyPair | CryptoKey>;
+    importKey(
+      format: Exclude<KeyFormat, "jwk">,
+      keyData: BufferSource,
+      algorithm:
+        | AlgorithmIdentifier
+        | RsaHashedImportParams
+        | EcKeyImportParams
+        | HmacImportParams
+        | AesKeyAlgorithm,
+      extractable: boolean,
+      keyUsages: Iterable<KeyUsage>,
+    ): Promise<CryptoKey>;
+    unwrapKey(
+      format: KeyFormat,
+      wrappedKey: BufferSource,
+      unwrappingKey: CryptoKey,
+      unwrapAlgorithm:
+        | AlgorithmIdentifier
+        | RsaOaepParams
+        | AesCtrParams
+        | AesCbcParams
+        | AesGcmParams,
+      unwrappedKeyAlgorithm:
+        | AlgorithmIdentifier
+        | RsaHashedImportParams
+        | EcKeyImportParams
+        | HmacImportParams
+        | AesKeyAlgorithm,
+      extractable: boolean,
+      keyUsages: Iterable<KeyUsage>,
+    ): Promise<CryptoKey>;
   }
   var SubtleCrypto: abstract new () => SubtleCrypto;
   var crypto: Crypto;
@@ -281,7 +507,7 @@ declare namespace Web {
   }
   var Blob: {
     prototype: Blob;
-    new(blobParts?: BlobPart[], options?: BlobPropertyBag): Blob;
+    new (blobParts?: BlobPart[], options?: BlobPropertyBag): Blob;
   };
   interface File extends Blob {
     readonly lastModified: number;
@@ -290,7 +516,11 @@ declare namespace Web {
   }
   var File: {
     prototype: File;
-    new(fileBits: BlobPart[], fileName: string, options?: FilePropertyBag): File;
+    new (
+      fileBits: BlobPart[],
+      fileName: string,
+      options?: FilePropertyBag,
+    ): File;
   };
   interface FormData {
     append(name: string, value: string | Blob): void;
@@ -303,7 +533,14 @@ declare namespace Web {
     set(name: string, value: string | Blob): void;
     set(name: string, value: string): void;
     set(name: string, blobValue: Blob, filename?: string): void;
-    forEach(callbackfn: (value: FormDataEntryValue, key: string, parent: FormData) => void, thisArg?: any): void;
+    forEach(
+      callbackfn: (
+        value: FormDataEntryValue,
+        key: string,
+        parent: FormData,
+      ) => void,
+      thisArg?: any,
+    ): void;
     [Symbol.iterator](): FormDataIterator<[string, FormDataEntryValue]>;
     entries(): FormDataIterator<[string, FormDataEntryValue]>;
     keys(): FormDataIterator<string>;
@@ -311,41 +548,67 @@ declare namespace Web {
   }
   var FormData: {
     prototype: FormData;
-    new(): FormData;
+    new (): FormData;
   };
   interface ReadableStream<R = any> {
     readonly locked: boolean;
     cancel(reason?: any): Promise<void>;
     getReader(options: { mode: "byob" }): ReadableStreamBYOBReader;
     getReader(): ReadableStreamDefaultReader<R>;
-    getReader(options?: ReadableStreamGetReaderOptions): ReadableStreamReader<R>;
-    pipeThrough<T>(transform: ReadableWritablePair<T, R>, options?: StreamPipeOptions): ReadableStream<T>;
-    pipeTo(destination: WritableStream<R>, options?: StreamPipeOptions): Promise<void>;
+    getReader(
+      options?: ReadableStreamGetReaderOptions,
+    ): ReadableStreamReader<R>;
+    pipeThrough<T>(
+      transform: ReadableWritablePair<T, R>,
+      options?: StreamPipeOptions,
+    ): ReadableStream<T>;
+    pipeTo(
+      destination: WritableStream<R>,
+      options?: StreamPipeOptions,
+    ): Promise<void>;
     tee(): [ReadableStream<R>, ReadableStream<R>];
-    [Symbol.asyncIterator](options?: ReadableStreamIteratorOptions): ReadableStreamAsyncIterator<R>;
-    values(options?: ReadableStreamIteratorOptions): ReadableStreamAsyncIterator<R>;
+    [Symbol.asyncIterator](
+      options?: ReadableStreamIteratorOptions,
+    ): ReadableStreamAsyncIterator<R>;
+    values(
+      options?: ReadableStreamIteratorOptions,
+    ): ReadableStreamAsyncIterator<R>;
   }
   var ReadableStream: {
     prototype: ReadableStream;
-    new(underlyingSource: UnderlyingByteSource, strategy?: { highWaterMark?: number }): ReadableStream<Uint8Array>;
-    new<R = any>(underlyingSource: UnderlyingDefaultSource<R>, strategy?: QueuingStrategy<R>): ReadableStream<R>;
-    new<R = any>(underlyingSource?: UnderlyingSource<R>, strategy?: QueuingStrategy<R>): ReadableStream<R>;
+    new (
+      underlyingSource: UnderlyingByteSource,
+      strategy?: { highWaterMark?: number },
+    ): ReadableStream<Uint8Array>;
+    new <R = any>(
+      underlyingSource: UnderlyingDefaultSource<R>,
+      strategy?: QueuingStrategy<R>,
+    ): ReadableStream<R>;
+    new <R = any>(
+      underlyingSource?: UnderlyingSource<R>,
+      strategy?: QueuingStrategy<R>,
+    ): ReadableStream<R>;
   };
-  interface ReadableStreamDefaultReader<R = any> extends ReadableStreamGenericReader {
+  interface ReadableStreamDefaultReader<
+    R = any,
+  > extends ReadableStreamGenericReader {
     read(): Promise<ReadableStreamReadResult<R>>;
     releaseLock(): void;
   }
   var ReadableStreamDefaultReader: {
     prototype: ReadableStreamDefaultReader;
-    new<R = any>(stream: ReadableStream<R>): ReadableStreamDefaultReader<R>;
+    new <R = any>(stream: ReadableStream<R>): ReadableStreamDefaultReader<R>;
   };
   interface ReadableStreamBYOBReader extends ReadableStreamGenericReader {
-    read<T extends Exclude<BufferSource, ArrayBuffer>>(view: T, options?: ReadableStreamBYOBReaderReadOptions): Promise<ReadableStreamReadResult<T>>;
+    read<T extends Exclude<BufferSource, ArrayBuffer>>(
+      view: T,
+      options?: ReadableStreamBYOBReaderReadOptions,
+    ): Promise<ReadableStreamReadResult<T>>;
     releaseLock(): void;
   }
   var ReadableStreamBYOBReader: {
     prototype: ReadableStreamBYOBReader;
-    new(stream: ReadableStream<Uint8Array>): ReadableStreamBYOBReader;
+    new (stream: ReadableStream<Uint8Array>): ReadableStreamBYOBReader;
   };
   interface ReadableStreamBYOBRequest {
     readonly view: ArrayBufferView | null;
@@ -376,7 +639,10 @@ declare namespace Web {
   }
   var WritableStream: {
     prototype: WritableStream;
-    new<W = any>(underlyingSink?: UnderlyingSink<W>, strategy?: QueuingStrategy<W>): WritableStream<W>;
+    new <W = any>(
+      underlyingSink?: UnderlyingSink<W>,
+      strategy?: QueuingStrategy<W>,
+    ): WritableStream<W>;
   };
   interface WritableStreamDefaultWriter<W = any> {
     readonly closed: Promise<undefined>;
@@ -389,7 +655,7 @@ declare namespace Web {
   }
   var WritableStreamDefaultWriter: {
     prototype: WritableStreamDefaultWriter;
-    new<W = any>(stream: WritableStream<W>): WritableStreamDefaultWriter<W>;
+    new <W = any>(stream: WritableStream<W>): WritableStreamDefaultWriter<W>;
   };
   interface WritableStreamDefaultController {
     readonly signal: AbortSignal;
@@ -402,7 +668,11 @@ declare namespace Web {
   }
   var TransformStream: {
     prototype: TransformStream;
-    new<I = any, O = any>(transformer?: Transformer<I, O>, writableStrategy?: QueuingStrategy<I>, readableStrategy?: QueuingStrategy<O>): TransformStream<I, O>;
+    new <I = any, O = any>(
+      transformer?: Transformer<I, O>,
+      writableStrategy?: QueuingStrategy<I>,
+      readableStrategy?: QueuingStrategy<O>,
+    ): TransformStream<I, O>;
   };
   interface TransformStreamDefaultController<O = any> {
     readonly desiredSize: number | null;
@@ -417,7 +687,7 @@ declare namespace Web {
   }
   var ByteLengthQueuingStrategy: {
     prototype: ByteLengthQueuingStrategy;
-    new(init: QueuingStrategyInit): ByteLengthQueuingStrategy;
+    new (init: QueuingStrategyInit): ByteLengthQueuingStrategy;
   };
   interface CountQueuingStrategy extends QueuingStrategy {
     readonly highWaterMark: number;
@@ -425,23 +695,25 @@ declare namespace Web {
   }
   var CountQueuingStrategy: {
     prototype: CountQueuingStrategy;
-    new(init: QueuingStrategyInit): CountQueuingStrategy;
+    new (init: QueuingStrategyInit): CountQueuingStrategy;
   };
-  interface TextEncoderStream extends GenericTransformStream, TextEncoderCommon {
+  interface TextEncoderStream
+    extends GenericTransformStream, TextEncoderCommon {
     readonly readable: ReadableStream<Uint8Array>;
     readonly writable: WritableStream<string>;
   }
   var TextEncoderStream: {
     prototype: TextEncoderStream;
-    new(): TextEncoderStream;
+    new (): TextEncoderStream;
   };
-  interface TextDecoderStream extends GenericTransformStream, TextDecoderCommon {
+  interface TextDecoderStream
+    extends GenericTransformStream, TextDecoderCommon {
     readonly readable: ReadableStream<string>;
     readonly writable: WritableStream<BufferSource>;
   }
   var TextDecoderStream: {
     prototype: TextDecoderStream;
-    new(label?: string, options?: TextDecoderOptions): TextDecoderStream;
+    new (label?: string, options?: TextDecoderOptions): TextDecoderStream;
   };
   interface CompressionStream extends GenericTransformStream {
     readonly readable: ReadableStream<Uint8Array>;
@@ -449,7 +721,7 @@ declare namespace Web {
   }
   var CompressionStream: {
     prototype: CompressionStream;
-    new(format: CompressionFormat): CompressionStream;
+    new (format: CompressionFormat): CompressionStream;
   };
   interface DecompressionStream extends GenericTransformStream {
     readonly readable: ReadableStream<Uint8Array>;
@@ -457,7 +729,7 @@ declare namespace Web {
   }
   var DecompressionStream: {
     prototype: DecompressionStream;
-    new(format: CompressionFormat): DecompressionStream;
+    new (format: CompressionFormat): DecompressionStream;
   };
   var performance: Performance;
   interface Performance extends EventTarget {
@@ -467,12 +739,27 @@ declare namespace Web {
     getEntries(): PerformanceEntryList;
     getEntriesByName(name: string, type?: string): PerformanceEntryList;
     getEntriesByType(type: string): PerformanceEntryList;
-    mark(markName: string, markOptions?: PerformanceMarkOptions): PerformanceMark;
-    measure(measureName: string, startOrMeasureOptions?: string | PerformanceMeasureOptions, endMark?: string): PerformanceMeasure;
+    mark(
+      markName: string,
+      markOptions?: PerformanceMarkOptions,
+    ): PerformanceMark;
+    measure(
+      measureName: string,
+      startOrMeasureOptions?: string | PerformanceMeasureOptions,
+      endMark?: string,
+    ): PerformanceMeasure;
     now(): DOMHighResTimeStamp;
     toJSON(): any;
-    addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
-    removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    addEventListener(
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+      options?: boolean | AddEventListenerOptions,
+    ): void;
+    removeEventListener(
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+      options?: boolean | EventListenerOptions,
+    ): void;
   }
   var Performance: abstract new () => Performance;
   interface PerformanceEntry {
@@ -488,7 +775,10 @@ declare namespace Web {
   }
   var PerformanceMark: {
     prototype: PerformanceMark;
-    new(markName: string, markOptions?: PerformanceMarkOptions): PerformanceMark;
+    new (
+      markName: string,
+      markOptions?: PerformanceMarkOptions,
+    ): PerformanceMark;
   };
   interface PerformanceMeasure extends PerformanceEntry {
     readonly detail: any;
@@ -501,7 +791,7 @@ declare namespace Web {
   }
   var PerformanceObserver: {
     prototype: PerformanceObserver;
-    new(callback: PerformanceObserverCallback): PerformanceObserver;
+    new (callback: PerformanceObserverCallback): PerformanceObserver;
     readonly supportedEntryTypes: ReadonlyArray<string>;
   };
   interface PerformanceObserverEntryList {
@@ -512,12 +802,20 @@ declare namespace Web {
   var PerformanceObserverEntryList: abstract new () => PerformanceObserverEntryList;
   function queueMicrotask(callback: VoidFunction): void;
   var console: Console;
-  function setTimeout(handler: string | ((...args: any[]) => void), timeout?: number, ...arguments: any[]): number;
+  function setTimeout(
+    handler: string | ((...args: any[]) => void),
+    timeout?: number,
+    ...arguments: any[]
+  ): number;
   function clearTimeout(id?: number): void;
-  function setInterval(handler: string | ((...args: any[]) => void), timeout?: number, ...arguments: any[]): number;
+  function setInterval(
+    handler: string | ((...args: any[]) => void),
+    timeout?: number,
+    ...arguments: any[]
+  ): number;
   function clearInterval(id?: number): void;
   interface AbortSignalEventMap {
-    "abort": Event;
+    abort: Event;
   }
   interface AddEventListenerOptions extends EventListenerOptions {
     once?: boolean;
@@ -565,9 +863,15 @@ declare namespace Web {
     ignoreBOM?: boolean;
   }
   interface StructuredSerializeOptions {
-    transfer?: Iterable<ArrayBuffer | ReadableStream | WritableStream | TransformStream>;
+    transfer?: Iterable<
+      ArrayBuffer | ReadableStream | WritableStream | TransformStream
+    >;
   }
-  interface URLSearchParamsIterator<T> extends IteratorObject<T, BuiltinIteratorReturn, unknown> {
+  interface URLSearchParamsIterator<T> extends IteratorObject<
+    T,
+    BuiltinIteratorReturn,
+    unknown
+  > {
     [Symbol.iterator](): URLSearchParamsIterator<T>;
   }
   type BufferSource = ArrayBufferView | ArrayBuffer;
@@ -575,7 +879,15 @@ declare namespace Web {
     name: string;
   }
   type KeyType = "private" | "public" | "secret";
-  type KeyUsage = "decrypt" | "deriveBits" | "deriveKey" | "encrypt" | "sign" | "unwrapKey" | "verify" | "wrapKey";
+  type KeyUsage =
+    | "decrypt"
+    | "deriveBits"
+    | "deriveKey"
+    | "encrypt"
+    | "sign"
+    | "unwrapKey"
+    | "verify"
+    | "wrapKey";
   type AlgorithmIdentifier = Algorithm | string;
   interface RsaOaepParams extends Algorithm {
     label?: BufferSource;
@@ -674,13 +986,18 @@ declare namespace Web {
     lastModified?: number;
   }
   type FormDataEntryValue = File | string;
-  interface FormDataIterator<T> extends IteratorObject<T, BuiltinIteratorReturn, unknown> {
+  interface FormDataIterator<T> extends IteratorObject<
+    T,
+    BuiltinIteratorReturn,
+    unknown
+  > {
     [Symbol.iterator](): FormDataIterator<T>;
   }
   interface ReadableStreamGetReaderOptions {
     mode?: ReadableStreamReaderMode;
   }
-  type ReadableStreamReader<T> = ReadableStreamDefaultReader<T> | ReadableStreamBYOBReader;
+  type ReadableStreamReader<T> =
+    ReadableStreamDefaultReader<T> | ReadableStreamBYOBReader;
   interface ReadableWritablePair<R = any, W = any> {
     readable: ReadableStream<R>;
     writable: WritableStream<W>;
@@ -694,13 +1011,17 @@ declare namespace Web {
   interface UnderlyingByteSource {
     autoAllocateChunkSize?: number;
     cancel?: UnderlyingSourceCancelCallback;
-    pull?: (controller: ReadableByteStreamController) => void | PromiseLike<void>;
+    pull?: (
+      controller: ReadableByteStreamController,
+    ) => void | PromiseLike<void>;
     start?: (controller: ReadableByteStreamController) => any;
     type: "bytes";
   }
   interface UnderlyingDefaultSource<R = any> {
     cancel?: UnderlyingSourceCancelCallback;
-    pull?: (controller: ReadableStreamDefaultController<R>) => void | PromiseLike<void>;
+    pull?: (
+      controller: ReadableStreamDefaultController<R>,
+    ) => void | PromiseLike<void>;
     start?: (controller: ReadableStreamDefaultController<R>) => any;
     type?: undefined;
   }
@@ -718,14 +1039,19 @@ declare namespace Web {
   interface ReadableStreamIteratorOptions {
     preventCancel?: boolean;
   }
-  interface ReadableStreamAsyncIterator<T> extends AsyncIteratorObject<T, BuiltinIteratorReturn, unknown> {
+  interface ReadableStreamAsyncIterator<T> extends AsyncIteratorObject<
+    T,
+    BuiltinIteratorReturn,
+    unknown
+  > {
     [Symbol.asyncIterator](): ReadableStreamAsyncIterator<T>;
   }
   interface ReadableStreamGenericReader {
     readonly closed: Promise<undefined>;
     cancel(reason?: any): Promise<void>;
   }
-  type ReadableStreamReadResult<T> = ReadableStreamReadValueResult<T> | ReadableStreamReadDoneResult<T>;
+  type ReadableStreamReadResult<T> =
+    ReadableStreamReadValueResult<T> | ReadableStreamReadDoneResult<T>;
   interface ReadableStreamBYOBReaderReadOptions {
     min?: number;
   }
@@ -771,7 +1097,10 @@ declare namespace Web {
     type?: string;
   }
   interface PerformanceObserverCallback {
-    (entries: PerformanceObserverEntryList, observer: PerformanceObserver): void;
+    (
+      entries: PerformanceObserverEntryList,
+      observer: PerformanceObserver,
+    ): void;
   }
   interface VoidFunction {
     (): void;
@@ -847,7 +1176,10 @@ declare namespace Web {
     (controller: WritableStreamDefaultController): any;
   }
   interface UnderlyingSinkWriteCallback<W> {
-    (chunk: W, controller: WritableStreamDefaultController): void | PromiseLike<void>;
+    (
+      chunk: W,
+      controller: WritableStreamDefaultController,
+    ): void | PromiseLike<void>;
   }
   interface TransformerFlushCallback<O> {
     (controller: TransformStreamDefaultController<O>): void | PromiseLike<void>;
@@ -856,43 +1188,74 @@ declare namespace Web {
     (controller: TransformStreamDefaultController<O>): any;
   }
   interface TransformerTransformCallback<I, O> {
-    (chunk: I, controller: TransformStreamDefaultController<O>): void | PromiseLike<void>;
+    (
+      chunk: I,
+      controller: TransformStreamDefaultController<O>,
+    ): void | PromiseLike<void>;
   }
   type BigInteger = Uint8Array;
-  type ReadableStreamController<T> = ReadableStreamDefaultController<T> | ReadableByteStreamController;
+  type ReadableStreamController<T> =
+    ReadableStreamDefaultController<T> | ReadableByteStreamController;
 }
 
 interface AbortController extends Web.Fallback<Web.AbortController> {}
-declare var AbortController: Web.FallbackValue<"AbortController", typeof Web.AbortController>;
+declare var AbortController: Web.FallbackValue<
+  "AbortController",
+  typeof Web.AbortController
+>;
 interface AbortSignal extends Web.Fallback<Web.AbortSignal> {}
-declare var AbortSignal: Web.FallbackValue<"AbortSignal", typeof Web.AbortSignal>;
+declare var AbortSignal: Web.FallbackValue<
+  "AbortSignal",
+  typeof Web.AbortSignal
+>;
 interface Event extends Web.Fallback<Web.Event> {}
 declare var Event: Web.FallbackValue<"Event", typeof Web.Event>;
 interface EventTarget extends Web.Fallback<Web.EventTarget> {}
-declare var EventTarget: Web.FallbackValue<"EventTarget", typeof Web.EventTarget>;
+declare var EventTarget: Web.FallbackValue<
+  "EventTarget",
+  typeof Web.EventTarget
+>;
 interface CustomEvent<T = any> extends Web.Fallback<Web.CustomEvent<T>> {}
-declare var CustomEvent: Web.FallbackValue<"CustomEvent", typeof Web.CustomEvent>;
+declare var CustomEvent: Web.FallbackValue<
+  "CustomEvent",
+  typeof Web.CustomEvent
+>;
 interface ErrorEvent extends Web.Fallback<Web.ErrorEvent> {}
 declare var ErrorEvent: Web.FallbackValue<"ErrorEvent", typeof Web.ErrorEvent>;
 interface DOMException extends Web.Fallback<Web.DOMException> {}
-declare var DOMException: Web.FallbackValue<"DOMException", typeof Web.DOMException>;
+declare var DOMException: Web.FallbackValue<
+  "DOMException",
+  typeof Web.DOMException
+>;
 // not in lib.dom yet
 interface QuotaExceededError extends Web.QuotaExceededError {}
 declare var QuotaExceededError: typeof Web.QuotaExceededError;
 interface TextEncoder extends Web.Fallback<Web.TextEncoder> {}
-declare var TextEncoder: Web.FallbackValue<"TextEncoder", typeof Web.TextEncoder>;
+declare var TextEncoder: Web.FallbackValue<
+  "TextEncoder",
+  typeof Web.TextEncoder
+>;
 interface TextDecoder extends Web.Fallback<Web.TextDecoder> {}
-declare var TextDecoder: Web.FallbackValue<"TextDecoder", typeof Web.TextDecoder>;
+declare var TextDecoder: Web.FallbackValue<
+  "TextDecoder",
+  typeof Web.TextDecoder
+>;
 interface URL extends Web.Fallback<Web.URL> {}
 declare var URL: Web.FallbackValue<"URL", typeof Web.URL>;
 interface URLSearchParams extends Web.Fallback<Web.URLSearchParams> {}
-declare var URLSearchParams: Web.FallbackValue<"URLSearchParams", typeof Web.URLSearchParams>;
+declare var URLSearchParams: Web.FallbackValue<
+  "URLSearchParams",
+  typeof Web.URLSearchParams
+>;
 interface Crypto extends Web.Fallback<Web.Crypto> {}
 declare var Crypto: Web.FallbackValue<"Crypto", typeof Web.Crypto>;
 interface CryptoKey extends Web.Fallback<Web.CryptoKey> {}
 declare var CryptoKey: Web.FallbackValue<"CryptoKey", typeof Web.CryptoKey>;
 interface SubtleCrypto extends Web.Fallback<Web.SubtleCrypto> {}
-declare var SubtleCrypto: Web.FallbackValue<"SubtleCrypto", typeof Web.SubtleCrypto>;
+declare var SubtleCrypto: Web.FallbackValue<
+  "SubtleCrypto",
+  typeof Web.SubtleCrypto
+>;
 declare var crypto: Crypto;
 interface Blob extends Web.Fallback<Web.Blob> {}
 declare var Blob: Web.FallbackValue<"Blob", typeof Web.Blob>;
@@ -901,64 +1264,157 @@ declare var File: Web.FallbackValue<"File", typeof Web.File>;
 interface FormData extends Web.Fallback<Web.FormData> {}
 declare var FormData: Web.FallbackValue<"FormData", typeof Web.FormData>;
 interface ReadableStream<R = any> extends Web.Fallback<Web.ReadableStream<R>> {}
-declare var ReadableStream: Web.FallbackValue<"ReadableStream", typeof Web.ReadableStream>;
-interface ReadableStreamDefaultReader<R = any> extends Web.Fallback<Web.ReadableStreamDefaultReader<R>> {}
-declare var ReadableStreamDefaultReader: Web.FallbackValue<"ReadableStreamDefaultReader", typeof Web.ReadableStreamDefaultReader>;
+declare var ReadableStream: Web.FallbackValue<
+  "ReadableStream",
+  typeof Web.ReadableStream
+>;
+interface ReadableStreamDefaultReader<R = any> extends Web.Fallback<
+  Web.ReadableStreamDefaultReader<R>
+> {}
+declare var ReadableStreamDefaultReader: Web.FallbackValue<
+  "ReadableStreamDefaultReader",
+  typeof Web.ReadableStreamDefaultReader
+>;
 interface ReadableStreamBYOBReader extends Web.Fallback<Web.ReadableStreamBYOBReader> {}
-declare var ReadableStreamBYOBReader: Web.FallbackValue<"ReadableStreamBYOBReader", typeof Web.ReadableStreamBYOBReader>;
+declare var ReadableStreamBYOBReader: Web.FallbackValue<
+  "ReadableStreamBYOBReader",
+  typeof Web.ReadableStreamBYOBReader
+>;
 interface ReadableStreamBYOBRequest extends Web.Fallback<Web.ReadableStreamBYOBRequest> {}
-declare var ReadableStreamBYOBRequest: Web.FallbackValue<"ReadableStreamBYOBRequest", typeof Web.ReadableStreamBYOBRequest>;
-interface ReadableStreamDefaultController<R = any> extends Web.Fallback<Web.ReadableStreamDefaultController<R>> {}
-declare var ReadableStreamDefaultController: Web.FallbackValue<"ReadableStreamDefaultController", typeof Web.ReadableStreamDefaultController>;
+declare var ReadableStreamBYOBRequest: Web.FallbackValue<
+  "ReadableStreamBYOBRequest",
+  typeof Web.ReadableStreamBYOBRequest
+>;
+interface ReadableStreamDefaultController<R = any> extends Web.Fallback<
+  Web.ReadableStreamDefaultController<R>
+> {}
+declare var ReadableStreamDefaultController: Web.FallbackValue<
+  "ReadableStreamDefaultController",
+  typeof Web.ReadableStreamDefaultController
+>;
 interface ReadableByteStreamController extends Web.Fallback<Web.ReadableByteStreamController> {}
-declare var ReadableByteStreamController: Web.FallbackValue<"ReadableByteStreamController", typeof Web.ReadableByteStreamController>;
+declare var ReadableByteStreamController: Web.FallbackValue<
+  "ReadableByteStreamController",
+  typeof Web.ReadableByteStreamController
+>;
 interface WritableStream<W = any> extends Web.Fallback<Web.WritableStream<W>> {}
-declare var WritableStream: Web.FallbackValue<"WritableStream", typeof Web.WritableStream>;
-interface WritableStreamDefaultWriter<W = any> extends Web.Fallback<Web.WritableStreamDefaultWriter<W>> {}
-declare var WritableStreamDefaultWriter: Web.FallbackValue<"WritableStreamDefaultWriter", typeof Web.WritableStreamDefaultWriter>;
+declare var WritableStream: Web.FallbackValue<
+  "WritableStream",
+  typeof Web.WritableStream
+>;
+interface WritableStreamDefaultWriter<W = any> extends Web.Fallback<
+  Web.WritableStreamDefaultWriter<W>
+> {}
+declare var WritableStreamDefaultWriter: Web.FallbackValue<
+  "WritableStreamDefaultWriter",
+  typeof Web.WritableStreamDefaultWriter
+>;
 interface WritableStreamDefaultController extends Web.Fallback<Web.WritableStreamDefaultController> {}
-declare var WritableStreamDefaultController: Web.FallbackValue<"WritableStreamDefaultController", typeof Web.WritableStreamDefaultController>;
-interface TransformStream<I = any, O = any> extends Web.Fallback<Web.TransformStream<I, O>> {}
-declare var TransformStream: Web.FallbackValue<"TransformStream", typeof Web.TransformStream>;
-interface TransformStreamDefaultController<O = any> extends Web.Fallback<Web.TransformStreamDefaultController<O>> {}
-declare var TransformStreamDefaultController: Web.FallbackValue<"TransformStreamDefaultController", typeof Web.TransformStreamDefaultController>;
+declare var WritableStreamDefaultController: Web.FallbackValue<
+  "WritableStreamDefaultController",
+  typeof Web.WritableStreamDefaultController
+>;
+interface TransformStream<I = any, O = any> extends Web.Fallback<
+  Web.TransformStream<I, O>
+> {}
+declare var TransformStream: Web.FallbackValue<
+  "TransformStream",
+  typeof Web.TransformStream
+>;
+interface TransformStreamDefaultController<O = any> extends Web.Fallback<
+  Web.TransformStreamDefaultController<O>
+> {}
+declare var TransformStreamDefaultController: Web.FallbackValue<
+  "TransformStreamDefaultController",
+  typeof Web.TransformStreamDefaultController
+>;
 interface ByteLengthQueuingStrategy extends Web.Fallback<Web.ByteLengthQueuingStrategy> {}
-declare var ByteLengthQueuingStrategy: Web.FallbackValue<"ByteLengthQueuingStrategy", typeof Web.ByteLengthQueuingStrategy>;
+declare var ByteLengthQueuingStrategy: Web.FallbackValue<
+  "ByteLengthQueuingStrategy",
+  typeof Web.ByteLengthQueuingStrategy
+>;
 interface CountQueuingStrategy extends Web.Fallback<Web.CountQueuingStrategy> {}
-declare var CountQueuingStrategy: Web.FallbackValue<"CountQueuingStrategy", typeof Web.CountQueuingStrategy>;
+declare var CountQueuingStrategy: Web.FallbackValue<
+  "CountQueuingStrategy",
+  typeof Web.CountQueuingStrategy
+>;
 interface TextEncoderStream extends Web.Fallback<Web.TextEncoderStream> {}
-declare var TextEncoderStream: Web.FallbackValue<"TextEncoderStream", typeof Web.TextEncoderStream>;
+declare var TextEncoderStream: Web.FallbackValue<
+  "TextEncoderStream",
+  typeof Web.TextEncoderStream
+>;
 interface TextDecoderStream extends Web.Fallback<Web.TextDecoderStream> {}
-declare var TextDecoderStream: Web.FallbackValue<"TextDecoderStream", typeof Web.TextDecoderStream>;
+declare var TextDecoderStream: Web.FallbackValue<
+  "TextDecoderStream",
+  typeof Web.TextDecoderStream
+>;
 interface CompressionStream extends Web.Fallback<Web.CompressionStream> {}
-declare var CompressionStream: Web.FallbackValue<"CompressionStream", typeof Web.CompressionStream>;
+declare var CompressionStream: Web.FallbackValue<
+  "CompressionStream",
+  typeof Web.CompressionStream
+>;
 interface DecompressionStream extends Web.Fallback<Web.DecompressionStream> {}
-declare var DecompressionStream: Web.FallbackValue<"DecompressionStream", typeof Web.DecompressionStream>;
+declare var DecompressionStream: Web.FallbackValue<
+  "DecompressionStream",
+  typeof Web.DecompressionStream
+>;
 interface Performance extends Web.Fallback<Web.Performance> {}
 declare var performance: Performance;
-declare var Performance: Web.FallbackValue<"Performance", typeof Web.Performance>;
+declare var Performance: Web.FallbackValue<
+  "Performance",
+  typeof Web.Performance
+>;
 interface PerformanceEntry extends Web.Fallback<Web.PerformanceEntry> {}
-declare var PerformanceEntry: Web.FallbackValue<"PerformanceEntry", typeof Web.PerformanceEntry>;
+declare var PerformanceEntry: Web.FallbackValue<
+  "PerformanceEntry",
+  typeof Web.PerformanceEntry
+>;
 interface PerformanceMark extends Web.Fallback<Web.PerformanceMark> {}
-declare var PerformanceMark: Web.FallbackValue<"PerformanceMark", typeof Web.PerformanceMark>;
+declare var PerformanceMark: Web.FallbackValue<
+  "PerformanceMark",
+  typeof Web.PerformanceMark
+>;
 interface PerformanceMeasure extends Web.Fallback<Web.PerformanceMeasure> {}
-declare var PerformanceMeasure: Web.FallbackValue<"PerformanceMeasure", typeof Web.PerformanceMeasure>;
+declare var PerformanceMeasure: Web.FallbackValue<
+  "PerformanceMeasure",
+  typeof Web.PerformanceMeasure
+>;
 interface PerformanceObserver extends Web.Fallback<Web.PerformanceObserver> {}
-declare var PerformanceObserver: Web.FallbackValue<"PerformanceObserver", typeof Web.PerformanceObserver>;
+declare var PerformanceObserver: Web.FallbackValue<
+  "PerformanceObserver",
+  typeof Web.PerformanceObserver
+>;
 interface PerformanceObserverEntryList extends Web.Fallback<Web.PerformanceObserverEntryList> {}
-declare var PerformanceObserverEntryList: Web.FallbackValue<"PerformanceObserverEntryList", typeof Web.PerformanceObserverEntryList>;
+declare var PerformanceObserverEntryList: Web.FallbackValue<
+  "PerformanceObserverEntryList",
+  typeof Web.PerformanceObserverEntryList
+>;
 interface Console extends Web.Fallback<Web.Console> {}
 declare var console: Console;
 interface WorkerNavigator extends Web.WorkerFallback<Web.WorkerNavigator> {}
-declare var WorkerNavigator: Web.WorkerFallbackValue<"WorkerNavigator", typeof Web.WorkerNavigator>;
+declare var WorkerNavigator: Web.WorkerFallbackValue<
+  "WorkerNavigator",
+  typeof Web.WorkerNavigator
+>;
 interface Navigator extends Web.Fallback<Web.WorkerNavigator> {}
 declare var navigator: Navigator;
 declare function atob(data: string): string;
 declare function btoa(data: string): string;
 interface StructuredSerializeOptions extends Web.Fallback<Web.StructuredSerializeOptions> {}
-declare function structuredClone<T = any>(value: T, options?: StructuredSerializeOptions): T;
+declare function structuredClone<T = any>(
+  value: T,
+  options?: StructuredSerializeOptions,
+): T;
 declare function queueMicrotask(callback: () => void): void;
-declare function setTimeout(handler: string | ((...args: any[]) => void), timeout?: number, ...args: any[]): number;
+declare function setTimeout(
+  handler: string | ((...args: any[]) => void),
+  timeout?: number,
+  ...args: any[]
+): number;
 declare function clearTimeout(id?: number): void;
-declare function setInterval(handler: string | ((...args: any[]) => void), timeout?: number, ...args: any[]): number;
+declare function setInterval(
+  handler: string | ((...args: any[]) => void),
+  timeout?: number,
+  ...args: any[]
+): number;
 declare function clearInterval(id?: number): void;

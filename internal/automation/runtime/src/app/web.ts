@@ -1,6 +1,11 @@
 import { settle } from "../extension/async";
 import type { Chunks } from "../extension/chunks";
-import { assets, cacheDirectory, dataDirectory, type DirectoryHandle } from "../extension/files";
+import {
+  assets,
+  cacheDirectory,
+  dataDirectory,
+  type DirectoryHandle,
+} from "../extension/files";
 import { bind, type Native } from "../extension/native";
 import { installGlobalScope } from "../extension/scope";
 import { createConsole } from "../shared/console";
@@ -23,7 +28,10 @@ export interface WebHost {
   webCompression(format: string, mode: string): string[];
   webRandom(length: number): Uint8Array;
   webDigest(algorithm: string, data: Uint8Array): Uint8Array;
-  webDecodeText(data: Uint8Array, fatal: boolean): { text?: string; restored?: number };
+  webDecodeText(
+    data: Uint8Array,
+    fatal: boolean,
+  ): { text?: string; restored?: number };
   publishObjectURL(url: string, data: Uint8Array | null): void;
 }
 
@@ -45,18 +53,41 @@ const unavailable = (name: string) => () => {
 
 const directories = { data: "", assets: "", cache: "" };
 
-export const pathOfURI = (uri: string): string => decodeURIComponent(uri.replace(/^file:\/\//, "")).replace(/\/+$/, "");
+export const pathOfURI = (uri: string): string =>
+  decodeURIComponent(uri.replace(/^file:\/\//, "")).replace(/\/+$/, "");
 
-export function fileSystem(dataURI: string, assetsURI: string, cacheURI: string): { dataDirectory: DirectoryHandle; cacheDirectory: DirectoryHandle; assets: DirectoryHandle } {
+export function fileSystem(
+  dataURI: string,
+  assetsURI: string,
+  cacheURI: string,
+): {
+  dataDirectory: DirectoryHandle;
+  cacheDirectory: DirectoryHandle;
+  assets: DirectoryHandle;
+} {
   directories.data = pathOfURI(dataURI);
   directories.assets = pathOfURI(assetsURI);
   directories.cache = pathOfURI(cacheURI);
-  return { dataDirectory: dataDirectory(), cacheDirectory: cacheDirectory(), assets: assets() };
+  return {
+    dataDirectory: dataDirectory(),
+    cacheDirectory: cacheDirectory(),
+    assets: assets(),
+  };
 }
 
-export function installWeb(host: WebHost, format: (value: unknown) => string): void {
+export function installWeb(
+  host: WebHost,
+  format: (value: unknown) => string,
+): void {
   const results = new Map<string, WebResult>();
-  const { performance: timing, console: original, setTimeout, setInterval, clearTimeout, TextEncoder: Encoder } = globalThis;
+  const {
+    performance: timing,
+    console: original,
+    setTimeout,
+    setInterval,
+    clearTimeout,
+    TextEncoder: Encoder,
+  } = globalThis;
   const now = () => timing.now();
   const encoder = new Encoder();
   const languages = host.languages().join("\n");
@@ -76,12 +107,21 @@ export function installWeb(host: WebHost, format: (value: unknown) => string): v
     timeOrigin: String(Date.now() - now()),
     now,
     start(id, name, args) {
-      host.webStart(id, name, args).then(
-        result => results.set(id, result),
-        (error: unknown) => results.set(id, { failure: JSON.stringify({ name: "Error", message: error instanceof Error ? error.message : String(error) }) }),
-      ).then(() => settle(id));
+      host
+        .webStart(id, name, args)
+        .then(
+          (result) => results.set(id, result),
+          (error: unknown) =>
+            results.set(id, {
+              failure: JSON.stringify({
+                name: "Error",
+                message: error instanceof Error ? error.message : String(error),
+              }),
+            }),
+        )
+        .then(() => settle(id));
     },
-    cancel: id => host.webCancel(id),
+    cancel: (id) => host.webCancel(id),
     failure(id) {
       const failure = results.get(id)?.failure;
       if (failure === undefined) {
@@ -98,21 +138,22 @@ export function installWeb(host: WebHost, format: (value: unknown) => string): v
     subscribe: unavailable("subscribe"),
     unsubscribe: unavailable("unsubscribe"),
     print: (level, text) => host.log(level, text),
-    put: data => host.webPut(data),
+    put: (data) => host.webPut(data),
     take: unavailable("take"),
-    random: length => host.webRandom(length),
+    random: (length) => host.webRandom(length),
     digest: (algorithm, data) => host.webDigest(algorithm, data),
     release: (id, reason) => host.webRelease(id, reason ?? ""),
-    compression: (format, mode) => host.webCompression(format, mode) as [string, string],
-    encodeText: text => encoder.encode(text),
+    compression: (format, mode) =>
+      host.webCompression(format, mode) as [string, string],
+    encodeText: (text) => encoder.encode(text),
     decodeText(data, fatal) {
       const decoded = host.webDecodeText(data, fatal !== 0);
       return decoded.text ?? decoded.restored!;
     },
-    chunk: name => () => chunks[name as keyof Chunks](),
+    chunk: (name) => () => chunks[name as keyof Chunks](),
     setTimeout,
     setInterval,
-    clearTimer: id => clearTimeout(id),
+    clearTimer: (id) => clearTimeout(id),
     finish: unavailable("finish"),
     show: unavailable("show"),
     match: unavailable("match"),
@@ -124,17 +165,32 @@ export function installWeb(host: WebHost, format: (value: unknown) => string): v
   };
   Object.setPrototypeOf(native, null);
   bind(native);
-  for (const name of ["fetch", "XMLHttpRequest", "WebSocket", "Headers", "Request", "Response"]) {
+  for (const name of [
+    "fetch",
+    "XMLHttpRequest",
+    "WebSocket",
+    "Headers",
+    "Request",
+    "Response",
+  ]) {
     Reflect.deleteProperty(globalThis, name);
   }
-  installGlobalScope(createConsole({
-    print(severity, text) {
-      original[severity](text);
-      host.log(severity, text);
-    },
-    format,
-    inspect,
-    trace: label => `Trace${label === "" ? "" : `: ${label}`}\n${String(new Error().stack ?? "").split("\n").slice(2).join("\n")}`,
-    now,
-  }));
+  installGlobalScope(
+    createConsole({
+      print(severity, text) {
+        original[severity](text);
+        host.log(severity, text);
+      },
+      format,
+      inspect,
+      trace: (label) =>
+        `Trace${label === "" ? "" : `: ${label}`}\n${String(
+          new Error().stack ?? "",
+        )
+          .split("\n")
+          .slice(2)
+          .join("\n")}`,
+      now,
+    }),
+  );
 }

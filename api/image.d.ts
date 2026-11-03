@@ -1,7 +1,8 @@
 import type { CallOptions, Point, Quad, Rect } from "./index";
 import type { FileHandle } from "./file-system";
 
-export type Color = `#${string}` | readonly [red: number, green: number, blue: number];
+export type Color =
+  `#${string}` | readonly [red: number, green: number, blue: number];
 export type ImageFormat = "png" | "jpeg" | "heic";
 
 export interface TemplateMatch {
@@ -58,7 +59,8 @@ export interface RecognizedTextCandidate {
   boundingBox(start: number, end: number): RecognizedTextBox | null;
 }
 
-export interface RecognizedTextLine extends RecognizedTextCandidate, RecognizedTextBox {
+export interface RecognizedTextLine
+  extends RecognizedTextCandidate, RecognizedTextBox {
   readonly candidates: readonly RecognizedTextCandidate[];
 }
 
@@ -85,7 +87,10 @@ export interface RasterImage {
 
   crop(rect: Rect): RasterImage;
   resize(scale: number): RasterImage;
-  resize(size: { readonly width?: number; readonly height?: number }): RasterImage;
+  resize(size: {
+    readonly width?: number;
+    readonly height?: number;
+  }): RasterImage;
   rotate(degrees: number): RasterImage;
   grayscale(): RasterImage;
   threshold(level?: number | "otsu"): RasterImage;
@@ -95,20 +100,59 @@ export interface RasterImage {
   dilate(radius?: number): RasterImage;
   erode(radius?: number): RasterImage;
 
-  encode(format?: ImageFormat, options?: CallOptions & { readonly quality?: number }): Promise<Uint8Array>;
-  save(file: FileHandle | string, options?: CallOptions & { readonly format?: ImageFormat; readonly quality?: number }): Promise<FileHandle>;
-  pixel(point: Point, options?: CallOptions): Promise<[red: number, green: number, blue: number, alpha: number]>;
-  stats(options?: CallOptions & { readonly region?: Rect }): Promise<ImageStats>;
+  encode(
+    format?: ImageFormat,
+    options?: CallOptions & { readonly quality?: number },
+  ): Promise<Uint8Array>;
+  save(
+    file: FileHandle | string,
+    options?: CallOptions & {
+      readonly format?: ImageFormat;
+      readonly quality?: number;
+    },
+  ): Promise<FileHandle>;
+  pixel(
+    point: Point,
+    options?: CallOptions,
+  ): Promise<[red: number, green: number, blue: number, alpha: number]>;
+  stats(
+    options?: CallOptions & { readonly region?: Rect },
+  ): Promise<ImageStats>;
 
-  find(template: RasterImage, options?: TemplateMatchOptions): Promise<TemplateMatch | null>;
-  findAll(template: RasterImage, options?: TemplateMatchOptions & { readonly limit?: number; readonly overlap?: number }): Promise<TemplateMatch[]>;
-  matchColors(checks: readonly ColorCheck[], options?: CallOptions): Promise<boolean[]>;
-  components(options?: CallOptions & { readonly minimumPixels?: number }): Promise<ConnectedComponent[]>;
-  recognizeText(options?: TextRecognitionOptions): Promise<RecognizedTextLine[]>;
-  diff(other: RasterImage, options?: CallOptions & { readonly threshold?: number }): Promise<ImageDifference>;
+  find(
+    template: RasterImage,
+    options?: TemplateMatchOptions,
+  ): Promise<TemplateMatch | null>;
+  findAll(
+    template: RasterImage,
+    options?: TemplateMatchOptions & {
+      readonly limit?: number;
+      readonly overlap?: number;
+    },
+  ): Promise<TemplateMatch[]>;
+  matchColors(
+    checks: readonly ColorCheck[],
+    options?: CallOptions,
+  ): Promise<boolean[]>;
+  components(
+    options?: CallOptions & { readonly minimumPixels?: number },
+  ): Promise<ConnectedComponent[]>;
+  recognizeText(
+    options?: TextRecognitionOptions,
+  ): Promise<RecognizedTextLine[]>;
+  diff(
+    other: RasterImage,
+    options?: CallOptions & { readonly threshold?: number },
+  ): Promise<ImageDifference>;
   distance(other: RasterImage, options?: CallOptions): Promise<number>;
-  nearest(candidates: readonly RasterImage[], options?: CallOptions): Promise<{ readonly index: number; readonly distance: number }>;
+  nearest(
+    candidates: readonly RasterImage[],
+    options?: CallOptions,
+  ): Promise<{ readonly index: number; readonly distance: number }>;
   detectBarcodes(options?: CallOptions): Promise<DetectedBarcode[]>;
 }
 
-export declare function decode(data: Uint8Array | FileHandle | string, options?: CallOptions & { readonly scale?: number }): Promise<RasterImage>;
+export declare function decode(
+  data: Uint8Array | FileHandle | string,
+  options?: CallOptions & { readonly scale?: number },
+): Promise<RasterImage>;

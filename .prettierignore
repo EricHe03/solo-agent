@@ -1,0 +1,9 @@
+Swipt/
+Swipt.xcodeproj/
+cli/proto/
+internal/automation/runtime.js
+internal/automation/rewrite.js
+internal/automation/chunks/
+internal/automation/declarations/
+internal/automation/runtime/src/shared/encodings.ts
+internal/automation/runtime/src/shared/encoding-tables.ts

@@ -1,13 +1,25 @@
 import type { Table } from "./encoding-tables";
 import { labels, type Encoding } from "./encodings";
-import { allowSharedBufferSource, boolean, brand, defineInterface, dictionary, domString, optional, type AllowSharedBufferSource } from "./webidl";
+import {
+  allowSharedBufferSource,
+  boolean,
+  brand,
+  defineInterface,
+  dictionary,
+  domString,
+  optional,
+  type AllowSharedBufferSource,
+} from "./webidl";
 
 export type { Encoding };
 
 export type EncodingTables = typeof import("./encoding-tables");
 
 // On a fatal error, returns the offset of the byte the decoder restores to its input, or -1.
-export type NativeDecode = (bytes: Uint8Array, fatal: boolean) => string | number;
+export type NativeDecode = (
+  bytes: Uint8Array,
+  fatal: boolean,
+) => string | number;
 
 interface Decoder {
   readonly restored: readonly number[];
@@ -22,13 +34,20 @@ export const encodingOf = (label: string): Encoding | undefined => {
   }
   if (labelEncodings === undefined) {
     labelEncodings = new Map();
-    for (const [encoding, names] of Object.entries(labels) as [Encoding, readonly string[]][]) {
+    for (const [encoding, names] of Object.entries(labels) as [
+      Encoding,
+      readonly string[],
+    ][]) {
       for (const name of names) {
         labelEncodings.set(name, encoding);
       }
     }
   }
-  return labelEncodings.get(label.replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, "").replace(/[A-Z]+/g, upper => upper.toLowerCase()));
+  return labelEncodings.get(
+    label
+      .replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, "")
+      .replace(/[A-Z]+/g, (upper) => upper.toLowerCase()),
+  );
 };
 
 export const bytesOf = (input: unknown): Uint8Array => {
@@ -47,7 +66,8 @@ export const bytesOf = (input: unknown): Uint8Array => {
   throw new TypeError("the input is not an ArrayBuffer or a view of one");
 };
 
-const sharedArrayBuffer = typeof SharedArrayBuffer === "function" ? SharedArrayBuffer : undefined;
+const sharedArrayBuffer =
+  typeof SharedArrayBuffer === "function" ? SharedArrayBuffer : undefined;
 
 export const allowSharedBytesOf = (input: unknown): Uint8Array => {
   if (input instanceof Uint8Array) {
@@ -56,21 +76,33 @@ export const allowSharedBytesOf = (input: unknown): Uint8Array => {
   if (ArrayBuffer.isView(input)) {
     return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
   }
-  if (input instanceof ArrayBuffer || (sharedArrayBuffer !== undefined && input instanceof sharedArrayBuffer)) {
+  if (
+    input instanceof ArrayBuffer ||
+    (sharedArrayBuffer !== undefined && input instanceof sharedArrayBuffer)
+  ) {
     return new Uint8Array(input);
   }
-  throw new TypeError("the input is not an ArrayBuffer, a SharedArrayBuffer, or a view of one");
+  throw new TypeError(
+    "the input is not an ArrayBuffer, a SharedArrayBuffer, or a view of one",
+  );
 };
 
 const stringOf = (units: Uint16Array, count: number): string => {
   let out = "";
   for (let start = 0; start < count; start += 0x2000) {
-    out += String.fromCharCode.apply(null, units.subarray(start, Math.min(count, start + 0x2000)) as unknown as number[]);
+    out += String.fromCharCode.apply(
+      null,
+      units.subarray(
+        start,
+        Math.min(count, start + 0x2000),
+      ) as unknown as number[],
+    );
   }
   return out;
 };
 
-const digitOf = (code: number): number => code - 0x21 - (code > 0x22 ? 1 : 0) - (code > 0x5c ? 1 : 0);
+const digitOf = (code: number): number =>
+  code - 0x21 - (code > 0x22 ? 1 : 0) - (code > 0x5c ? 1 : 0);
 
 const expanded = new Map<Table, Uint16Array | Uint32Array>();
 
@@ -113,7 +145,10 @@ const expand = (table: Table, wide = false): Uint16Array | Uint32Array => {
   return out;
 };
 
-const gb18030CodePoint = (ranges: EncodingTables["gb18030Ranges"], pointer: number): number => {
+const gb18030CodePoint = (
+  ranges: EncodingTables["gb18030Ranges"],
+  pointer: number,
+): number => {
   if ((pointer > 39419 && pointer < 189000) || pointer > 1237575) {
     return 0;
   }
@@ -142,7 +177,11 @@ class SingleByteDecoder implements Decoder {
     this.#table = table;
   }
 
-  decode(bytes: Uint8Array, _flush: boolean, fatal: boolean): string | undefined {
+  decode(
+    bytes: Uint8Array,
+    _flush: boolean,
+    fatal: boolean,
+  ): string | undefined {
     const table = this.#table;
     const units = new Uint16Array(bytes.length);
     for (let index = 0; index < bytes.length; index++) {
@@ -165,7 +204,10 @@ class SingleByteDecoder implements Decoder {
   }
 }
 
-const userDefined = Uint16Array.from({ length: 0x80 }, (_, offset) => 0xf780 + offset);
+const userDefined = Uint16Array.from(
+  { length: 0x80 },
+  (_, offset) => 0xf780 + offset,
+);
 
 class GB18030Decoder implements Decoder {
   readonly #index: Uint16Array | Uint32Array;
@@ -180,7 +222,11 @@ class GB18030Decoder implements Decoder {
     this.#ranges = tables.gb18030Ranges;
   }
 
-  decode(bytes: Uint8Array, flush: boolean, fatal: boolean): string | undefined {
+  decode(
+    bytes: Uint8Array,
+    flush: boolean,
+    fatal: boolean,
+  ): string | undefined {
     const gb18030 = this.#index;
     const units = new Uint16Array(bytes.length + 8);
     let count = 0;
@@ -201,7 +247,14 @@ class GB18030Decoder implements Decoder {
           index--;
           continue;
         }
-        let point = gb18030CodePoint(this.#ranges, (first - 0x81) * 12600 + (second - 0x30) * 1260 + (third - 0x81) * 10 + byte - 0x30);
+        let point = gb18030CodePoint(
+          this.#ranges,
+          (first - 0x81) * 12600 +
+            (second - 0x30) * 1260 +
+            (third - 0x81) * 10 +
+            byte -
+            0x30,
+        );
         first = second = third = 0;
         if (point === 0) {
           if (fatal) {
@@ -239,7 +292,10 @@ class GB18030Decoder implements Decoder {
         const leading = first;
         first = 0;
         if ((byte >= 0x40 && byte <= 0x7e) || (byte >= 0x80 && byte <= 0xfe)) {
-          const point = gb18030[(leading - 0x81) * 190 + byte - (byte < 0x7f ? 0x40 : 0x41)];
+          const point =
+            gb18030[
+              (leading - 0x81) * 190 + byte - (byte < 0x7f ? 0x40 : 0x41)
+            ];
           if (point !== 0) {
             units[count++] = point;
             continue;
@@ -294,7 +350,11 @@ class Big5Decoder implements Decoder {
     this.#index = expand(tables.multiByte.big5, true);
   }
 
-  decode(bytes: Uint8Array, flush: boolean, fatal: boolean): string | undefined {
+  decode(
+    bytes: Uint8Array,
+    flush: boolean,
+    fatal: boolean,
+  ): string | undefined {
     const big5 = this.#index;
     const units = new Uint16Array(bytes.length + 8);
     let count = 0;
@@ -305,10 +365,17 @@ class Big5Decoder implements Decoder {
         const lead = leading;
         leading = 0;
         if ((byte >= 0x40 && byte <= 0x7e) || (byte >= 0xa1 && byte <= 0xfe)) {
-          const pointer = (lead - 0x81) * 157 + byte - (byte < 0x7f ? 0x40 : 0x62);
-          if (pointer === 1133 || pointer === 1135 || pointer === 1164 || pointer === 1166) {
+          const pointer =
+            (lead - 0x81) * 157 + byte - (byte < 0x7f ? 0x40 : 0x62);
+          if (
+            pointer === 1133 ||
+            pointer === 1135 ||
+            pointer === 1164 ||
+            pointer === 1166
+          ) {
             units[count++] = pointer < 1164 ? 0xca : 0xea;
-            units[count++] = pointer === 1133 || pointer === 1164 ? 0x304 : 0x30c;
+            units[count++] =
+              pointer === 1133 || pointer === 1164 ? 0x304 : 0x30c;
             continue;
           }
           let point = big5[pointer];
@@ -372,7 +439,11 @@ class EUCJPDecoder implements Decoder {
     this.#jis0208 = expand(tables.multiByte.jis0208);
   }
 
-  decode(bytes: Uint8Array, flush: boolean, fatal: boolean): string | undefined {
+  decode(
+    bytes: Uint8Array,
+    flush: boolean,
+    fatal: boolean,
+  ): string | undefined {
     const units = new Uint16Array(bytes.length + 8);
     let count = 0;
     let leading = this.#leading;
@@ -394,7 +465,9 @@ class EUCJPDecoder implements Decoder {
         leading = 0;
         let point = 0;
         if (lead >= 0xa1 && lead <= 0xfe && byte >= 0xa1 && byte <= 0xfe) {
-          const table = extended ? (this.#jis0212 ??= expand(this.#tables.multiByte.jis0212)) : this.#jis0208;
+          const table = extended
+            ? (this.#jis0212 ??= expand(this.#tables.multiByte.jis0212))
+            : this.#jis0208;
           point = table[(lead - 0xa1) * 94 + byte - 0xa1];
         }
         extended = false;
@@ -413,7 +486,11 @@ class EUCJPDecoder implements Decoder {
       }
       if (byte < 0x80) {
         units[count++] = byte;
-      } else if (byte === 0x8e || byte === 0x8f || (byte >= 0xa1 && byte <= 0xfe)) {
+      } else if (
+        byte === 0x8e ||
+        byte === 0x8f ||
+        (byte >= 0xa1 && byte <= 0xfe)
+      ) {
         leading = byte;
       } else if (fatal) {
         return this.#fail();
@@ -460,7 +537,11 @@ class ISO2022JPDecoder implements Decoder {
     this.#jis0208 = expand(tables.multiByte.jis0208);
   }
 
-  decode(bytes: Uint8Array, flush: boolean, fatal: boolean): string | undefined {
+  decode(
+    bytes: Uint8Array,
+    flush: boolean,
+    fatal: boolean,
+  ): string | undefined {
     const end = -1;
     const proceed = -1;
     const error = -2;
@@ -509,7 +590,8 @@ class ISO2022JPDecoder implements Decoder {
               result = error;
             }
           } else if (state === katakana) {
-            result = byte >= 0x21 && byte <= 0x5f ? 0xff61 - 0x21 + byte : error;
+            result =
+              byte >= 0x21 && byte <= 0x5f ? 0xff61 - 0x21 + byte : error;
           } else if (byte > 0x7f || byte === 0x0e || byte === 0x0f) {
             result = error;
           } else if (state === roman && byte === 0x5c) {
@@ -527,7 +609,10 @@ class ISO2022JPDecoder implements Decoder {
             break;
           }
           state = leadingByte;
-          result = byte >= 0x21 && byte <= 0x7e ? this.#jis0208[(leading - 0x21) * 94 + byte - 0x21] || error : error;
+          result =
+            byte >= 0x21 && byte <= 0x7e
+              ? this.#jis0208[(leading - 0x21) * 94 + byte - 0x21] || error
+              : error;
           break;
         case escapeStart:
           if (byte === 0x24 || byte === 0x28) {
@@ -607,7 +692,11 @@ class ShiftJISDecoder implements Decoder {
     this.#index = expand(tables.multiByte.jis0208);
   }
 
-  decode(bytes: Uint8Array, flush: boolean, fatal: boolean): string | undefined {
+  decode(
+    bytes: Uint8Array,
+    flush: boolean,
+    fatal: boolean,
+  ): string | undefined {
     const jis0208 = this.#index;
     const units = new Uint16Array(bytes.length + 8);
     let count = 0;
@@ -618,7 +707,10 @@ class ShiftJISDecoder implements Decoder {
         const lead = leading;
         leading = 0;
         if ((byte >= 0x40 && byte <= 0x7e) || (byte >= 0x80 && byte <= 0xfc)) {
-          const pointer = (lead - (lead < 0xa0 ? 0x81 : 0xc1)) * 188 + byte - (byte < 0x7f ? 0x40 : 0x41);
+          const pointer =
+            (lead - (lead < 0xa0 ? 0x81 : 0xc1)) * 188 +
+            byte -
+            (byte < 0x7f ? 0x40 : 0x41);
           if (pointer >= 8836 && pointer <= 10715) {
             units[count++] = 0xe000 - 8836 + pointer;
             continue;
@@ -676,7 +768,11 @@ class EUCKRDecoder implements Decoder {
     this.#index = expand(tables.multiByte["euc-kr"]);
   }
 
-  decode(bytes: Uint8Array, flush: boolean, fatal: boolean): string | undefined {
+  decode(
+    bytes: Uint8Array,
+    flush: boolean,
+    fatal: boolean,
+  ): string | undefined {
     const euckr = this.#index;
     const units = new Uint16Array(bytes.length + 8);
     let count = 0;
@@ -739,7 +835,11 @@ class UTF16Decoder implements Decoder {
     this.#bigEndian = bigEndian;
   }
 
-  decode(bytes: Uint8Array, flush: boolean, fatal: boolean): string | undefined {
+  decode(
+    bytes: Uint8Array,
+    flush: boolean,
+    fatal: boolean,
+  ): string | undefined {
     const bigEndian = this.#bigEndian;
     const units = new Uint16Array((bytes.length >> 1) + 8);
     let count = 0;
@@ -750,7 +850,9 @@ class UTF16Decoder implements Decoder {
         leadingByte = bytes[index];
         continue;
       }
-      const unit = bigEndian ? (leadingByte << 8) | bytes[index] : (bytes[index] << 8) | leadingByte;
+      const unit = bigEndian
+        ? (leadingByte << 8) | bytes[index]
+        : (bytes[index] << 8) | leadingByte;
       leadingByte = -1;
       if (leadingSurrogate !== 0) {
         const lead = leadingSurrogate;
@@ -761,7 +863,9 @@ class UTF16Decoder implements Decoder {
           continue;
         }
         if (fatal) {
-          return this.#fail(bigEndian ? [unit >> 8, unit & 0xff] : [unit & 0xff, unit >> 8]);
+          return this.#fail(
+            bigEndian ? [unit >> 8, unit & 0xff] : [unit & 0xff, unit >> 8],
+          );
         }
         units[count++] = 0xfffd;
       }
@@ -795,14 +899,16 @@ class UTF16Decoder implements Decoder {
   }
 }
 
-const decoders: Partial<Record<Encoding, (tables: () => EncodingTables) => Decoder>> = {
-  gbk: tables => new GB18030Decoder(tables()),
-  gb18030: tables => new GB18030Decoder(tables()),
-  big5: tables => new Big5Decoder(tables()),
-  "euc-jp": tables => new EUCJPDecoder(tables()),
-  "iso-2022-jp": tables => new ISO2022JPDecoder(tables()),
-  shift_jis: tables => new ShiftJISDecoder(tables()),
-  "euc-kr": tables => new EUCKRDecoder(tables()),
+const decoders: Partial<
+  Record<Encoding, (tables: () => EncodingTables) => Decoder>
+> = {
+  gbk: (tables) => new GB18030Decoder(tables()),
+  gb18030: (tables) => new GB18030Decoder(tables()),
+  big5: (tables) => new Big5Decoder(tables()),
+  "euc-jp": (tables) => new EUCJPDecoder(tables()),
+  "iso-2022-jp": (tables) => new ISO2022JPDecoder(tables()),
+  shift_jis: (tables) => new ShiftJISDecoder(tables()),
+  "euc-kr": (tables) => new EUCKRDecoder(tables()),
   "utf-16be": () => new UTF16Decoder(true),
   "utf-16le": () => new UTF16Decoder(false),
   "x-user-defined": () => new SingleByteDecoder(userDefined),
@@ -819,7 +925,14 @@ const incomplete = (bytes: Uint8Array): number => {
     if (lead < 0xc0) {
       continue;
     }
-    const needed = lead >= 0xc2 && lead <= 0xdf ? 1 : lead >= 0xe0 && lead <= 0xef ? 2 : lead >= 0xf0 && lead <= 0xf4 ? 3 : 0;
+    const needed =
+      lead >= 0xc2 && lead <= 0xdf
+        ? 1
+        : lead >= 0xe0 && lead <= 0xef
+          ? 2
+          : lead >= 0xf0 && lead <= 0xf4
+            ? 3
+            : 0;
     if (needed < back) {
       return bytes.length;
     }
@@ -838,195 +951,252 @@ const incomplete = (bytes: Uint8Array): number => {
 
 const bom = [0xef, 0xbb, 0xbf];
 
-const textDecoderOptions = dictionary<{ fatal: boolean; ignoreBOM: boolean }>({ fatal: { convert: boolean, fallback: false }, ignoreBOM: { convert: boolean, fallback: false } });
-const textDecodeOptions = dictionary<{ stream: boolean }>({ stream: { convert: boolean, fallback: false } });
-
-export const textDecoderClass = (tables: () => EncodingTables, nativeDecode?: NativeDecode) => defineInterface(class TextDecoder {
-  readonly #encoding: Encoding;
-  readonly #fatal: boolean;
-  readonly #ignoreBOM: boolean;
-  #decoder: Decoder | undefined;
-  #pending = new Uint8Array(0);
-  #started = false;
-
-  static [brand](value: object) {
-    return #encoding in value;
-  }
-
-  constructor(label = "utf-8", options?: { fatal?: boolean; ignoreBOM?: boolean }) {
-    const encoding = encodingOf(label);
-    if (encoding === undefined || encoding === "replacement") {
-      throw new RangeError(`the encoding ${JSON.stringify(label)} is not supported`);
-    }
-    this.#encoding = encoding;
-    this.#fatal = options!.fatal!;
-    this.#ignoreBOM = options!.ignoreBOM!;
-  }
-
-  get encoding(): string {
-    return this.#encoding;
-  }
-
-  get fatal(): boolean {
-    return this.#fatal;
-  }
-
-  get ignoreBOM(): boolean {
-    return this.#ignoreBOM;
-  }
-
-  decode(input?: AllowSharedBufferSource, options?: { stream?: boolean }): string {
-    const stream = options!.stream!;
-    const incoming = input === undefined ? new Uint8Array(0) : allowSharedBytesOf(input);
-    let bytes = incoming;
-    if (this.#pending.length > 0) {
-      bytes = new Uint8Array(this.#pending.length + incoming.length);
-      bytes.set(this.#pending);
-      bytes.set(incoming, this.#pending.length);
-    }
-    if (this.#encoding !== "utf-8") {
-      return this.#decodeLegacy(bytes, stream);
-    }
-    let index = 0;
-    const started = this.#started;
-    if (!started && !this.#ignoreBOM) {
-      const prefix = Math.min(bytes.length, 3);
-      if (stream && prefix < 3 && bytes.subarray(0, prefix).every((byte, position) => byte === bom[position])) {
-        this.#pending = bytes.slice();
-        return "";
-      }
-      if (prefix === 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
-        index = 3;
-      }
-    }
-    if (bytes.length > 0) {
-      this.#started = true;
-    }
-    if (nativeDecode !== undefined && bytes.length - index >= nativeSize) {
-      const stop = stream ? incomplete(bytes) : bytes.length;
-      const text = nativeDecode(bytes.subarray(index, stop), this.#fatal);
-      if (typeof text !== "string") {
-        return this.#fail(bytes, text < 0 ? text : index + text, stream, started);
-      }
-      this.#pending = stream ? bytes.slice(stop) : new Uint8Array(0);
-      if (!stream) {
-        this.#started = false;
-      }
-      return text;
-    }
-    const units = new Uint16Array(bytes.length);
-    let count = 0;
-    let needed = 0;
-    let seen = 0;
-    let point = 0;
-    let lower = 0x80;
-    let upper = 0xbf;
-    let sequence = 0;
-    while (index < bytes.length) {
-      const byte = bytes[index];
-      if (needed === 0) {
-        sequence = index;
-        index++;
-        if (byte < 0x80) {
-          units[count++] = byte;
-        } else if (byte >= 0xc2 && byte <= 0xdf) {
-          needed = 1;
-          point = byte & 0x1f;
-        } else if (byte >= 0xe0 && byte <= 0xef) {
-          lower = byte === 0xe0 ? 0xa0 : 0x80;
-          upper = byte === 0xed ? 0x9f : 0xbf;
-          needed = 2;
-          point = byte & 0x0f;
-        } else if (byte >= 0xf0 && byte <= 0xf4) {
-          lower = byte === 0xf0 ? 0x90 : 0x80;
-          upper = byte === 0xf4 ? 0x8f : 0xbf;
-          needed = 3;
-          point = byte & 0x07;
-        } else if (this.#fatal) {
-          return this.#fail(bytes, -1, stream, started);
-        } else {
-          units[count++] = 0xfffd;
-        }
-        continue;
-      }
-      if (byte < lower || byte > upper) {
-        needed = seen = point = 0;
-        lower = 0x80;
-        upper = 0xbf;
-        if (this.#fatal) {
-          return this.#fail(bytes, index, stream, started);
-        }
-        units[count++] = 0xfffd;
-        continue;
-      }
-      index++;
-      lower = 0x80;
-      upper = 0xbf;
-      point = (point << 6) | (byte & 0x3f);
-      if (++seen < needed) {
-        continue;
-      }
-      if (point >= 0x10000) {
-        point -= 0x10000;
-        units[count++] = 0xd800 + (point >> 10);
-        units[count++] = 0xdc00 + (point & 0x3ff);
-      } else {
-        units[count++] = point;
-      }
-      needed = seen = point = 0;
-    }
-    this.#pending = new Uint8Array(0);
-    if (needed !== 0) {
-      if (stream) {
-        this.#pending = bytes.slice(sequence);
-      } else if (this.#fatal) {
-        return this.#fail(bytes, -1, stream, started);
-      } else {
-        units[count++] = 0xfffd;
-      }
-    }
-    if (!stream) {
-      this.#started = false;
-    }
-    return stringOf(units, count);
-  }
-
-  #fail(bytes: Uint8Array, restored: number, stream: boolean, started: boolean): never {
-    this.#pending = stream && restored >= 0 ? bytes.slice(restored, restored + 1) : new Uint8Array(0);
-    this.#started = stream && started;
-    throw new TypeError("the data is not valid UTF-8");
-  }
-
-  #decodeLegacy(bytes: Uint8Array, stream: boolean): string {
-    const encoding = this.#encoding;
-    const decoder = this.#decoder ??= decoders[encoding]?.(tables) ?? new SingleByteDecoder(expand(tables().singleByte[encoding]));
-    let text = decoder.decode(bytes, !stream, this.#fatal);
-    if (this.#pending.length > 0) {
-      this.#pending = new Uint8Array(0);
-    }
-    if (!stream) {
-      this.#decoder = undefined;
-    }
-    if (text === undefined) {
-      if (stream) {
-        this.#pending = Uint8Array.from(decoder.restored);
-      } else {
-        this.#started = false;
-      }
-      throw new TypeError(`the data is not valid ${encoding}`);
-    }
-    if (!this.#started && !this.#ignoreBOM && text !== "" && (encoding === "utf-16le" || encoding === "utf-16be")) {
-      this.#started = true;
-      if (text.charCodeAt(0) === 0xfeff) {
-        text = text.slice(1);
-      }
-    }
-    if (!stream) {
-      this.#started = false;
-    }
-    return text;
-  }
-}, {
-  construct: [optional(domString, "utf-8"), optional(textDecoderOptions)],
-  operations: { decode: [optional(allowSharedBufferSource), optional(textDecodeOptions)] },
+const textDecoderOptions = dictionary<{ fatal: boolean; ignoreBOM: boolean }>({
+  fatal: { convert: boolean, fallback: false },
+  ignoreBOM: { convert: boolean, fallback: false },
 });
+const textDecodeOptions = dictionary<{ stream: boolean }>({
+  stream: { convert: boolean, fallback: false },
+});
+
+export const textDecoderClass = (
+  tables: () => EncodingTables,
+  nativeDecode?: NativeDecode,
+) =>
+  defineInterface(
+    class TextDecoder {
+      readonly #encoding: Encoding;
+      readonly #fatal: boolean;
+      readonly #ignoreBOM: boolean;
+      #decoder: Decoder | undefined;
+      #pending = new Uint8Array(0);
+      #started = false;
+
+      static [brand](value: object) {
+        return #encoding in value;
+      }
+
+      constructor(
+        label = "utf-8",
+        options?: { fatal?: boolean; ignoreBOM?: boolean },
+      ) {
+        const encoding = encodingOf(label);
+        if (encoding === undefined || encoding === "replacement") {
+          throw new RangeError(
+            `the encoding ${JSON.stringify(label)} is not supported`,
+          );
+        }
+        this.#encoding = encoding;
+        this.#fatal = options!.fatal!;
+        this.#ignoreBOM = options!.ignoreBOM!;
+      }
+
+      get encoding(): string {
+        return this.#encoding;
+      }
+
+      get fatal(): boolean {
+        return this.#fatal;
+      }
+
+      get ignoreBOM(): boolean {
+        return this.#ignoreBOM;
+      }
+
+      decode(
+        input?: AllowSharedBufferSource,
+        options?: { stream?: boolean },
+      ): string {
+        const stream = options!.stream!;
+        const incoming =
+          input === undefined ? new Uint8Array(0) : allowSharedBytesOf(input);
+        let bytes = incoming;
+        if (this.#pending.length > 0) {
+          bytes = new Uint8Array(this.#pending.length + incoming.length);
+          bytes.set(this.#pending);
+          bytes.set(incoming, this.#pending.length);
+        }
+        if (this.#encoding !== "utf-8") {
+          return this.#decodeLegacy(bytes, stream);
+        }
+        let index = 0;
+        const started = this.#started;
+        if (!started && !this.#ignoreBOM) {
+          const prefix = Math.min(bytes.length, 3);
+          if (
+            stream &&
+            prefix < 3 &&
+            bytes
+              .subarray(0, prefix)
+              .every((byte, position) => byte === bom[position])
+          ) {
+            this.#pending = bytes.slice();
+            return "";
+          }
+          if (
+            prefix === 3 &&
+            bytes[0] === 0xef &&
+            bytes[1] === 0xbb &&
+            bytes[2] === 0xbf
+          ) {
+            index = 3;
+          }
+        }
+        if (bytes.length > 0) {
+          this.#started = true;
+        }
+        if (nativeDecode !== undefined && bytes.length - index >= nativeSize) {
+          const stop = stream ? incomplete(bytes) : bytes.length;
+          const text = nativeDecode(bytes.subarray(index, stop), this.#fatal);
+          if (typeof text !== "string") {
+            return this.#fail(
+              bytes,
+              text < 0 ? text : index + text,
+              stream,
+              started,
+            );
+          }
+          this.#pending = stream ? bytes.slice(stop) : new Uint8Array(0);
+          if (!stream) {
+            this.#started = false;
+          }
+          return text;
+        }
+        const units = new Uint16Array(bytes.length);
+        let count = 0;
+        let needed = 0;
+        let seen = 0;
+        let point = 0;
+        let lower = 0x80;
+        let upper = 0xbf;
+        let sequence = 0;
+        while (index < bytes.length) {
+          const byte = bytes[index];
+          if (needed === 0) {
+            sequence = index;
+            index++;
+            if (byte < 0x80) {
+              units[count++] = byte;
+            } else if (byte >= 0xc2 && byte <= 0xdf) {
+              needed = 1;
+              point = byte & 0x1f;
+            } else if (byte >= 0xe0 && byte <= 0xef) {
+              lower = byte === 0xe0 ? 0xa0 : 0x80;
+              upper = byte === 0xed ? 0x9f : 0xbf;
+              needed = 2;
+              point = byte & 0x0f;
+            } else if (byte >= 0xf0 && byte <= 0xf4) {
+              lower = byte === 0xf0 ? 0x90 : 0x80;
+              upper = byte === 0xf4 ? 0x8f : 0xbf;
+              needed = 3;
+              point = byte & 0x07;
+            } else if (this.#fatal) {
+              return this.#fail(bytes, -1, stream, started);
+            } else {
+              units[count++] = 0xfffd;
+            }
+            continue;
+          }
+          if (byte < lower || byte > upper) {
+            needed = seen = point = 0;
+            lower = 0x80;
+            upper = 0xbf;
+            if (this.#fatal) {
+              return this.#fail(bytes, index, stream, started);
+            }
+            units[count++] = 0xfffd;
+            continue;
+          }
+          index++;
+          lower = 0x80;
+          upper = 0xbf;
+          point = (point << 6) | (byte & 0x3f);
+          if (++seen < needed) {
+            continue;
+          }
+          if (point >= 0x10000) {
+            point -= 0x10000;
+            units[count++] = 0xd800 + (point >> 10);
+            units[count++] = 0xdc00 + (point & 0x3ff);
+          } else {
+            units[count++] = point;
+          }
+          needed = seen = point = 0;
+        }
+        this.#pending = new Uint8Array(0);
+        if (needed !== 0) {
+          if (stream) {
+            this.#pending = bytes.slice(sequence);
+          } else if (this.#fatal) {
+            return this.#fail(bytes, -1, stream, started);
+          } else {
+            units[count++] = 0xfffd;
+          }
+        }
+        if (!stream) {
+          this.#started = false;
+        }
+        return stringOf(units, count);
+      }
+
+      #fail(
+        bytes: Uint8Array,
+        restored: number,
+        stream: boolean,
+        started: boolean,
+      ): never {
+        this.#pending =
+          stream && restored >= 0
+            ? bytes.slice(restored, restored + 1)
+            : new Uint8Array(0);
+        this.#started = stream && started;
+        throw new TypeError("the data is not valid UTF-8");
+      }
+
+      #decodeLegacy(bytes: Uint8Array, stream: boolean): string {
+        const encoding = this.#encoding;
+        const decoder = (this.#decoder ??=
+          decoders[encoding]?.(tables) ??
+          new SingleByteDecoder(expand(tables().singleByte[encoding])));
+        let text = decoder.decode(bytes, !stream, this.#fatal);
+        if (this.#pending.length > 0) {
+          this.#pending = new Uint8Array(0);
+        }
+        if (!stream) {
+          this.#decoder = undefined;
+        }
+        if (text === undefined) {
+          if (stream) {
+            this.#pending = Uint8Array.from(decoder.restored);
+          } else {
+            this.#started = false;
+          }
+          throw new TypeError(`the data is not valid ${encoding}`);
+        }
+        if (
+          !this.#started &&
+          !this.#ignoreBOM &&
+          text !== "" &&
+          (encoding === "utf-16le" || encoding === "utf-16be")
+        ) {
+          this.#started = true;
+          if (text.charCodeAt(0) === 0xfeff) {
+            text = text.slice(1);
+          }
+        }
+        if (!stream) {
+          this.#started = false;
+        }
+        return text;
+      }
+    },
+    {
+      construct: [optional(domString, "utf-8"), optional(textDecoderOptions)],
+      operations: {
+        decode: [
+          optional(allowSharedBufferSource),
+          optional(textDecodeOptions),
+        ],
+      },
+    },
+  );

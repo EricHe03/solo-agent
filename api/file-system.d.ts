@@ -29,7 +29,14 @@ export interface FileHandle {
   text(): Promise<string>;
   bytes(): Promise<Uint8Array>;
   stream(): ReadableStream<Uint8Array>;
-  write(data: string | ArrayBuffer | ArrayBufferView | Blob | ReadableStream<ArrayBuffer | ArrayBufferView>): Promise<void>;
+  write(
+    data:
+      | string
+      | ArrayBuffer
+      | ArrayBufferView
+      | Blob
+      | ReadableStream<ArrayBuffer | ArrayBufferView>,
+  ): Promise<void>;
   copy(to: FileHandle): Promise<void>;
   move(to: FileHandle): Promise<void>;
   delete(): Promise<void>;

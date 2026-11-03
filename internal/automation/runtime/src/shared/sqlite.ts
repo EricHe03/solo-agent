@@ -14,8 +14,10 @@ export interface SQLiteBridge {
   subscribe(listener: (event: DatabaseChangeEvent) => void): () => void;
 }
 
-export type SQLiteBindValue = string | number | boolean | bigint | null | Uint8Array;
-export type SQLiteBindParams = Record<string, SQLiteBindValue> | SQLiteBindValue[];
+export type SQLiteBindValue =
+  string | number | boolean | bigint | null | Uint8Array;
+export type SQLiteBindParams =
+  Record<string, SQLiteBindValue> | SQLiteBindValue[];
 export type SQLiteVariadicBindParams = SQLiteBindValue[];
 
 export interface SQLiteRunResult {
@@ -71,7 +73,9 @@ export interface SQLiteProviderAssetSource {
   forceOverwrite?: boolean;
 }
 
-export type SQLiteStorageSetItemUpdateFunction = (previous: string | null) => string;
+export type SQLiteStorageSetItemUpdateFunction = (
+  previous: string | null,
+) => string;
 
 export interface SQLiteBackupOptions {
   sourceDatabase: unknown;
@@ -81,7 +85,10 @@ export interface SQLiteBackupOptions {
 }
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Uint8Array);
+  value !== null &&
+  typeof value === "object" &&
+  !Array.isArray(value) &&
+  !(value instanceof Uint8Array);
 
 const encodeValue = (value: unknown): unknown => {
   switch (typeof value) {
@@ -105,7 +112,9 @@ const encodeValue = (value: unknown): unknown => {
       }
       break;
   }
-  throw new TypeError(`a parameter must be null, a number, a string, a boolean, a bigint or a Uint8Array, not ${typeof value}`);
+  throw new TypeError(
+    `a parameter must be null, a number, a string, a boolean, a bigint or a Uint8Array, not ${typeof value}`,
+  );
 };
 
 const encodeParams = (params: unknown[]): unknown => {
@@ -116,23 +125,33 @@ const encodeParams = (params: unknown[]): unknown => {
     return params[0].map(encodeValue);
   }
   if (params.length === 1 && isPlainObject(params[0])) {
-    return Object.fromEntries(Object.entries(params[0]).map(([key, value]) => [key, encodeValue(value)]));
+    return Object.fromEntries(
+      Object.entries(params[0]).map(([key, value]) => [
+        key,
+        encodeValue(value),
+      ]),
+    );
   }
   return params.map(encodeValue);
 };
 
-const decodeValue = (value: unknown): unknown => (isPlainObject(value) && typeof value.$b === "string" ? decodeBase64(value.$b) : value);
+const decodeValue = (value: unknown): unknown =>
+  isPlainObject(value) && typeof value.$b === "string"
+    ? decodeBase64(value.$b)
+    : value;
 
-const composer = <T>(columns: string[], raw: boolean) => (row: unknown[]): T => {
-  if (raw) {
-    return row.map(decodeValue) as T;
-  }
-  const object: Record<string, unknown> = {};
-  for (let index = 0; index < columns.length; index++) {
-    object[columns[index]] = decodeValue(row[index]);
-  }
-  return object as T;
-};
+const composer =
+  <T>(columns: string[], raw: boolean) =>
+  (row: unknown[]): T => {
+    if (raw) {
+      return row.map(decodeValue) as T;
+    }
+    const object: Record<string, unknown> = {};
+    for (let index = 0; index < columns.length; index++) {
+      object[columns[index]] = decodeValue(row[index]);
+    }
+    return object as T;
+  };
 
 const toBytes = (value: unknown, name: string): Uint8Array => {
   if (value instanceof Uint8Array) {
@@ -153,11 +172,24 @@ export const deepEqual = (a: unknown, b: unknown): boolean => {
   if (a === b) {
     return true;
   }
-  if (a === null || b === null || typeof a !== "object" || typeof b !== "object") {
+  if (
+    a === null ||
+    b === null ||
+    typeof a !== "object" ||
+    typeof b !== "object"
+  ) {
     return false;
   }
   const keys = Object.keys(a);
-  return keys.length === Object.keys(b).length && keys.every(key => deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]));
+  return (
+    keys.length === Object.keys(b).length &&
+    keys.every((key) =>
+      deepEqual(
+        (a as Record<string, unknown>)[key],
+        (b as Record<string, unknown>)[key],
+      ),
+    )
+  );
 };
 
 const rowBatch = 128;
@@ -165,7 +197,8 @@ const rowBatch = 128;
 const supersededMessage =
   "the result can't be read because its statement ran again; read a result to the end before running its statement again, or prepare a statement for each reader";
 
-const shiftedMessage = (reset: string) => `the cursor has moved past the first row; call ${reset}() before reading the rows again`;
+const shiftedMessage = (reset: string) =>
+  `the cursor has moved past the first row; call ${reset}() before reading the rows again`;
 
 const ignore = () => {};
 
@@ -173,7 +206,9 @@ export function createSQLite(bridge: SQLiteBridge) {
   const connections = new Set<Connection>();
   const owners = new WeakMap<object, Connection>();
 
-  const finalizedByHost = (error: unknown) => error instanceof Error && error.message.includes("the statement is finalized");
+  const finalizedByHost = (error: unknown) =>
+    error instanceof Error &&
+    error.message.includes("the statement is finalized");
 
   type Send = <T>(call: Record<string, unknown>) => Promise<T>;
 
@@ -198,11 +233,19 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     perform<T>(work: (send: Send) => Promise<T>): Promise<T> {
-      return schedule([this], () => work(call => bridge.requestAsync({ ...call, handle: this.open }) as Promise<never>));
+      return schedule([this], () =>
+        work(
+          (call) =>
+            bridge.requestAsync({
+              ...call,
+              handle: this.open,
+            }) as Promise<never>,
+        ),
+      );
     }
 
     callAsync<T>(call: Record<string, unknown>): Promise<T> {
-      return this.perform(send => send<T>(call));
+      return this.perform((send) => send<T>(call));
     }
 
     #release(): number | null {
@@ -236,8 +279,13 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
   }
 
-  const schedule = <T>(queue: Connection[], task: () => Promise<T>): Promise<T> => {
-    const run = Promise.all(queue.map(connection => connection.tail)).then(task);
+  const schedule = <T>(
+    queue: Connection[],
+    task: () => Promise<T>,
+  ): Promise<T> => {
+    const run = Promise.all(queue.map((connection) => connection.tail)).then(
+      task,
+    );
     const settled = run.then(ignore, ignore);
     for (const connection of queue) {
       connection.tail = settled;
@@ -246,25 +294,54 @@ export function createSQLite(bridge: SQLiteBridge) {
   };
 
   const connectionOf = (database: unknown, name: string): Connection => {
-    const connection = typeof database === "object" && database !== null ? owners.get(database) : undefined;
+    const connection =
+      typeof database === "object" && database !== null
+        ? owners.get(database)
+        : undefined;
     if (connection === undefined) {
-      throw new TypeError(`${name} is not a database that openDatabaseSync or openDatabaseAsync opened`);
+      throw new TypeError(
+        `${name} is not a database that openDatabaseSync or openDatabaseAsync opened`,
+      );
     }
     return connection;
   };
 
-  const querySync = (connection: Connection, source: string, params: unknown[], count: number): Ran =>
-    connection.call<Ran>({ op: "query", sql: String(source), params: encodeParams(params), count });
+  const querySync = (
+    connection: Connection,
+    source: string,
+    params: unknown[],
+    count: number,
+  ): Ran =>
+    connection.call<Ran>({
+      op: "query",
+      sql: String(source),
+      params: encodeParams(params),
+      count,
+    });
 
-  const queryAsync = (connection: Connection, source: string, params: unknown[], count: number): Promise<Ran> =>
-    connection.callAsync<Ran>({ op: "query", sql: String(source), params: encodeParams(params), count });
+  const queryAsync = (
+    connection: Connection,
+    source: string,
+    params: unknown[],
+    count: number,
+  ): Promise<Ran> =>
+    connection.callAsync<Ran>({
+      op: "query",
+      sql: String(source),
+      params: encodeParams(params),
+      count,
+    });
 
-  const firstOf = <T>(ran: Ran, raw: boolean): T | null => (ran.rows.length === 0 ? null : composer<T>(ran.columns, raw)(ran.rows[0]));
+  const firstOf = <T>(ran: Ran, raw: boolean): T | null =>
+    ran.rows.length === 0 ? null : composer<T>(ran.columns, raw)(ran.rows[0]);
 
-  const allOf = <T>(ran: Ran, raw: boolean): T[] => ran.rows.map(composer<T>(ran.columns, raw));
+  const allOf = <T>(ran: Ran, raw: boolean): T[] =>
+    ran.rows.map(composer<T>(ran.columns, raw));
 
   const taggedResultOf = <T>(ran: Ran): T[] | SQLiteRunResult =>
-    ran.columns.length > 0 ? allOf<T>(ran, false) : { lastInsertRowId: ran.lastInsertRowId, changes: ran.changes };
+    ran.columns.length > 0
+      ? allOf<T>(ran, false)
+      : { lastInsertRowId: ran.lastInsertRowId, changes: ran.changes };
 
   class SQLiteStatement {
     #connection: Connection;
@@ -300,7 +377,12 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     #runSync(params: unknown[]): Ran {
-      const call = (statement: number) => ({ op: "run", statement, params: encodeParams(params), count: 1 });
+      const call = (statement: number) => ({
+        op: "run",
+        statement,
+        params: encodeParams(params),
+        count: 1,
+      });
       const statement = this.#live;
       try {
         return this.#connection.call<Ran>(call(statement));
@@ -308,21 +390,41 @@ export function createSQLite(bridge: SQLiteBridge) {
         if (!finalizedByHost(error)) {
           throw error;
         }
-        return this.#connection.call<Ran>(call(this.#adopt(this.#connection.call<Prepared>({ op: "prepare", sql: this.#source }))));
+        return this.#connection.call<Ran>(
+          call(
+            this.#adopt(
+              this.#connection.call<Prepared>({
+                op: "prepare",
+                sql: this.#source,
+              }),
+            ),
+          ),
+        );
       }
     }
 
     #runAsync(params: unknown[]): Promise<Ran> {
       const encoded = encodeParams(params);
-      const call = (statement: number) => ({ op: "run", statement, params: encoded, count: 1 });
-      return this.#connection.perform(async send => {
+      const call = (statement: number) => ({
+        op: "run",
+        statement,
+        params: encoded,
+        count: 1,
+      });
+      return this.#connection.perform(async (send) => {
         try {
           return await send<Ran>(call(this.#live));
         } catch (error) {
           if (!finalizedByHost(error) || this.#id === null) {
             throw error;
           }
-          return send<Ran>(call(this.#adopt(await send<Prepared>({ op: "prepare", sql: this.#source }))));
+          return send<Ran>(
+            call(
+              this.#adopt(
+                await send<Prepared>({ op: "prepare", sql: this.#source }),
+              ),
+            ),
+          );
         }
       });
     }
@@ -342,7 +444,11 @@ export function createSQLite(bridge: SQLiteBridge) {
         if (!owns()) {
           throw new Error(supersededMessage);
         }
-        const read = this.#connection.call<Read>({ op: "step", statement: this.#live, count });
+        const read = this.#connection.call<Read>({
+          op: "step",
+          statement: this.#live,
+          count,
+        });
         done = read.done;
         return rows.concat(read.rows);
       };
@@ -354,7 +460,11 @@ export function createSQLite(bridge: SQLiteBridge) {
       };
       const iterate = function* (): Generator<T, undefined> {
         stepped = true;
-        for (let rows = pull(rowBatch); rows.length > 0; rows = pull(rowBatch)) {
+        for (
+          let rows = pull(rowBatch);
+          rows.length > 0;
+          rows = pull(rowBatch)
+        ) {
           yield* rows.map(compose);
         }
         return undefined;
@@ -407,7 +517,9 @@ export function createSQLite(bridge: SQLiteBridge) {
         if (!owns()) {
           throw new Error(supersededMessage);
         }
-        const read = await this.#connection.perform(send => send<Read>({ op: "step", statement: this.#live, count }));
+        const read = await this.#connection.perform((send) =>
+          send<Read>({ op: "step", statement: this.#live, count }),
+        );
         done = read.done;
         return rows.concat(read.rows);
       };
@@ -419,7 +531,11 @@ export function createSQLite(bridge: SQLiteBridge) {
       };
       const iterate = async function* (): AsyncGenerator<T, undefined> {
         stepped = true;
-        for (let rows = await pull(rowBatch); rows.length > 0; rows = await pull(rowBatch)) {
+        for (
+          let rows = await pull(rowBatch);
+          rows.length > 0;
+          rows = await pull(rowBatch)
+        ) {
           yield* rows.map(compose);
         }
         return undefined;
@@ -447,7 +563,9 @@ export function createSQLite(bridge: SQLiteBridge) {
             if (!owns()) {
               throw new Error(supersededMessage);
             }
-            await this.#connection.perform(send => send({ op: "reset", statement: this.#live }));
+            await this.#connection.perform((send) =>
+              send({ op: "reset", statement: this.#live }),
+            );
             buffered = [];
             done = ran.columns.length === 0;
             stepped = false;
@@ -461,15 +579,21 @@ export function createSQLite(bridge: SQLiteBridge) {
       return this.#syncResult<T>(this.#runSync(params), false);
     }
 
-    executeForRawResultSync<T>(...params: unknown[]): SQLiteExecuteSyncResult<T> {
+    executeForRawResultSync<T>(
+      ...params: unknown[]
+    ): SQLiteExecuteSyncResult<T> {
       return this.#syncResult<T>(this.#runSync(params), true);
     }
 
-    async executeAsync<T>(...params: unknown[]): Promise<SQLiteExecuteAsyncResult<T>> {
+    async executeAsync<T>(
+      ...params: unknown[]
+    ): Promise<SQLiteExecuteAsyncResult<T>> {
       return this.#asyncResult<T>(await this.#runAsync(params), false);
     }
 
-    async executeForRawResultAsync<T>(...params: unknown[]): Promise<SQLiteExecuteAsyncResult<T>> {
+    async executeForRawResultAsync<T>(
+      ...params: unknown[]
+    ): Promise<SQLiteExecuteAsyncResult<T>> {
       return this.#asyncResult<T>(await this.#runAsync(params), true);
     }
 
@@ -543,22 +667,49 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     prepareSync(source: string): SQLiteStatement {
-      return new SQLiteStatement(this.#connection, String(source), this.#connection.call<Prepared>({ op: "prepare", sql: String(source) }));
+      return new SQLiteStatement(
+        this.#connection,
+        String(source),
+        this.#connection.call<Prepared>({ op: "prepare", sql: String(source) }),
+      );
     }
 
     async prepareAsync(source: string): Promise<SQLiteStatement> {
-      return new SQLiteStatement(this.#connection, String(source), await this.#connection.callAsync<Prepared>({ op: "prepare", sql: String(source) }));
+      return new SQLiteStatement(
+        this.#connection,
+        String(source),
+        await this.#connection.callAsync<Prepared>({
+          op: "prepare",
+          sql: String(source),
+        }),
+      );
     }
 
-    readonly sql = <T = unknown>(strings: TemplateStringsArray, ...values: unknown[]): SQLiteTaggedQuery<T> => new SQLiteTaggedQuery<T>(this, strings, values);
+    readonly sql = <T = unknown>(
+      strings: TemplateStringsArray,
+      ...values: unknown[]
+    ): SQLiteTaggedQuery<T> => new SQLiteTaggedQuery<T>(this, strings, values);
 
     runSync(source: string, ...params: unknown[]): SQLiteRunResult {
-      const { lastInsertRowId, changes } = querySync(this.#connection, source, params, 1);
+      const { lastInsertRowId, changes } = querySync(
+        this.#connection,
+        source,
+        params,
+        1,
+      );
       return { lastInsertRowId, changes };
     }
 
-    async runAsync(source: string, ...params: unknown[]): Promise<SQLiteRunResult> {
-      const { lastInsertRowId, changes } = await queryAsync(this.#connection, source, params, 1);
+    async runAsync(
+      source: string,
+      ...params: unknown[]
+    ): Promise<SQLiteRunResult> {
+      const { lastInsertRowId, changes } = await queryAsync(
+        this.#connection,
+        source,
+        params,
+        1,
+      );
       return { lastInsertRowId, changes };
     }
 
@@ -566,8 +717,14 @@ export function createSQLite(bridge: SQLiteBridge) {
       return firstOf<T>(querySync(this.#connection, source, params, 1), false);
     }
 
-    async getFirstAsync<T>(source: string, ...params: unknown[]): Promise<T | null> {
-      return firstOf<T>(await queryAsync(this.#connection, source, params, 1), false);
+    async getFirstAsync<T>(
+      source: string,
+      ...params: unknown[]
+    ): Promise<T | null> {
+      return firstOf<T>(
+        await queryAsync(this.#connection, source, params, 1),
+        false,
+      );
     }
 
     getAllSync<T>(source: string, ...params: unknown[]): T[] {
@@ -575,7 +732,10 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     async getAllAsync<T>(source: string, ...params: unknown[]): Promise<T[]> {
-      return allOf<T>(await queryAsync(this.#connection, source, params, 0), false);
+      return allOf<T>(
+        await queryAsync(this.#connection, source, params, 0),
+        false,
+      );
     }
 
     *getEachSync<T>(source: string, ...params: unknown[]): IterableIterator<T> {
@@ -587,7 +747,10 @@ export function createSQLite(bridge: SQLiteBridge) {
       }
     }
 
-    async *getEachAsync<T>(source: string, ...params: unknown[]): AsyncIterableIterator<T> {
+    async *getEachAsync<T>(
+      source: string,
+      ...params: unknown[]
+    ): AsyncIterableIterator<T> {
       const statement = await this.prepareAsync(source);
       try {
         yield* await statement.executeAsync<T>(...params);
@@ -620,9 +783,14 @@ export function createSQLite(bridge: SQLiteBridge) {
       }
     }
 
-    async withExclusiveTransactionAsync(task: (transaction: SQLiteDatabase) => Promise<void>): Promise<void> {
+    async withExclusiveTransactionAsync(
+      task: (transaction: SQLiteDatabase) => Promise<void>,
+    ): Promise<void> {
       const options = { ...this.options, useNewConnection: true };
-      const transaction = new Transaction(options, await this.#connection.callAsync<Opened>({ op: "connect" }));
+      const transaction = new Transaction(
+        options,
+        await this.#connection.callAsync<Opened>({ op: "connect" }),
+      );
       try {
         await transaction.execAsync("BEGIN");
         await task(transaction);
@@ -636,11 +804,23 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     serializeSync(databaseName = "main"): Uint8Array {
-      return decodeBase64(this.#connection.call<{ data: string }>({ op: "serialize", schema: String(databaseName) }).data).slice();
+      return decodeBase64(
+        this.#connection.call<{ data: string }>({
+          op: "serialize",
+          schema: String(databaseName),
+        }).data,
+      ).slice();
     }
 
     async serializeAsync(databaseName = "main"): Promise<Uint8Array> {
-      return decodeBase64((await this.#connection.callAsync<{ data: string }>({ op: "serialize", schema: String(databaseName) })).data).slice();
+      return decodeBase64(
+        (
+          await this.#connection.callAsync<{ data: string }>({
+            op: "serialize",
+            schema: String(databaseName),
+          })
+        ).data,
+      ).slice();
     }
 
     loadExtensionSync(): never {
@@ -648,7 +828,9 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     loadExtensionAsync(): Promise<never> {
-      return Promise.reject(new Error("SQLite extensions are not supported by Swipt"));
+      return Promise.reject(
+        new Error("SQLite extensions are not supported by Swipt"),
+      );
     }
 
     createSessionSync(): never {
@@ -656,7 +838,9 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     createSessionAsync(): Promise<never> {
-      return Promise.reject(new Error("SQLite sessions are not supported by Swipt"));
+      return Promise.reject(
+        new Error("SQLite sessions are not supported by Swipt"),
+      );
     }
 
     syncLibSQL(): Promise<never> {
@@ -666,13 +850,19 @@ export function createSQLite(bridge: SQLiteBridge) {
 
   class Transaction extends SQLiteDatabase {}
 
-  class SQLiteTaggedQuery<T = unknown> implements PromiseLike<T[] | SQLiteRunResult> {
+  class SQLiteTaggedQuery<T = unknown> implements PromiseLike<
+    T[] | SQLiteRunResult
+  > {
     #connection: Connection;
     #database: SQLiteDatabase;
     #source: string;
     #params: unknown[];
 
-    constructor(database: SQLiteDatabase, strings: readonly string[], values: unknown[]) {
+    constructor(
+      database: SQLiteDatabase,
+      strings: readonly string[],
+      values: unknown[],
+    ) {
       this.#connection = connectionOf(database, "the database");
       this.#database = database;
       this.#source = Array.from(strings).join("?");
@@ -680,18 +870,29 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     then<Fulfilled = T[] | SQLiteRunResult, Rejected = never>(
-      onfulfilled?: ((value: T[] | SQLiteRunResult) => Fulfilled | PromiseLike<Fulfilled>) | null,
-      onrejected?: ((reason: unknown) => Rejected | PromiseLike<Rejected>) | null,
+      onfulfilled?:
+        | ((value: T[] | SQLiteRunResult) => Fulfilled | PromiseLike<Fulfilled>)
+        | null,
+      onrejected?:
+        ((reason: unknown) => Rejected | PromiseLike<Rejected>) | null,
     ): Promise<Fulfilled | Rejected> {
-      return queryAsync(this.#connection, this.#source, [this.#params], 0).then(taggedResultOf<T>).then(onfulfilled, onrejected);
+      return queryAsync(this.#connection, this.#source, [this.#params], 0)
+        .then(taggedResultOf<T>)
+        .then(onfulfilled, onrejected);
     }
 
     async values(): Promise<unknown[][]> {
-      return allOf<unknown[]>(await queryAsync(this.#connection, this.#source, [this.#params], 0), true);
+      return allOf<unknown[]>(
+        await queryAsync(this.#connection, this.#source, [this.#params], 0),
+        true,
+      );
     }
 
     async first(): Promise<T | null> {
-      return firstOf<T>(await queryAsync(this.#connection, this.#source, [this.#params], 1), false);
+      return firstOf<T>(
+        await queryAsync(this.#connection, this.#source, [this.#params], 1),
+        false,
+      );
     }
 
     each(): AsyncIterableIterator<T> {
@@ -699,15 +900,23 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     allSync(): T[] | SQLiteRunResult {
-      return taggedResultOf<T>(querySync(this.#connection, this.#source, [this.#params], 0));
+      return taggedResultOf<T>(
+        querySync(this.#connection, this.#source, [this.#params], 0),
+      );
     }
 
     valuesSync(): unknown[][] {
-      return allOf<unknown[]>(querySync(this.#connection, this.#source, [this.#params], 0), true);
+      return allOf<unknown[]>(
+        querySync(this.#connection, this.#source, [this.#params], 0),
+        true,
+      );
     }
 
     firstSync(): T | null {
-      return firstOf<T>(querySync(this.#connection, this.#source, [this.#params], 1), false);
+      return firstOf<T>(
+        querySync(this.#connection, this.#source, [this.#params], 1),
+        false,
+      );
     }
 
     eachSync(): IterableIterator<T> {
@@ -730,20 +939,44 @@ export function createSQLite(bridge: SQLiteBridge) {
 
   const checkDirectory = (directory: string | undefined) => {
     if (directory !== undefined && directory !== bridge.defaultDirectory) {
-      throw new Error("Swipt keeps the databases of a swiplet in its data directory; pass a relative name instead of a directory");
+      throw new Error(
+        "Swipt keeps the databases of a swiplet in its data directory; pass a relative name instead of a directory",
+      );
     }
   };
 
-  const openCall = (name: string, options: SQLiteOpenOptions, directory: string | undefined) => {
+  const openCall = (
+    name: string,
+    options: SQLiteOpenOptions,
+    directory: string | undefined,
+  ) => {
     checkDirectory(directory);
-    return { op: "open", path: checkName(name), changes: options.enableChangeListener === true };
+    return {
+      op: "open",
+      path: checkName(name),
+      changes: options.enableChangeListener === true,
+    };
   };
 
-  const openDatabaseSync = (name: string, options: SQLiteOpenOptions = {}, directory?: string): SQLiteDatabase =>
-    new SQLiteDatabase(options, bridge.request(openCall(name, options, directory)) as Opened);
+  const openDatabaseSync = (
+    name: string,
+    options: SQLiteOpenOptions = {},
+    directory?: string,
+  ): SQLiteDatabase =>
+    new SQLiteDatabase(
+      options,
+      bridge.request(openCall(name, options, directory)) as Opened,
+    );
 
-  const openDatabaseAsync = async (name: string, options: SQLiteOpenOptions = {}, directory?: string): Promise<SQLiteDatabase> =>
-    new SQLiteDatabase(options, (await bridge.requestAsync(openCall(name, options, directory))) as Opened);
+  const openDatabaseAsync = async (
+    name: string,
+    options: SQLiteOpenOptions = {},
+    directory?: string,
+  ): Promise<SQLiteDatabase> =>
+    new SQLiteDatabase(
+      options,
+      (await bridge.requestAsync(openCall(name, options, directory))) as Opened,
+    );
 
   const deserializeCall = (data: unknown, options: SQLiteOpenOptions) => ({
     op: "deserialize",
@@ -751,36 +984,73 @@ export function createSQLite(bridge: SQLiteBridge) {
     changes: options.enableChangeListener === true,
   });
 
-  const deserializeDatabaseSync = (data: Uint8Array, options: SQLiteOpenOptions = {}): SQLiteDatabase =>
-    new SQLiteDatabase(options, bridge.request(deserializeCall(data, options)) as Opened);
+  const deserializeDatabaseSync = (
+    data: Uint8Array,
+    options: SQLiteOpenOptions = {},
+  ): SQLiteDatabase =>
+    new SQLiteDatabase(
+      options,
+      bridge.request(deserializeCall(data, options)) as Opened,
+    );
 
-  const deserializeDatabaseAsync = async (data: Uint8Array, options: SQLiteOpenOptions = {}): Promise<SQLiteDatabase> =>
-    new SQLiteDatabase(options, (await bridge.requestAsync(deserializeCall(data, options))) as Opened);
+  const deserializeDatabaseAsync = async (
+    data: Uint8Array,
+    options: SQLiteOpenOptions = {},
+  ): Promise<SQLiteDatabase> =>
+    new SQLiteDatabase(
+      options,
+      (await bridge.requestAsync(deserializeCall(data, options))) as Opened,
+    );
 
   const deleteDatabaseSync = (name: string, directory?: string): void => {
     checkDirectory(directory);
     bridge.request({ op: "delete", path: checkName(name) });
   };
 
-  const deleteDatabaseAsync = async (name: string, directory?: string): Promise<void> => {
+  const deleteDatabaseAsync = async (
+    name: string,
+    directory?: string,
+  ): Promise<void> => {
     checkDirectory(directory);
     await bridge.requestAsync({ op: "delete", path: checkName(name) });
   };
 
-  const importDatabaseFromAssetAsync = async (name: string, source: SQLiteProviderAssetSource, directory?: string): Promise<void> => {
+  const importDatabaseFromAssetAsync = async (
+    name: string,
+    source: SQLiteProviderAssetSource,
+    directory?: string,
+  ): Promise<void> => {
     checkDirectory(directory);
     const asset: unknown = source?.assetId;
-    const location = typeof asset === "string" ? asset : typeof asset === "object" && asset !== null && typeof (asset as { uri?: unknown }).uri === "string" ? (asset as { uri: string }).uri : undefined;
+    const location =
+      typeof asset === "string"
+        ? asset
+        : typeof asset === "object" &&
+            asset !== null &&
+            typeof (asset as { uri?: unknown }).uri === "string"
+          ? (asset as { uri: string }).uri
+          : undefined;
     if (location === undefined) {
-      throw new TypeError("assetId must be what requiring the database file returns, a file of assets, or a path in the assets directory");
+      throw new TypeError(
+        "assetId must be what requiring the database file returns, a file of assets, or a path in the assets directory",
+      );
     }
-    await bridge.requestAsync({ op: "import", path: checkName(name), asset: location, overwrite: source.forceOverwrite === true });
+    await bridge.requestAsync({
+      op: "import",
+      path: checkName(name),
+      asset: location,
+      overwrite: source.forceOverwrite === true,
+    });
   };
 
   const backupCall = (options: SQLiteBackupOptions) => ({
     dest: connectionOf(options.destDatabase, "destDatabase"),
     source: connectionOf(options.sourceDatabase, "sourceDatabase"),
-    call: { op: "backup", schema: String(options.destDatabaseName ?? "main"), sourceSchema: String(options.sourceDatabaseName ?? "main") },
+    call: {
+      op: "backup",
+      schema: String(options.destDatabaseName ?? "main"),
+      sourceSchema: String(options.sourceDatabaseName ?? "main"),
+    },
   });
 
   const backupDatabaseSync = (options: SQLiteBackupOptions): void => {
@@ -788,20 +1058,26 @@ export function createSQLite(bridge: SQLiteBridge) {
     dest.call({ ...call, source: source.open });
   };
 
-  const backupDatabaseAsync = async (options: SQLiteBackupOptions): Promise<void> => {
+  const backupDatabaseAsync = async (
+    options: SQLiteBackupOptions,
+  ): Promise<void> => {
     const { dest, source, call } = backupCall(options);
-    await schedule([...new Set([dest, source])], () => bridge.requestAsync({ ...call, handle: dest.open, source: source.open }));
+    await schedule([...new Set([dest, source])], () =>
+      bridge.requestAsync({ ...call, handle: dest.open, source: source.open }),
+    );
   };
 
   const listeners = new Set<(event: DatabaseChangeEvent) => void>();
   let stop: (() => void) | undefined;
 
-  const addDatabaseChangeListener = (listener: (event: DatabaseChangeEvent) => void) => {
+  const addDatabaseChangeListener = (
+    listener: (event: DatabaseChangeEvent) => void,
+  ) => {
     if (typeof listener !== "function") {
       throw new TypeError("the listener is not a function");
     }
     listeners.add(listener);
-    stop ??= bridge.subscribe(event => {
+    stop ??= bridge.subscribe((event) => {
       for (const current of [...listeners]) {
         try {
           current(event);
@@ -840,21 +1116,37 @@ export function createSQLite(bridge: SQLiteBridge) {
     if (typeof key !== "string") {
       throw new TypeError(`a storage key must be a string, not ${typeof key}`);
     }
-    if (input.length > 1 && typeof value !== "string" && typeof value !== "function") {
-      throw new TypeError(`a storage value must be a string, not ${typeof value}`);
+    if (
+      input.length > 1 &&
+      typeof value !== "string" &&
+      typeof value !== "function"
+    ) {
+      throw new TypeError(
+        `a storage value must be a string, not ${typeof value}`,
+      );
     }
   };
 
   const mergeDeep = (target: unknown, source: unknown): unknown => {
-    if (typeof target !== "object" || target === null || typeof source !== "object" || source === null) {
+    if (
+      typeof target !== "object" ||
+      target === null ||
+      typeof source !== "object" ||
+      source === null
+    ) {
       return typeof target !== "object" || target === null ? source : target;
     }
     const output: Record<string, unknown> = { ...target };
     for (const [key, value] of Object.entries(source)) {
       if (Array.isArray(value)) {
-        output[key] = ((output[key] as unknown[] | undefined) ?? []).concat(value);
+        output[key] = ((output[key] as unknown[] | undefined) ?? []).concat(
+          value,
+        );
       } else if (typeof value === "object") {
-        output[key] = mergeDeep((target as Record<string, unknown>)[key], value);
+        output[key] = mergeDeep(
+          (target as Record<string, unknown>)[key],
+          value,
+        );
       } else {
         output[key] = value;
       }
@@ -862,9 +1154,11 @@ export function createSQLite(bridge: SQLiteBridge) {
     return output;
   };
 
-  const storageSchema = "CREATE TABLE IF NOT EXISTS storage (key TEXT PRIMARY KEY NOT NULL, value TEXT)";
+  const storageSchema =
+    "CREATE TABLE IF NOT EXISTS storage (key TEXT PRIMARY KEY NOT NULL, value TEXT)";
   const storageGet = "SELECT value FROM storage WHERE key = ?";
-  const storageSet = "INSERT INTO storage (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value";
+  const storageSet =
+    "INSERT INTO storage (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value";
   const storageRemove = "DELETE FROM storage WHERE key = ?";
 
   class SQLiteStorage {
@@ -880,7 +1174,10 @@ export function createSQLite(bridge: SQLiteBridge) {
       if (this.#database === null) {
         const database = openDatabaseSync(this.#name);
         database.withTransactionSync(() => {
-          const version = database.getFirstSync<{ user_version: number }>("PRAGMA user_version")?.user_version ?? 0;
+          const version =
+            database.getFirstSync<{ user_version: number }>(
+              "PRAGMA user_version",
+            )?.user_version ?? 0;
           database.execSync(storageSchema);
           if (version < 1) {
             database.execSync("PRAGMA user_version = 1");
@@ -899,7 +1196,12 @@ export function createSQLite(bridge: SQLiteBridge) {
         try {
           const database = await openDatabaseAsync(this.#name);
           await database.withTransactionAsync(async () => {
-            const version = (await database.getFirstAsync<{ user_version: number }>("PRAGMA user_version"))?.user_version ?? 0;
+            const version =
+              (
+                await database.getFirstAsync<{ user_version: number }>(
+                  "PRAGMA user_version",
+                )
+              )?.user_version ?? 0;
             await database.execAsync(storageSchema);
             if (version < 1) {
               await database.execAsync("PRAGMA user_version = 1");
@@ -916,18 +1218,30 @@ export function createSQLite(bridge: SQLiteBridge) {
 
     async getItemAsync(key: string): Promise<string | null> {
       checkStorageInput(key);
-      return (await (await this.#databaseAsync()).getFirstAsync<{ value: string }>(storageGet, key))?.value ?? null;
+      return (
+        (
+          await (
+            await this.#databaseAsync()
+          ).getFirstAsync<{ value: string }>(storageGet, key)
+        )?.value ?? null
+      );
     }
 
-    async setItemAsync(key: string, value: string | SQLiteStorageSetItemUpdateFunction): Promise<void> {
+    async setItemAsync(
+      key: string,
+      value: string | SQLiteStorageSetItemUpdateFunction,
+    ): Promise<void> {
       checkStorageInput(key, value);
       const database = await this.#databaseAsync();
       if (typeof value !== "function") {
         await database.runAsync(storageSet, key, value);
         return;
       }
-      await database.withExclusiveTransactionAsync(async transaction => {
-        const next = value((await transaction.getFirstAsync<{ value: string }>(storageGet, key))?.value ?? null);
+      await database.withExclusiveTransactionAsync(async (transaction) => {
+        const next = value(
+          (await transaction.getFirstAsync<{ value: string }>(storageGet, key))
+            ?.value ?? null,
+        );
         checkStorageInput(key, next);
         await transaction.runAsync(storageSet, key, next);
       });
@@ -935,19 +1249,37 @@ export function createSQLite(bridge: SQLiteBridge) {
 
     async removeItemAsync(key: string): Promise<boolean> {
       checkStorageInput(key);
-      return (await (await this.#databaseAsync()).runAsync(storageRemove, key)).changes > 0;
+      return (
+        (await (await this.#databaseAsync()).runAsync(storageRemove, key))
+          .changes > 0
+      );
     }
 
     async getAllKeysAsync(): Promise<string[]> {
-      return (await (await this.#databaseAsync()).getAllAsync<{ key: string }>("SELECT key FROM storage")).map(({ key }) => key);
+      return (
+        await (
+          await this.#databaseAsync()
+        ).getAllAsync<{ key: string }>("SELECT key FROM storage")
+      ).map(({ key }) => key);
     }
 
     async clearAsync(): Promise<boolean> {
-      return (await (await this.#databaseAsync()).runAsync("DELETE FROM storage")).changes > 0;
+      return (
+        (await (await this.#databaseAsync()).runAsync("DELETE FROM storage"))
+          .changes > 0
+      );
     }
 
     async getLengthAsync(): Promise<number> {
-      return (await (await this.#databaseAsync()).getFirstAsync<{ count: number }>("SELECT count(*) AS count FROM storage"))?.count ?? 0;
+      return (
+        (
+          await (
+            await this.#databaseAsync()
+          ).getFirstAsync<{ count: number }>(
+            "SELECT count(*) AS count FROM storage",
+          )
+        )?.count ?? 0
+      );
     }
 
     async getKeyByIndexAsync(index: number): Promise<string | null> {
@@ -955,7 +1287,16 @@ export function createSQLite(bridge: SQLiteBridge) {
       if (offset === null) {
         return null;
       }
-      return (await (await this.#databaseAsync()).getFirstAsync<{ key: string }>("SELECT key FROM storage LIMIT 1 OFFSET ?", offset))?.key ?? null;
+      return (
+        (
+          await (
+            await this.#databaseAsync()
+          ).getFirstAsync<{ key: string }>(
+            "SELECT key FROM storage LIMIT 1 OFFSET ?",
+            offset,
+          )
+        )?.key ?? null
+      );
     }
 
     async closeAsync(): Promise<void> {
@@ -967,10 +1308,16 @@ export function createSQLite(bridge: SQLiteBridge) {
 
     getItemSync(key: string): string | null {
       checkStorageInput(key);
-      return this.#databaseSync().getFirstSync<{ value: string }>(storageGet, key)?.value ?? null;
+      return (
+        this.#databaseSync().getFirstSync<{ value: string }>(storageGet, key)
+          ?.value ?? null
+      );
     }
 
-    setItemSync(key: string, value: string | SQLiteStorageSetItemUpdateFunction): void {
+    setItemSync(
+      key: string,
+      value: string | SQLiteStorageSetItemUpdateFunction,
+    ): void {
       checkStorageInput(key, value);
       const database = this.#databaseSync();
       if (typeof value !== "function") {
@@ -978,7 +1325,10 @@ export function createSQLite(bridge: SQLiteBridge) {
         return;
       }
       database.withTransactionSync(() => {
-        const next = value(database.getFirstSync<{ value: string }>(storageGet, key)?.value ?? null);
+        const next = value(
+          database.getFirstSync<{ value: string }>(storageGet, key)?.value ??
+            null,
+        );
         checkStorageInput(key, next);
         database.runSync(storageSet, key, next);
       });
@@ -990,7 +1340,9 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     getAllKeysSync(): string[] {
-      return this.#databaseSync().getAllSync<{ key: string }>("SELECT key FROM storage").map(({ key }) => key);
+      return this.#databaseSync()
+        .getAllSync<{ key: string }>("SELECT key FROM storage")
+        .map(({ key }) => key);
     }
 
     clearSync(): boolean {
@@ -998,7 +1350,11 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     getLengthSync(): number {
-      return this.#databaseSync().getFirstSync<{ count: number }>("SELECT count(*) AS count FROM storage")?.count ?? 0;
+      return (
+        this.#databaseSync().getFirstSync<{ count: number }>(
+          "SELECT count(*) AS count FROM storage",
+        )?.count ?? 0
+      );
     }
 
     getKeyByIndexSync(index: number): string | null {
@@ -1006,7 +1362,12 @@ export function createSQLite(bridge: SQLiteBridge) {
       if (offset === null) {
         return null;
       }
-      return this.#databaseSync().getFirstSync<{ key: string }>("SELECT key FROM storage LIMIT 1 OFFSET ?", offset)?.key ?? null;
+      return (
+        this.#databaseSync().getFirstSync<{ key: string }>(
+          "SELECT key FROM storage LIMIT 1 OFFSET ?",
+          offset,
+        )?.key ?? null
+      );
     }
 
     closeSync(): void {
@@ -1019,7 +1380,10 @@ export function createSQLite(bridge: SQLiteBridge) {
       return this.getItemAsync(key);
     }
 
-    setItem(key: string, value: string | SQLiteStorageSetItemUpdateFunction): Promise<void> {
+    setItem(
+      key: string,
+      value: string | SQLiteStorageSetItemUpdateFunction,
+    ): Promise<void> {
       return this.setItemAsync(key, value);
     }
 
@@ -1037,15 +1401,26 @@ export function createSQLite(bridge: SQLiteBridge) {
 
     async mergeItem(key: string, value: string): Promise<void> {
       checkStorageInput(key, value);
-      await this.setItemAsync(key, previous => (previous === null ? value : JSON.stringify(mergeDeep(JSON.parse(previous), JSON.parse(value)))));
+      await this.setItemAsync(key, (previous) =>
+        previous === null
+          ? value
+          : JSON.stringify(mergeDeep(JSON.parse(previous), JSON.parse(value))),
+      );
     }
 
     multiGet(keys: string[]): Promise<[string, string | null][]> {
-      return Promise.all(keys.map(async (key): Promise<[string, string | null]> => [key, await this.getItemAsync(key)]));
+      return Promise.all(
+        keys.map(async (key): Promise<[string, string | null]> => [
+          key,
+          await this.getItemAsync(key),
+        ]),
+      );
     }
 
     async multiSet(pairs: [string, string][]): Promise<void> {
-      await (await this.#databaseAsync()).withExclusiveTransactionAsync(async transaction => {
+      await (
+        await this.#databaseAsync()
+      ).withExclusiveTransactionAsync(async (transaction) => {
         for (const [key, value] of pairs) {
           checkStorageInput(key, value);
           await transaction.runAsync(storageSet, key, value);
@@ -1054,7 +1429,9 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     async multiRemove(keys: string[]): Promise<void> {
-      await (await this.#databaseAsync()).withExclusiveTransactionAsync(async transaction => {
+      await (
+        await this.#databaseAsync()
+      ).withExclusiveTransactionAsync(async (transaction) => {
         for (const key of keys) {
           checkStorageInput(key);
           await transaction.runAsync(storageRemove, key);
@@ -1063,11 +1440,23 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
 
     async multiMerge(pairs: [string, string][]): Promise<void> {
-      await (await this.#databaseAsync()).withExclusiveTransactionAsync(async transaction => {
+      await (
+        await this.#databaseAsync()
+      ).withExclusiveTransactionAsync(async (transaction) => {
         for (const [key, value] of pairs) {
           checkStorageInput(key, value);
-          const previous = (await transaction.getFirstAsync<{ value: string }>(storageGet, key))?.value;
-          await transaction.runAsync(storageSet, key, previous === undefined ? value : JSON.stringify(mergeDeep(JSON.parse(previous), JSON.parse(value))));
+          const previous = (
+            await transaction.getFirstAsync<{ value: string }>(storageGet, key)
+          )?.value;
+          await transaction.runAsync(
+            storageSet,
+            key,
+            previous === undefined
+              ? value
+              : JSON.stringify(
+                  mergeDeep(JSON.parse(previous), JSON.parse(value)),
+                ),
+          );
         }
       });
     }
@@ -1078,7 +1467,8 @@ export function createSQLite(bridge: SQLiteBridge) {
   }
 
   let asyncStorage: SQLiteStorage | undefined;
-  const defaultStorage = () => (asyncStorage ??= new SQLiteStorage("ExpoSQLiteStorage"));
+  const defaultStorage = () =>
+    (asyncStorage ??= new SQLiteStorage("ExpoSQLiteStorage"));
 
   const kvStore = Object.freeze({
     __esModule: true,
@@ -1124,9 +1514,15 @@ export function createSQLite(bridge: SQLiteBridge) {
     }
   }
 
-  const builtin = new Set<PropertyKey>([...Object.getOwnPropertyNames(Storage.prototype), ...Object.getOwnPropertyNames(Object.prototype)]);
+  const builtin = new Set<PropertyKey>([
+    ...Object.getOwnPropertyNames(Storage.prototype),
+    ...Object.getOwnPropertyNames(Object.prototype),
+  ]);
   const localStorage = new Proxy(new Storage(), {
-    get: (target, key, receiver) => (typeof key !== "string" || builtin.has(key) ? Reflect.get(target, key, receiver) : (target.getItem(key) ?? undefined)),
+    get: (target, key, receiver) =>
+      typeof key !== "string" || builtin.has(key)
+        ? Reflect.get(target, key, receiver)
+        : (target.getItem(key) ?? undefined),
     set: (target, key, value, receiver) => {
       if (typeof key !== "string" || builtin.has(key)) {
         return Reflect.set(target, key, value, receiver);
@@ -1141,7 +1537,10 @@ export function createSQLite(bridge: SQLiteBridge) {
       target.removeItem(key);
       return true;
     },
-    has: (target, key) => (typeof key !== "string" || builtin.has(key) ? Reflect.has(target, key) : target.getItem(key) !== null),
+    has: (target, key) =>
+      typeof key !== "string" || builtin.has(key)
+        ? Reflect.has(target, key)
+        : target.getItem(key) !== null,
   });
 
   const exports = Object.freeze({

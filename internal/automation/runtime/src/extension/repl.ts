@@ -24,7 +24,16 @@ const outcome = (value: unknown): string => {
 
 export const replGlobals = () => {
   const { accessibility, input, device, screen, image } = chunk("api");
-  return { accessibility, input, device, screen, image, dataDirectory: dataDirectory(), dialog: createDialog(), show };
+  return {
+    accessibility,
+    input,
+    device,
+    screen,
+    image,
+    dataDirectory: dataDirectory(),
+    dialog: createDialog(),
+    show,
+  };
 };
 
 const namespaces = new Map<string, object>();
@@ -33,10 +42,13 @@ const load = (specifier: string, name?: string): unknown => {
   let namespace = namespaces.get(specifier);
   if (namespace === undefined) {
     if (!Object.hasOwn(modules, specifier)) {
-      throw new TypeError(`the REPL can't import ${JSON.stringify(specifier)}; it can import ${Object.keys(modules).join(", ")}`);
+      throw new TypeError(
+        `the REPL can't import ${JSON.stringify(specifier)}; it can import ${Object.keys(modules).join(", ")}`,
+      );
     }
     const exported = modules[specifier]() as { __esModule?: boolean };
-    const descriptors: PropertyDescriptorMap = Object.getOwnPropertyDescriptors(exported);
+    const descriptors: PropertyDescriptorMap =
+      Object.getOwnPropertyDescriptors(exported);
     delete descriptors.__esModule;
     if (!exported.__esModule) {
       descriptors.default = { value: exported, enumerable: true };
@@ -49,16 +61,38 @@ const load = (specifier: string, name?: string): unknown => {
     return namespace;
   }
   if (!(name in namespace)) {
-    throw new SyntaxError(`the module ${JSON.stringify(specifier)} has no export named ${JSON.stringify(name)}`);
+    throw new SyntaxError(
+      `the module ${JSON.stringify(specifier)} has no export named ${JSON.stringify(name)}`,
+    );
   }
   return (namespace as Record<string, unknown>)[name];
 };
 
-const dynamicImport = async (specifier: unknown): Promise<unknown> => load(String(specifier));
+const dynamicImport = async (specifier: unknown): Promise<unknown> =>
+  load(String(specifier));
 
-export function launch(script: (staticImport: typeof load, importCall: typeof dynamicImport) => Promise<unknown>, columns: [output: number, input: number][][], id: string, request: string): void {
-  const { args = [], program }: { args?: string[]; program: boolean } = JSON.parse(request);
+export function launch(
+  script: (
+    staticImport: typeof load,
+    importCall: typeof dynamicImport,
+  ) => Promise<unknown>,
+  columns: [output: number, input: number][][],
+  id: string,
+  request: string,
+): void {
+  const { args = [], program }: { args?: string[]; program: boolean } =
+    JSON.parse(request);
   setInputColumns(id, columns);
-  Object.defineProperty(globalThis, "args", { value: args, writable: true, configurable: true, enumerable: false });
-  void script(load, dynamicImport).then(value => (program ? "" : outcome(value))).then(output => native.finish("", output, id), error => native.finish(failureOf(error), "", id));
+  Object.defineProperty(globalThis, "args", {
+    value: args,
+    writable: true,
+    configurable: true,
+    enumerable: false,
+  });
+  void script(load, dynamicImport)
+    .then((value) => (program ? "" : outcome(value)))
+    .then(
+      (output) => native.finish("", output, id),
+      (error) => native.finish(failureOf(error), "", id),
+    );
 }

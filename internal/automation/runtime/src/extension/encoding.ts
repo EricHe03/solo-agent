@@ -1,40 +1,58 @@
 import { bytesOf, textDecoderClass } from "../shared/text";
-import { allowSharedUint8Array, brand, defineInterface, optional, usvString } from "../shared/webidl";
+import {
+  allowSharedUint8Array,
+  brand,
+  defineInterface,
+  optional,
+  usvString,
+} from "../shared/webidl";
 import { chunk } from "./chunks";
 import { DOMException } from "./errors";
 import { native } from "./native";
 
 const nativeSize = 1024;
 
-export const TextEncoder = defineInterface(class TextEncoder {
-  readonly #brand = true;
+export const TextEncoder = defineInterface(
+  class TextEncoder {
+    readonly #brand = true;
 
-  static [brand](value: object) {
-    return #brand in value;
-  }
-
-  get encoding(): string {
-    return "utf-8";
-  }
-
-  encode(text = ""): Uint8Array {
-    if (text.length >= nativeSize && native !== undefined) {
-      return native.encodeText(text);
+    static [brand](value: object) {
+      return #brand in value;
     }
-    const out = new Uint8Array(text.length * 3);
-    return out.slice(0, encodeInto(text, out).written);
-  }
 
-  encodeInto(input: string, destination: Uint8Array): { read: number; written: number } {
-    return encodeInto(input, destination);
-  }
-}, {
-  construct: [],
-  operations: { encode: [optional(usvString, "")], encodeInto: [usvString, allowSharedUint8Array] },
-});
+    get encoding(): string {
+      return "utf-8";
+    }
+
+    encode(text = ""): Uint8Array {
+      if (text.length >= nativeSize && native !== undefined) {
+        return native.encodeText(text);
+      }
+      const out = new Uint8Array(text.length * 3);
+      return out.slice(0, encodeInto(text, out).written);
+    }
+
+    encodeInto(
+      input: string,
+      destination: Uint8Array,
+    ): { read: number; written: number } {
+      return encodeInto(input, destination);
+    }
+  },
+  {
+    construct: [],
+    operations: {
+      encode: [optional(usvString, "")],
+      encodeInto: [usvString, allowSharedUint8Array],
+    },
+  },
+);
 export type TextEncoder = InstanceType<typeof TextEncoder>;
 
-function encodeInto(text: string, destination: Uint8Array): { read: number; written: number } {
+function encodeInto(
+  text: string,
+  destination: Uint8Array,
+): { read: number; written: number } {
   const capacity = destination.length;
   let read = 0;
   let written = 0;
@@ -82,24 +100,38 @@ function encodeInto(text: string, destination: Uint8Array): { read: number; writ
   return { read, written };
 }
 
-export const TextDecoder = textDecoderClass(() => chunk("encoding-tables"), (bytes, fatal) => native.decodeText(bytes, fatal ? 1 : 0));
+export const TextDecoder = textDecoderClass(
+  () => chunk("encoding-tables"),
+  (bytes, fatal) => native.decodeText(bytes, fatal ? 1 : 0),
+);
 export type TextDecoder = InstanceType<typeof TextDecoder>;
 
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const alphabet =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 export function btoa(text: string): string {
   let out = "";
   for (let index = 0; index < text.length; index += 3) {
-    const codes = [text.charCodeAt(index), text.charCodeAt(index + 1), text.charCodeAt(index + 2)];
+    const codes = [
+      text.charCodeAt(index),
+      text.charCodeAt(index + 1),
+      text.charCodeAt(index + 2),
+    ];
     for (const code of codes) {
       if (code > 0xff) {
-        throw new DOMException("the string has characters outside of Latin1", "InvalidCharacterError");
+        throw new DOMException(
+          "the string has characters outside of Latin1",
+          "InvalidCharacterError",
+        );
       }
     }
     const [a, b = NaN, c = NaN] = codes;
     const chunk = (a << 16) | ((b || 0) << 8) | (c || 0);
     out += alphabet[(chunk >> 18) & 63] + alphabet[(chunk >> 12) & 63];
-    out += Number.isNaN(b) ? "==" : alphabet[(chunk >> 6) & 63] + (Number.isNaN(c) ? "=" : alphabet[chunk & 63]);
+    out += Number.isNaN(b)
+      ? "=="
+      : alphabet[(chunk >> 6) & 63] +
+        (Number.isNaN(c) ? "=" : alphabet[chunk & 63]);
   }
   return out;
 }
@@ -110,7 +142,10 @@ export function atob(data: string): string {
     text = text.replace(/==?$/, "");
   }
   if (text.length % 4 === 1 || /[^A-Za-z0-9+/]/.test(text)) {
-    throw new DOMException("the string is not correctly encoded", "InvalidCharacterError");
+    throw new DOMException(
+      "the string is not correctly encoded",
+      "InvalidCharacterError",
+    );
   }
   let out = "";
   let buffer = 0;

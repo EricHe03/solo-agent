@@ -26,18 +26,32 @@ const product = "ExpoModulesCore";
 const flavors = { debug: "Debug", release: "Release" };
 const platforms = [
   { sdk: "iphoneos", destination: "generic/platform=iOS", slice: "ios-arm64" },
-  { sdk: "iphonesimulator", destination: "generic/platform=iOS Simulator", slice: "ios-arm64_x86_64-simulator" },
+  {
+    sdk: "iphonesimulator",
+    destination: "generic/platform=iOS Simulator",
+    slice: "ios-arm64_x86_64-simulator",
+  },
 ];
 
 // Nested builds get a clean environment, as the ExpoModulesJSI build does, so that settings of an
 // enclosing Xcode build do not leak in.
-const environment = () => ({ PATH: process.env.PATH, HOME: process.env.HOME, ...(process.env.DEVELOPER_DIR ? { DEVELOPER_DIR: process.env.DEVELOPER_DIR } : {}) });
+const environment = () => ({
+  PATH: process.env.PATH,
+  HOME: process.env.HOME,
+  ...(process.env.DEVELOPER_DIR
+    ? { DEVELOPER_DIR: process.env.DEVELOPER_DIR }
+    : {}),
+});
 
 function run(command, args, { cwd = root, env = process.env, log } = {}) {
   const output = log === undefined ? "inherit" : fs.openSync(log, "w");
   let result;
   try {
-    result = spawnSync(command, args, { cwd, env, stdio: ["ignore", output, output] });
+    result = spawnSync(command, args, {
+      cwd,
+      env,
+      stdio: ["ignore", output, output],
+    });
   } finally {
     if (log !== undefined) {
       fs.closeSync(output);
@@ -47,13 +61,18 @@ function run(command, args, { cwd = root, env = process.env, log } = {}) {
     throw result.error;
   }
   if (result.status !== 0) {
-    const where = log === undefined ? "" : `; the full log is ${path.relative(root, log)}`;
-    throw new Error(`${command} ${args[0]} exited with ${result.status ?? `signal ${result.signal}`}${where}`);
+    const where =
+      log === undefined ? "" : `; the full log is ${path.relative(root, log)}`;
+    throw new Error(
+      `${command} ${args[0]} exited with ${result.status ?? `signal ${result.signal}`}${where}`,
+    );
   }
 }
 
 function* walk(directory, base = directory) {
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
+  for (const entry of fs
+    .readdirSync(directory, { withFileTypes: true })
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
     const file = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       yield* walk(file, base);
@@ -65,7 +84,7 @@ function* walk(directory, base = directory) {
 
 // The subset of glob that spm.config.json uses: `dir/**`, `**/dir/**` and file paths.
 function excluded(file, patterns) {
-  return patterns.some(pattern => {
+  return patterns.some((pattern) => {
     if (pattern.startsWith("**/") && pattern.endsWith("/**")) {
       return `/${file}`.includes(`/${pattern.slice(3, -3)}/`);
     }
@@ -77,7 +96,11 @@ function excluded(file, patterns) {
 }
 
 function sources(directory, extensions, exclude) {
-  return [...walk(directory)].filter(file => extensions.includes(path.extname(file)) && !excluded(file, [...exclude, "**/Tests/**"]));
+  return [...walk(directory)].filter(
+    (file) =>
+      extensions.includes(path.extname(file)) &&
+      !excluded(file, [...exclude, "**/Tests/**"]),
+  );
 }
 
 function link(source, destination) {
@@ -95,18 +118,30 @@ function hardLink(source, destination) {
   }
 }
 
-const quote = value => JSON.stringify(value);
+const quote = (value) => JSON.stringify(value);
 
-const resolvePackage = (name, from) => path.dirname(createRequire(path.join(from, "package.json")).resolve(`${name}/package.json`));
+const resolvePackage = (name, from) =>
+  path.dirname(
+    createRequire(path.join(from, "package.json")).resolve(
+      `${name}/package.json`,
+    ),
+  );
 
 function stage(core, config) {
   // SwiftPM names the package after its directory, and the interfaces record it as -package-name.
   const packageDir = path.join(work, product);
   fs.rmSync(packageDir, { recursive: true, force: true });
-  const coreProduct = config.products.find(candidate => candidate.name === product);
-  const version = JSON.parse(fs.readFileSync(path.join(core, "package.json"), "utf8")).version;
-  const macros = path.join(resolvePackage("expo-modules-macros", core), "apple/ExpoModulesMacros");
-  const internal = new Set(coreProduct.targets.map(target => target.name));
+  const coreProduct = config.products.find(
+    (candidate) => candidate.name === product,
+  );
+  const version = JSON.parse(
+    fs.readFileSync(path.join(core, "package.json"), "utf8"),
+  ).version;
+  const macros = path.join(
+    resolvePackage("expo-modules-macros", core),
+    "apple/ExpoModulesMacros",
+  );
+  const internal = new Set(coreProduct.targets.map((target) => target.name));
   const headers = {};
   const targets = [];
   for (const target of coreProduct.targets) {
@@ -116,22 +151,41 @@ function stage(core, config) {
     const mapped = new Set();
     for (const mapping of target.fileMapping ?? []) {
       mapped.add(mapping.from);
-      link(path.join(targetPath, mapping.from), path.join(destination, mapping.to.replace("{filename}", path.basename(mapping.from))));
+      link(
+        path.join(targetPath, mapping.from),
+        path.join(
+          destination,
+          mapping.to.replace("{filename}", path.basename(mapping.from)),
+        ),
+      );
     }
-    const extensions = { cpp: [".cpp", ".c", ".cc", ".cxx"], objc: [".m", ".mm", ".c", ".cpp"], swift: [".swift"] }[target.type];
+    const extensions = {
+      cpp: [".cpp", ".c", ".cc", ".cxx"],
+      objc: [".m", ".mm", ".c", ".cpp"],
+      swift: [".swift"],
+    }[target.type];
     for (const file of sources(targetPath, extensions, exclude)) {
       link(path.join(targetPath, file), path.join(destination, file));
     }
-    const dependencies = (target.dependencies ?? []).filter(dependency => internal.has(dependency)).map(quote);
+    const dependencies = (target.dependencies ?? [])
+      .filter((dependency) => internal.has(dependency))
+      .map(quote);
     const react = [
       '.product(name: "ReactHeaders", package: "ReactNative")',
       '.product(name: "ReactNativeHeaders", package: "ReactNative")',
       '.product(name: "ReactNativeDependenciesHeaders", package: "ReactNative")',
     ];
     if (target.type === "swift") {
-      const frameworks = (target.linkedFrameworks ?? []).map(framework => `@_exported import ${framework}`);
-      const imports = (target.dependencies ?? []).filter(dependency => internal.has(dependency)).map(dependency => `@_exported import ${dependency}`);
-      fs.writeFileSync(path.join(destination, `${product}+Exports.swift`), `${[...frameworks, ...imports].join("\n")}\n`);
+      const frameworks = (target.linkedFrameworks ?? []).map(
+        (framework) => `@_exported import ${framework}`,
+      );
+      const imports = (target.dependencies ?? [])
+        .filter((dependency) => internal.has(dependency))
+        .map((dependency) => `@_exported import ${dependency}`);
+      fs.writeFileSync(
+        path.join(destination, `${product}+Exports.swift`),
+        `${[...frameworks, ...imports].join("\n")}\n`,
+      );
       targets.push(`    .target(
       name: ${quote(target.name)},
       dependencies: [${[...dependencies, ...react].join(", ")}],
@@ -141,7 +195,7 @@ function stage(core, config) {
         .define("RCT_REMOVE_LEGACY_ARCH"),
         .unsafeFlags(${quote(["-Xcc", "-fmodules", "-Xfrontend", "-load-plugin-executable", "-Xfrontend", `${macros}#ExpoModulesMacros`])}),
       ],
-      linkerSettings: [${(target.linkedFrameworks ?? []).map(framework => `.linkedFramework(${quote(framework)})`).join(", ")}]
+      linkerSettings: [${(target.linkedFrameworks ?? []).map((framework) => `.linkedFramework(${quote(framework)})`).join(", ")}]
     )`);
       continue;
     }
@@ -150,7 +204,10 @@ function stage(core, config) {
       if (mapped.has(file)) {
         continue;
       }
-      hardLink(path.join(targetPath, file), path.join(destination, "include", product, path.basename(file)));
+      hardLink(
+        path.join(targetPath, file),
+        path.join(destination, "include", product, path.basename(file)),
+      );
       headers[target.name].push(path.basename(file));
     }
     const settings = [
@@ -159,11 +216,17 @@ function stage(core, config) {
       '.define("RCT_NEW_ARCH_ENABLED", to: "1")',
       '.define("RCT_REMOVE_LEGACY_ARCH", to: "1")',
       '.unsafeFlags(["-fmodules"])',
-      `.unsafeFlags(${quote((target.includeDirectories ?? []).flatMap(directory => ["-I", path.resolve(targetPath, directory)]))})`,
+      `.unsafeFlags(${quote((target.includeDirectories ?? []).flatMap((directory) => ["-I", path.resolve(targetPath, directory)]))})`,
     ];
     for (const flag of target.compilerFlags?.common ?? []) {
-      const [, name, value] = flag.replace("${PACKAGE_VERSION}", version).match(/^-D(\w+)(?:=(.+))?$/);
-      settings.push(value === undefined ? `.define(${quote(name)})` : `.define(${quote(name)}, to: ${quote(value)})`);
+      const [, name, value] = flag
+        .replace("${PACKAGE_VERSION}", version)
+        .match(/^-D(\w+)(?:=(.+))?$/);
+      settings.push(
+        value === undefined
+          ? `.define(${quote(name)})`
+          : `.define(${quote(name)}, to: ${quote(value)})`,
+      );
     }
     targets.push(`    .target(
       name: ${quote(target.name)},
@@ -172,10 +235,10 @@ function stage(core, config) {
       publicHeadersPath: "include",
       cSettings: [${settings.join(", ")}],
       cxxSettings: [${settings.join(", ")}],
-      linkerSettings: [${(target.linkedFrameworks ?? []).map(framework => `.linkedFramework(${quote(framework)})`).join(", ")}]
+      linkerSettings: [${(target.linkedFrameworks ?? []).map((framework) => `.linkedFramework(${quote(framework)})`).join(", ")}]
     )`);
   }
-  const platform = coreProduct.platforms.map(entry => `.${entry}`).join(", ");
+  const platform = coreProduct.platforms.map((entry) => `.${entry}`).join(", ");
   fs.writeFileSync(
     path.join(packageDir, "Package.swift"),
     `// swift-tools-version: 6.0
@@ -186,7 +249,7 @@ let package = Package(
   name: ${quote(product)},
   platforms: [${platform}],
   products: [
-    .library(name: ${quote(product)}, type: .dynamic, targets: [${coreProduct.targets.map(target => quote(target.name)).join(", ")}])
+    .library(name: ${quote(product)}, type: .dynamic, targets: [${coreProduct.targets.map((target) => quote(target.name)).join(", ")}])
   ],
   dependencies: [
     .package(name: "ReactNative", path: ${quote(path.join(root, "build/xcframeworks"))})
@@ -212,27 +275,69 @@ function buildJSI(core) {
   for (const { sdk, slice } of platforms) {
     const stageDir = path.join(jsiRoot, `pods-stage-${slice}`);
     const publicHeaders = path.join(stageDir, "Headers/Public");
-    const reactHeaders = path.join(xcframeworks, "ReactNativeHeaders.xcframework", slice, "Headers");
-    const dependencyHeaders = path.join(xcframeworks, "ReactNativeDependenciesHeaders.xcframework", slice, "Headers");
+    const reactHeaders = path.join(
+      xcframeworks,
+      "ReactNativeHeaders.xcframework",
+      slice,
+      "Headers",
+    );
+    const dependencyHeaders = path.join(
+      xcframeworks,
+      "ReactNativeDependenciesHeaders.xcframework",
+      slice,
+      "Headers",
+    );
     fs.rmSync(publicHeaders, { recursive: true, force: true });
     for (const [source, name] of [
       [path.join(reactNative, "ReactCommon/jsi/jsi"), "React-jsi/jsi"],
-      [path.join(reactNative, "ReactCommon/react/renderer/runtimescheduler"), "React-runtimescheduler/react/renderer/runtimescheduler"],
-      [path.join(reactNative, "ReactCommon/react/renderer/consistency"), "React-rendererconsistency/react/renderer/consistency"],
-      [path.join(reactNative, "ReactCommon/react/performance/timeline"), "React-performancetimeline/react/performance/timeline"],
-      [path.join(reactNative, "ReactCommon/react/timing"), "React-timing/react/timing"],
-      [path.join(reactNative, "ReactCommon/react/debug"), "React-debug/react/debug"],
-      [path.join(reactNative, "ReactCommon/callinvoker/ReactCommon"), "React-callinvoker/ReactCommon"],
-      [path.join(reactNative, "ReactCommon/runtimeexecutor/ReactCommon"), "React-runtimeexecutor/ReactCommon"],
+      [
+        path.join(reactNative, "ReactCommon/react/renderer/runtimescheduler"),
+        "React-runtimescheduler/react/renderer/runtimescheduler",
+      ],
+      [
+        path.join(reactNative, "ReactCommon/react/renderer/consistency"),
+        "React-rendererconsistency/react/renderer/consistency",
+      ],
+      [
+        path.join(reactNative, "ReactCommon/react/performance/timeline"),
+        "React-performancetimeline/react/performance/timeline",
+      ],
+      [
+        path.join(reactNative, "ReactCommon/react/timing"),
+        "React-timing/react/timing",
+      ],
+      [
+        path.join(reactNative, "ReactCommon/react/debug"),
+        "React-debug/react/debug",
+      ],
+      [
+        path.join(reactNative, "ReactCommon/callinvoker/ReactCommon"),
+        "React-callinvoker/ReactCommon",
+      ],
+      [
+        path.join(reactNative, "ReactCommon/runtimeexecutor/ReactCommon"),
+        "React-runtimeexecutor/ReactCommon",
+      ],
       [path.join(reactHeaders, "hermes"), "hermes-engine/hermes"],
       [dependencyHeaders, "ReactNativeDependencies"],
     ]) {
       link(source, path.join(publicHeaders, name));
     }
-    const podspec = path.join(stageDir, "Local Podspecs/React-Core.podspec.json");
+    const podspec = path.join(
+      stageDir,
+      "Local Podspecs/React-Core.podspec.json",
+    );
     fs.mkdirSync(path.dirname(podspec), { recursive: true });
-    const podspecJSON = JSON.stringify({ name: "React-Core", version: JSON.parse(fs.readFileSync(path.join(reactNative, "package.json"), "utf8")).version });
-    if (!fs.existsSync(podspec) || fs.readFileSync(podspec, "utf8") !== podspecJSON) {
+    const podspecJSON = JSON.stringify({
+      name: "React-Core",
+      version: JSON.parse(
+        fs.readFileSync(path.join(reactNative, "package.json"), "utf8"),
+      ).version,
+    });
+    if (
+      !fs.existsSync(podspec) ||
+      fs.readFileSync(podspec, "utf8") !== podspecJSON
+    ) {
       fs.writeFileSync(podspec, podspecJSON);
     }
     run("bash", [path.join(jsi, "apple/scripts/build-xcframework.sh")], {
@@ -251,10 +356,14 @@ function buildJSI(core) {
 
 function inputsDigest(core, jsi) {
   const digest = crypto.createHash("sha256");
-  const add = (label, content) => digest.update(label).update("\0").update(content).update("\0");
+  const add = (label, content) =>
+    digest.update(label).update("\0").update(content).update("\0");
   for (const directory of ["ios", "common"]) {
     for (const file of walk(path.join(core, directory))) {
-      add(`${directory}/${file}`, fs.readFileSync(path.join(core, directory, file)));
+      add(
+        `${directory}/${file}`,
+        fs.readFileSync(path.join(core, directory, file)),
+      );
     }
   }
   for (const file of ["package.json", "spm.config.json"]) {
@@ -264,12 +373,23 @@ function inputsDigest(core, jsi) {
     add(`jsi/${slice}`, fs.readFileSync(path.join(jsi, slice, ".build-hash")));
   }
   add("script", fs.readFileSync(fileURLToPath(import.meta.url)));
-  add("react-native", fs.readFileSync(path.join(root, "node_modules/react-native/package.json")));
-  add("xcode", spawnSync("xcodebuild", ["-version"], { encoding: "utf8" }).stdout ?? "");
+  add(
+    "react-native",
+    fs.readFileSync(path.join(root, "node_modules/react-native/package.json")),
+  );
+  add(
+    "xcode",
+    spawnSync("xcodebuild", ["-version"], { encoding: "utf8" }).stdout ?? "",
+  );
   return digest.digest("hex");
 }
 
-function compose({ packageDir, coreProduct, headers }, jsi, flavor, configuration) {
+function compose(
+  { packageDir, coreProduct, headers },
+  jsi,
+  flavor,
+  configuration,
+) {
   const derivedData = path.join(work, "DerivedData");
   const xcframeworks = path.join(root, "build/xcframeworks", flavor);
   const staged = [];
@@ -277,13 +397,18 @@ function compose({ packageDir, coreProduct, headers }, jsi, flavor, configuratio
     // The frameworks ExpoModulesCore links; the headers come from the ReactNative package.
     const linked = [
       [path.join(xcframeworks, "React.xcframework", slice), "React"],
-      [path.join(xcframeworks, "ReactNativeDependencies.xcframework", slice), "ReactNativeDependencies"],
+      [
+        path.join(xcframeworks, "ReactNativeDependencies.xcframework", slice),
+        "ReactNativeDependencies",
+      ],
       [path.join(xcframeworks, "hermes-engine.xcframework", slice), "hermesvm"],
       [path.join(jsi, slice), "ExpoModulesJSI"],
     ];
     for (const [directory, name] of linked) {
       if (!fs.existsSync(path.join(directory, `${name}.framework`))) {
-        throw new Error(`${path.join(directory, `${name}.framework`)} is missing; setup-apple-spm.js update installs React Native's artifacts`);
+        throw new Error(
+          `${path.join(directory, `${name}.framework`)} is missing; setup-apple-spm.js update installs React Native's artifacts`,
+        );
       }
     }
     // Settings from Expo's prebuild (tools/src/prebuilds/SPMBuild.ts) and the ExpoModulesJSI build.
@@ -330,33 +455,71 @@ function compose({ packageDir, coreProduct, headers }, jsi, flavor, configuratio
       },
     );
 
-    const products = path.join(derivedData, "Build/Products", `${configuration}-${sdk}`);
-    const framework = path.join(work, "stage", flavor, slice, `${product}.framework`);
+    const products = path.join(
+      derivedData,
+      "Build/Products",
+      `${configuration}-${sdk}`,
+    );
+    const framework = path.join(
+      work,
+      "stage",
+      flavor,
+      slice,
+      `${product}.framework`,
+    );
     fs.rmSync(path.dirname(framework), { recursive: true, force: true });
     fs.mkdirSync(path.dirname(framework), { recursive: true });
-    run("cp", ["-a", path.join(products, "PackageFrameworks", `${product}.framework`), framework]);
+    run("cp", [
+      "-a",
+      path.join(products, "PackageFrameworks", `${product}.framework`),
+      framework,
+    ]);
 
     const headersDir = path.join(framework, "Headers");
     fs.mkdirSync(headersDir, { recursive: true });
     const umbrella = [];
     const excludeFromUmbrella = new Set(coreProduct.excludeFromUmbrella ?? []);
     for (const target of coreProduct.targets) {
-      for (const header of [...(headers[target.name] ?? [])].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
-        fs.copyFileSync(path.join(packageDir, target.name, "include", product, header), path.join(headersDir, header));
+      for (const header of [...(headers[target.name] ?? [])].sort((a, b) =>
+        a < b ? -1 : a > b ? 1 : 0,
+      )) {
+        fs.copyFileSync(
+          path.join(packageDir, target.name, "include", product, header),
+          path.join(headersDir, header),
+        );
         if (!excludeFromUmbrella.has(header)) {
           umbrella.push(`#import "${header}"`);
         }
       }
     }
-    fs.writeFileSync(path.join(headersDir, `${product}_umbrella.h`), umbrella.join("\n"));
+    fs.writeFileSync(
+      path.join(headersDir, `${product}_umbrella.h`),
+      umbrella.join("\n"),
+    );
 
     // The internal targets exist only while this package builds; consumers see one module.
-    const internal = coreProduct.targets.map(target => target.name).filter(name => name !== product);
-    let swiftHeader = fs.readFileSync(path.join(derivedData, "Build/Intermediates.noindex", `GeneratedModuleMaps-${sdk}`, `${product}-Swift.h`), "utf8");
+    const internal = coreProduct.targets
+      .map((target) => target.name)
+      .filter((name) => name !== product);
+    let swiftHeader = fs.readFileSync(
+      path.join(
+        derivedData,
+        "Build/Intermediates.noindex",
+        `GeneratedModuleMaps-${sdk}`,
+        `${product}-Swift.h`,
+      ),
+      "utf8",
+    );
     for (const name of internal) {
-      swiftHeader = swiftHeader.replace(new RegExp(`^@import ${name};\\s*$`, "gm"), `// Removed internal target import: ${name}`);
+      swiftHeader = swiftHeader.replace(
+        new RegExp(`^@import ${name};\\s*$`, "gm"),
+        `// Removed internal target import: ${name}`,
+      );
     }
-    swiftHeader = swiftHeader.replace(/^@import React;\s*$/gm, "// Removed: @import React;");
+    swiftHeader = swiftHeader.replace(
+      /^@import React;\s*$/gm,
+      "// Removed: @import React;",
+    );
     fs.writeFileSync(path.join(headersDir, `${product}-Swift.h`), swiftHeader);
 
     const modules = path.join(framework, "Modules");
@@ -370,11 +533,20 @@ function compose({ packageDir, coreProduct, headers }, jsi, flavor, configuratio
       }
       let content = fs.readFileSync(path.join(builtModule, entry.name), "utf8");
       if (entry.name.endsWith(".swiftinterface")) {
-        content = content.replace(/^(\/\/ swift-module-flags-ignorable:.*) -no-verify-emitted-module-interface/m, "$1");
+        content = content.replace(
+          /^(\/\/ swift-module-flags-ignorable:.*) -no-verify-emitted-module-interface/m,
+          "$1",
+        );
         for (const name of internal) {
           content = content
-            .replace(new RegExp(`^@_exported import ${name}\\s*$`, "gm"), `@_exported import ${product}`)
-            .replace(new RegExp(`^import ${name}\\s*$`, "gm"), `import ${product}`)
+            .replace(
+              new RegExp(`^@_exported import ${name}\\s*$`, "gm"),
+              `@_exported import ${product}`,
+            )
+            .replace(
+              new RegExp(`^import ${name}\\s*$`, "gm"),
+              `import ${product}`,
+            )
             .replace(new RegExp(`\\b${name}(::|\\.)`, "g"), `${product}$1`);
         }
       }
@@ -392,16 +564,38 @@ function compose({ packageDir, coreProduct, headers }, jsi, flavor, configuratio
 }
 `,
     );
-    const symbols = [path.join(products, "PackageFrameworks", `${product}.framework.dSYM`), path.join(products, `${product}.framework.dSYM`)].find(candidate => fs.existsSync(candidate));
+    const symbols = [
+      path.join(products, "PackageFrameworks", `${product}.framework.dSYM`),
+      path.join(products, `${product}.framework.dSYM`),
+    ].find((candidate) => fs.existsSync(candidate));
     staged.push({ framework, symbols });
   }
 
-  const target = path.join(fs.realpathSync(path.join(root, "node_modules/expo-modules-core")), "prebuilds/output", flavor, "xcframeworks", `${product}.xcframework`);
+  const target = path.join(
+    fs.realpathSync(path.join(root, "node_modules/expo-modules-core")),
+    "prebuilds/output",
+    flavor,
+    "xcframeworks",
+    `${product}.xcframework`,
+  );
   const temporary = path.join(work, "stage", flavor, `${product}.xcframework`);
   fs.rmSync(temporary, { recursive: true, force: true });
-  run("xcodebuild", ["-create-xcframework", ...staged.flatMap(({ framework, symbols }) => ["-framework", framework, ...(symbols ? ["-debug-symbols", symbols] : [])]), "-output", temporary], {
-    log: path.join(work, `${flavor}-xcframework.log`),
-  });
+  run(
+    "xcodebuild",
+    [
+      "-create-xcframework",
+      ...staged.flatMap(({ framework, symbols }) => [
+        "-framework",
+        framework,
+        ...(symbols ? ["-debug-symbols", symbols] : []),
+      ]),
+      "-output",
+      temporary,
+    ],
+    {
+      log: path.join(work, `${flavor}-xcframework.log`),
+    },
+  );
   fs.rmSync(target, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.renameSync(temporary, target);
@@ -410,14 +604,30 @@ function compose({ packageDir, coreProduct, headers }, jsi, flavor, configuratio
 
 // Returns whether the xcframeworks were rebuilt.
 export function buildExpoModulesCore() {
-  const core = fs.realpathSync(path.join(root, "node_modules/expo-modules-core"));
-  const config = JSON.parse(fs.readFileSync(path.join(core, "spm.config.json"), "utf8"));
+  const core = fs.realpathSync(
+    path.join(root, "node_modules/expo-modules-core"),
+  );
+  const config = JSON.parse(
+    fs.readFileSync(path.join(core, "spm.config.json"), "utf8"),
+  );
   fs.mkdirSync(work, { recursive: true });
   const jsi = buildJSI(core);
   const stamp = inputsDigest(core, jsi);
   const stampFile = path.join(work, "inputs");
-  const targets = Object.keys(flavors).map(flavor => path.join(core, "prebuilds/output", flavor, "xcframeworks", `${product}.xcframework`));
-  if (targets.every(target => fs.existsSync(path.join(target, "Info.plist"))) && fs.existsSync(stampFile) && fs.readFileSync(stampFile, "utf8") === stamp) {
+  const targets = Object.keys(flavors).map((flavor) =>
+    path.join(
+      core,
+      "prebuilds/output",
+      flavor,
+      "xcframeworks",
+      `${product}.xcframework`,
+    ),
+  );
+  if (
+    targets.every((target) => fs.existsSync(path.join(target, "Info.plist"))) &&
+    fs.existsSync(stampFile) &&
+    fs.readFileSync(stampFile, "utf8") === stamp
+  ) {
     return false;
   }
   fs.rmSync(stampFile, { force: true });

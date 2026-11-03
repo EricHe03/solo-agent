@@ -12,7 +12,10 @@ const bindings = (pattern: Node | null, names: Set<string>): void => {
       break;
     case "ObjectPattern":
       for (const property of pattern.properties) {
-        bindings(property.type === "RestElement" ? property.argument : property.value, names);
+        bindings(
+          property.type === "RestElement" ? property.argument : property.value,
+          names,
+        );
       }
       break;
     case "ArrayPattern":
@@ -29,14 +32,29 @@ const bindings = (pattern: Node | null, names: Set<string>): void => {
   }
 };
 
-const resetting = ["IfStatement", "TryStatement", "SwitchStatement", "WithStatement", "ForStatement", "ForInStatement", "ForOfStatement", "WhileStatement", "DoWhileStatement"];
+const resetting = [
+  "IfStatement",
+  "TryStatement",
+  "SwitchStatement",
+  "WithStatement",
+  "ForStatement",
+  "ForInStatement",
+  "ForOfStatement",
+  "WhileStatement",
+  "DoWhileStatement",
+];
 
-const unlabeled = (node: Node): Node => node.type === "LabeledStatement" ? unlabeled(node.body) : node;
+const unlabeled = (node: Node): Node =>
+  node.type === "LabeledStatement" ? unlabeled(node.body) : node;
 
 const reset = `${completion} = void 0;`;
 
 const track = (source: string, edits: Edit[]) => {
-  const statement = (node: Node | null, listed: boolean, finalizer: boolean): void => {
+  const statement = (
+    node: Node | null,
+    listed: boolean,
+    finalizer: boolean,
+  ): void => {
     if (node === null) {
       return;
     }
@@ -64,7 +82,11 @@ const track = (source: string, edits: Edit[]) => {
         if (!finalizer && node.directive !== "use strict") {
           const terminated = source[node.end - 1] === ";";
           edits.push([node.start, 0, `${completion} = (`]);
-          edits.push([terminated ? node.end - 1 : node.end, 0, terminated ? ")" : ");"]);
+          edits.push([
+            terminated ? node.end - 1 : node.end,
+            0,
+            terminated ? ")" : ");",
+          ]);
         }
         break;
       case "BlockStatement":
@@ -105,29 +127,53 @@ const head = "(async () => {";
 const wrap = (code: string) => `${head}${code}\n})`;
 const options = { ranges: true, loc: true, webcompat: true };
 
-const located = (error: unknown, offset: number): { error: unknown; line: number; column: number } => {
-  const { loc, description } = error as { loc?: { start: { line: number; column: number } }; description?: string };
+const located = (
+  error: unknown,
+  offset: number,
+): { error: unknown; line: number; column: number } => {
+  const { loc, description } = error as {
+    loc?: { start: { line: number; column: number } };
+    description?: string;
+  };
   if (loc === undefined) {
     return { error, line: 0, column: 0 };
   }
   const line = loc.start.line;
-  const column = (line === 1 ? loc.start.column - offset : loc.start.column) + 1;
-  return { error: new SyntaxError(`${description} (line ${line}, column ${column})`), line, column };
+  const column =
+    (line === 1 ? loc.start.column - offset : loc.start.column) + 1;
+  return {
+    error: new SyntaxError(`${description} (line ${line}, column ${column})`),
+    line,
+    column,
+  };
 };
 
-const staticImports = (code: string, failure: unknown): { code: string; imports: Node[] } => {
+const staticImports = (
+  code: string,
+  failure: unknown,
+): { code: string; imports: Node[] } => {
   let program: Node;
   try {
-    program = parse(code, { ...options, module: true, lexical: true }) as unknown as Node;
+    program = parse(code, {
+      ...options,
+      module: true,
+      lexical: true,
+    }) as unknown as Node;
   } catch (error) {
     const script = located(failure, head.length);
     const module = located(error, 0);
-    throw (module.line - script.line || module.column - script.column) > 0 ? module.error : script.error;
+    throw (module.line - script.line || module.column - script.column) > 0
+      ? module.error
+      : script.error;
   }
   if (program.body.some((node: Node) => node.type.startsWith("Export"))) {
-    throw new SyntaxError("export declarations are unavailable because nothing imports REPL input");
+    throw new SyntaxError(
+      "export declarations are unavailable because nothing imports REPL input",
+    );
   }
-  const imports: Node[] = program.body.filter((node: Node) => node.type === "ImportDeclaration");
+  const imports: Node[] = program.body.filter(
+    (node: Node) => node.type === "ImportDeclaration",
+  );
   if (imports.length === 0) {
     throw located(failure, head.length).error;
   }
@@ -145,7 +191,11 @@ const dynamicImports = (node: unknown, edits: Edit[]): void => {
     }
     return;
   }
-  if (node === null || typeof node !== "object" || typeof (node as Node).type !== "string") {
+  if (
+    node === null ||
+    typeof node !== "object" ||
+    typeof (node as Node).type !== "string"
+  ) {
     return;
   }
   if ((node as Node).type === "ImportExpression") {
@@ -160,13 +210,25 @@ const dynamicImports = (node: unknown, edits: Edit[]): void => {
 
 export type Columns = [output: number, input: number][][];
 
-const columnsOf = (source: string, start: number, edits: (readonly [number, number, string, number])[]): Columns => {
+const columnsOf = (
+  source: string,
+  start: number,
+  edits: (readonly [number, number, string, number])[],
+): Columns => {
   const starts = [start];
-  for (let index = source.indexOf("\n", start); index >= 0; index = source.indexOf("\n", index + 1)) {
+  for (
+    let index = source.indexOf("\n", start);
+    index >= 0;
+    index = source.indexOf("\n", index + 1)
+  ) {
     starts.push(index + 1);
   }
-  const columns: Columns = starts.map((_, line) => [[line === 0 ? replHead.length + 1 : 1, 1]]);
-  for (const [position, length, insert] of [...edits].sort((a, b) => a[0] - b[0] || a[3] - b[3])) {
+  const columns: Columns = starts.map((_, line) => [
+    [line === 0 ? replHead.length + 1 : 1, 1],
+  ]);
+  for (const [position, length, insert] of [...edits].sort(
+    (a, b) => a[0] - b[0] || a[3] - b[3],
+  )) {
     let line = starts.length - 1;
     while (line > 0 && starts[line] > position) {
       line--;
@@ -203,8 +265,15 @@ export function rewrite(code: string): { text: string; columns: Columns } {
     }
     for (const item of declaration.specifiers) {
       names.add(item.local.name);
-      const exported = item.type === "ImportDefaultSpecifier" ? "default" : item.type === "ImportSpecifier" ? item.imported.name ?? item.imported.value : undefined;
-      hoisted.push(`${item.local.name} = ${load}(${specifier}${exported === undefined ? "" : `, ${JSON.stringify(exported)}`});`);
+      const exported =
+        item.type === "ImportDefaultSpecifier"
+          ? "default"
+          : item.type === "ImportSpecifier"
+            ? (item.imported.name ?? item.imported.value)
+            : undefined;
+      hoisted.push(
+        `${item.local.name} = ${load}(${specifier}${exported === undefined ? "" : `, ${JSON.stringify(exported)}`});`,
+      );
     }
   }
   const edits: Edit[] = [];
@@ -212,7 +281,11 @@ export function rewrite(code: string): { text: string; columns: Columns } {
   for (const node of body) {
     switch (node.type) {
       case "VariableDeclaration":
-        if (node.kind !== "var" && node.kind !== "let" && node.kind !== "const") {
+        if (
+          node.kind !== "var" &&
+          node.kind !== "let" &&
+          node.kind !== "const"
+        ) {
           break;
         }
         edits.push([node.start, node.kind.length, ";"]);
@@ -224,7 +297,9 @@ export function rewrite(code: string): { text: string; columns: Columns } {
         break;
       case "FunctionDeclaration":
         names.add(node.id.name);
-        hoisted.push(`globalThis[${JSON.stringify(node.id.name)}] = ${node.id.name};`);
+        hoisted.push(
+          `globalThis[${JSON.stringify(node.id.name)}] = ${node.id.name};`,
+        );
         break;
       case "ClassDeclaration":
         names.add(node.id.name);
@@ -237,7 +312,9 @@ export function rewrite(code: string): { text: string; columns: Columns } {
   }
   dynamicImports(program, edits);
   let text = source;
-  const ordered = edits.map((edit, index) => [...edit, index] as const).sort((a, b) => b[0] - a[0] || b[3] - a[3]);
+  const ordered = edits
+    .map((edit, index) => [...edit, index] as const)
+    .sort((a, b) => b[0] - a[0] || b[3] - a[3]);
   for (const [position, length, insert] of ordered) {
     text = text.slice(0, position) + insert + text.slice(position + length);
   }

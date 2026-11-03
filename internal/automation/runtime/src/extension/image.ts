@@ -1,7 +1,15 @@
 import type { Point, Rect } from "@swipt/api";
 import type {
-  ConnectedComponent, DetectedBarcode, ImageDifference, ImageFormat, ImageStats, RasterImage as RasterImageInterface, RecognizedTextBox, RecognizedTextLine,
-  TemplateMatch, TextRecognitionOptions,
+  ConnectedComponent,
+  DetectedBarcode,
+  ImageDifference,
+  ImageFormat,
+  ImageStats,
+  RasterImage as RasterImageInterface,
+  RecognizedTextBox,
+  RecognizedTextLine,
+  TemplateMatch,
+  TextRecognitionOptions,
 } from "@swipt/api/image";
 
 import { invoke } from "./async";
@@ -26,7 +34,14 @@ export interface ImageHandle {
   rotate(degrees: number): ImageHandle;
   grayscale(): ImageHandle;
   threshold(level: number): ImageHandle;
-  mask(lowRed: number, lowGreen: number, lowBlue: number, highRed: number, highGreen: number, highBlue: number): ImageHandle;
+  mask(
+    lowRed: number,
+    lowGreen: number,
+    lowBlue: number,
+    highRed: number,
+    highGreen: number,
+    highBlue: number,
+  ): ImageHandle;
   invert(): ImageHandle;
   dilate(radius: number): ImageHandle;
   erode(radius: number): ImageHandle;
@@ -39,12 +54,20 @@ const defaultTolerance = 16;
 export const graphicsNative = (): GraphicsNative => {
   const graphics = native.graphics;
   if (graphics === undefined) {
-    throw new DOMException("graphics are not available on this platform", "NotSupportedError");
+    throw new DOMException(
+      "graphics are not available on this platform",
+      "NotSupportedError",
+    );
   }
   return graphics;
 };
 
-export const run = <T>(method: string, args: Record<string, unknown>, objects: object[], signal?: AbortSignal): Promise<T> => {
+export const run = <T>(
+  method: string,
+  args: Record<string, unknown>,
+  objects: object[],
+  signal?: AbortSignal,
+): Promise<T> => {
   if (signal?.aborted) {
     return Promise.reject(signal.reason);
   }
@@ -74,23 +97,42 @@ const positive = (value: unknown, name: string): number => {
   return value as number;
 };
 
-const integer = (value: unknown, name: string, low: number, high: number): number => {
-  if (!Number.isInteger(value) || (value as number) < low || (value as number) > high) {
+const integer = (
+  value: unknown,
+  name: string,
+  low: number,
+  high: number,
+): number => {
+  if (
+    !Number.isInteger(value) ||
+    (value as number) < low ||
+    (value as number) > high
+  ) {
     throw new RangeError(`${name} must be an integer from ${low} to ${high}`);
   }
   return value as number;
 };
 
 export const pointOf = (value: unknown, name: string): Point => {
-  if (!Array.isArray(value) || value.length !== 2 || !value.every(Number.isFinite)) {
+  if (
+    !Array.isArray(value) ||
+    value.length !== 2 ||
+    !value.every(Number.isFinite)
+  ) {
     throw new TypeError(`${name} must be [x, y] of finite numbers`);
   }
   return [value[0], value[1]];
 };
 
 export const rectOf = (value: unknown, name: string): Rect => {
-  if (!Array.isArray(value) || value.length !== 4 || !value.every(Number.isFinite)) {
-    throw new TypeError(`${name} must be [x, y, width, height] of finite numbers`);
+  if (
+    !Array.isArray(value) ||
+    value.length !== 4 ||
+    !value.every(Number.isFinite)
+  ) {
+    throw new TypeError(
+      `${name} must be [x, y, width, height] of finite numbers`,
+    );
   }
   if (value[2] <= 0 || value[3] <= 0) {
     throw new RangeError(`${name} needs a positive width and height`);
@@ -106,7 +148,9 @@ export const timeoutOf = (value: unknown): number | null => {
     return null;
   }
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
-    throw new TypeError("timeoutMs must be a non-negative number of milliseconds, or Infinity");
+    throw new TypeError(
+      "timeoutMs must be a non-negative number of milliseconds, or Infinity",
+    );
   }
   return value;
 };
@@ -115,16 +159,30 @@ const colorOf = (value: unknown, name: string): Color => {
   if (typeof value === "string") {
     const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(value);
     if (match) {
-      const hex = match[1].length === 3 ? [...match[1]].map(digit => digit + digit).join("") : match[1];
-      return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+      const hex =
+        match[1].length === 3
+          ? [...match[1]].map((digit) => digit + digit).join("")
+          : match[1];
+      return [
+        parseInt(hex.slice(0, 2), 16),
+        parseInt(hex.slice(2, 4), 16),
+        parseInt(hex.slice(4, 6), 16),
+      ];
     }
-  } else if (Array.isArray(value) && value.length === 3 && value.every(item => Number.isInteger(item) && item >= 0 && item <= 255)) {
+  } else if (
+    Array.isArray(value) &&
+    value.length === 3 &&
+    value.every((item) => Number.isInteger(item) && item >= 0 && item <= 255)
+  ) {
     return [value[0], value[1], value[2]];
   }
-  throw new TypeError(`${name} must be "#rrggbb" or [red, green, blue] of integers from 0 to 255`);
+  throw new TypeError(
+    `${name} must be "#rrggbb" or [red, green, blue] of integers from 0 to 255`,
+  );
 };
 
-const toleranceOf = (value: unknown): number => value === undefined ? defaultTolerance : integer(value, "tolerance", 0, 255);
+const toleranceOf = (value: unknown): number =>
+  value === undefined ? defaultTolerance : integer(value, "tolerance", 0, 255);
 
 const clampChannel = (value: number) => Math.min(255, Math.max(0, value));
 
@@ -162,7 +220,10 @@ export const adoptOptional = (id: unknown): RasterImage | undefined => {
 };
 
 const strings = (value: unknown, name: string): string[] => {
-  if (!Array.isArray(value) || !value.every(item => typeof item === "string")) {
+  if (
+    !Array.isArray(value) ||
+    !value.every((item) => typeof item === "string")
+  ) {
     throw new TypeError(`${name} must be an array of strings`);
   }
   return value;
@@ -176,24 +237,48 @@ const booleanOf = (value: unknown, name: string): boolean | undefined => {
 };
 
 const textOptionsOf = (options: unknown): Record<string, unknown> => {
-  const { region, languages, detectLanguage, level, words, correction, minimumHeight } =
-    optionsOf(options, ["region", "languages", "detectLanguage", "level", "words", "correction", "minimumHeight"]);
+  const {
+    region,
+    languages,
+    detectLanguage,
+    level,
+    words,
+    correction,
+    minimumHeight,
+  } = optionsOf(options, [
+    "region",
+    "languages",
+    "detectLanguage",
+    "level",
+    "words",
+    "correction",
+    "minimumHeight",
+  ]);
   if (level !== undefined && level !== "fast" && level !== "accurate") {
     throw new TypeError("level must be fast or accurate");
   }
   return {
     region: region === undefined ? undefined : rectOf(region, "region"),
-    languages: languages === undefined ? undefined : strings(languages, "languages"),
+    languages:
+      languages === undefined ? undefined : strings(languages, "languages"),
     detectLanguage: booleanOf(detectLanguage, "detectLanguage"),
     level,
     words: words === undefined ? undefined : strings(words, "words"),
     correction: booleanOf(correction, "correction"),
-    minimumHeight: minimumHeight === undefined ? undefined : positive(minimumHeight, "minimumHeight"),
+    minimumHeight:
+      minimumHeight === undefined
+        ? undefined
+        : positive(minimumHeight, "minimumHeight"),
   };
 };
 
 interface TextHandle {
-  boundingBox(line: number, candidate: number, start: number, end: number): RecognizedTextBox | null;
+  boundingBox(
+    line: number,
+    candidate: number,
+    start: number,
+    end: number,
+  ): RecognizedTextBox | null;
 }
 
 interface RawLine extends RecognizedTextBox {
@@ -202,21 +287,48 @@ interface RawLine extends RecognizedTextBox {
   candidates: { text: string; confidence: number }[];
 }
 
-const linesOf = (result: { lines: RawLine[]; text: number }): RecognizedTextLine[] => {
+const linesOf = (result: {
+  lines: RawLine[];
+  text: number;
+}): RecognizedTextLine[] => {
   const handle = graphicsNative().take(result.text) as TextHandle | null;
   if (handle === null) {
     throw new DOMException("the text was released", "InvalidStateError");
   }
-  const boxed = <T extends object>(value: T, text: string, line: number, candidate: number): T => Object.defineProperty(value, "boundingBox", {
-    value: (start: number, end: number): RecognizedTextBox | null => {
-      const from = integer(start, "start", 0, text.length);
-      return freeze(handle.boundingBox(line, candidate, from, integer(end, "end", from, text.length)));
-    },
-  });
-  return result.lines.map(({ candidates, ...line }, index) => freeze(boxed({
-    ...line,
-    candidates: candidates.map((candidate, rank) => boxed({ ...candidate }, candidate.text, index, rank)),
-  }, line.text, index, 0) as unknown as RecognizedTextLine));
+  const boxed = <T extends object>(
+    value: T,
+    text: string,
+    line: number,
+    candidate: number,
+  ): T =>
+    Object.defineProperty(value, "boundingBox", {
+      value: (start: number, end: number): RecognizedTextBox | null => {
+        const from = integer(start, "start", 0, text.length);
+        return freeze(
+          handle.boundingBox(
+            line,
+            candidate,
+            from,
+            integer(end, "end", from, text.length),
+          ),
+        );
+      },
+    });
+  return result.lines.map(({ candidates, ...line }, index) =>
+    freeze(
+      boxed(
+        {
+          ...line,
+          candidates: candidates.map((candidate, rank) =>
+            boxed({ ...candidate }, candidate.text, index, rank),
+          ),
+        },
+        line.text,
+        index,
+        0,
+      ) as unknown as RecognizedTextLine,
+    ),
+  );
 };
 
 const formatOf = (value: unknown): ImageFormat => {
@@ -237,7 +349,12 @@ const qualityOf = (value: unknown): number | undefined => {
 };
 
 const matchOptionsOf = (options: unknown, extra: string[]) => {
-  const { threshold, region, scales, limit, overlap } = optionsOf(options, ["threshold", "region", "scales", ...extra]);
+  const { threshold, region, scales, limit, overlap } = optionsOf(options, [
+    "threshold",
+    "region",
+    "scales",
+    ...extra,
+  ]);
   const out: Record<string, unknown> = {};
   if (threshold !== undefined) {
     if (typeof threshold !== "number" || !(threshold >= -1 && threshold <= 1)) {
@@ -250,9 +367,11 @@ const matchOptionsOf = (options: unknown, extra: string[]) => {
   }
   if (scales !== undefined) {
     if (!Array.isArray(scales) || scales.length === 0) {
-      throw new TypeError("scales must be a non-empty array of positive numbers");
+      throw new TypeError(
+        "scales must be a non-empty array of positive numbers",
+      );
     }
-    out.scales = scales.map(scale => positive(scale, "a scale"));
+    out.scales = scales.map((scale) => positive(scale, "a scale"));
   }
   if (limit !== undefined) {
     out.limit = integer(limit, "limit", 1, 10_000);
@@ -281,9 +400,18 @@ export class RasterImage implements RasterImageInterface {
       width: { value: handle.width, enumerable: true },
       height: { value: handle.height, enumerable: true },
       scale: { value: handle.scale, enumerable: true },
-      frame: { value: Object.freeze([frame[0], frame[1], frame[2], frame[3]]), enumerable: true },
-      time: { value: Number.isNaN(handle.time) ? null : handle.time, enumerable: true },
-      timestamp: { value: Number.isNaN(handle.timestamp) ? null : handle.timestamp, enumerable: true },
+      frame: {
+        value: Object.freeze([frame[0], frame[1], frame[2], frame[3]]),
+        enumerable: true,
+      },
+      time: {
+        value: Number.isNaN(handle.time) ? null : handle.time,
+        enumerable: true,
+      },
+      timestamp: {
+        value: Number.isNaN(handle.timestamp) ? null : handle.timestamp,
+        enumerable: true,
+      },
     });
     Object.freeze(this);
   }
@@ -293,7 +421,9 @@ export class RasterImage implements RasterImageInterface {
     return new RasterImage(handleOf(this).crop(x, y, width, height));
   }
 
-  resize(size: number | { readonly width?: number; readonly height?: number }): RasterImage {
+  resize(
+    size: number | { readonly width?: number; readonly height?: number },
+  ): RasterImage {
     const handle = handleOf(this);
     let width: number;
     let height: number;
@@ -302,17 +432,33 @@ export class RasterImage implements RasterImageInterface {
       width = Math.round(handle.pixelWidth * size);
       height = Math.round(handle.pixelHeight * size);
     } else {
-      const { width: wanted, height: tall } = check(size, ["width", "height"]) as { width?: unknown; height?: unknown };
+      const { width: wanted, height: tall } = check(size, [
+        "width",
+        "height",
+      ]) as { width?: unknown; height?: unknown };
       if (wanted === undefined && tall === undefined) {
-        throw new TypeError("resize takes a scale or a width or height in pixels");
+        throw new TypeError(
+          "resize takes a scale or a width or height in pixels",
+        );
       }
-      width = wanted === undefined ? Math.round(handle.pixelWidth * positive(tall, "height") / handle.pixelHeight) : Math.round(positive(wanted, "width"));
-      height = tall === undefined ? Math.round(handle.pixelHeight * width / handle.pixelWidth) : Math.round(positive(tall, "height"));
+      width =
+        wanted === undefined
+          ? Math.round(
+              (handle.pixelWidth * positive(tall, "height")) /
+                handle.pixelHeight,
+            )
+          : Math.round(positive(wanted, "width"));
+      height =
+        tall === undefined
+          ? Math.round((handle.pixelHeight * width) / handle.pixelWidth)
+          : Math.round(positive(tall, "height"));
     }
     width = Math.max(width, 1);
     height = Math.max(height, 1);
     if (width > largestSide || height > largestSide) {
-      throw new RangeError(`the image would be ${width}x${height} pixels; a side is at most ${largestSide}`);
+      throw new RangeError(
+        `the image would be ${width}x${height} pixels; a side is at most ${largestSide}`,
+      );
     }
     return new RasterImage(handle.resize(width, height));
   }
@@ -326,11 +472,17 @@ export class RasterImage implements RasterImageInterface {
   }
 
   threshold(level: number | "otsu" = "otsu"): RasterImage {
-    return new RasterImage(handleOf(this).threshold(level === "otsu" ? -1 : integer(level, "the level", 0, 255)));
+    return new RasterImage(
+      handleOf(this).threshold(
+        level === "otsu" ? -1 : integer(level, "the level", 0, 255),
+      ),
+    );
   }
 
   mask(color: unknown, options?: { readonly tolerance?: number }): RasterImage {
-    const { tolerance } = check(options, ["tolerance"]) as { tolerance?: unknown };
+    const { tolerance } = check(options, ["tolerance"]) as {
+      tolerance?: unknown;
+    };
     let low: Color;
     let high: Color;
     if (Array.isArray(color) && color.length === 2) {
@@ -342,10 +494,12 @@ export class RasterImage implements RasterImageInterface {
     } else {
       const center = colorOf(color, "the color");
       const spread = toleranceOf(tolerance);
-      low = center.map(value => clampChannel(value - spread)) as Color;
-      high = center.map(value => clampChannel(value + spread)) as Color;
+      low = center.map((value) => clampChannel(value - spread)) as Color;
+      high = center.map((value) => clampChannel(value + spread)) as Color;
     }
-    return new RasterImage(handleOf(this).mask(low[0], low[1], low[2], high[0], high[1], high[2]));
+    return new RasterImage(
+      handleOf(this).mask(low[0], low[1], low[2], high[0], high[1], high[2]),
+    );
   }
 
   invert(): RasterImage {
@@ -353,103 +507,269 @@ export class RasterImage implements RasterImageInterface {
   }
 
   dilate(radius = 1): RasterImage {
-    return new RasterImage(handleOf(this).dilate(integer(radius, "the radius", 1, 64)));
+    return new RasterImage(
+      handleOf(this).dilate(integer(radius, "the radius", 1, 64)),
+    );
   }
 
   erode(radius = 1): RasterImage {
-    return new RasterImage(handleOf(this).erode(integer(radius, "the radius", 1, 64)));
+    return new RasterImage(
+      handleOf(this).erode(integer(radius, "the radius", 1, 64)),
+    );
   }
 
-  async encode(format: ImageFormat = "png", options?: Options & { readonly quality?: number }): Promise<Uint8Array> {
+  async encode(
+    format: ImageFormat = "png",
+    options?: Options & { readonly quality?: number },
+  ): Promise<Uint8Array> {
     const { quality } = optionsOf(options, ["quality"]);
-    const result = await run<{ bytes: number }>("encode", { format: formatOf(format), quality: qualityOf(quality) }, [handleOf(this)], signalOf(options));
+    const result = await run<{ bytes: number }>(
+      "encode",
+      { format: formatOf(format), quality: qualityOf(quality) },
+      [handleOf(this)],
+      signalOf(options),
+    );
     return bytesOf(result.bytes);
   }
 
-  async save(file: unknown, options?: Options & { readonly format?: ImageFormat; readonly quality?: number }) {
+  async save(
+    file: unknown,
+    options?: Options & {
+      readonly format?: ImageFormat;
+      readonly quality?: number;
+    },
+  ) {
     const { format, quality } = optionsOf(options, ["format", "quality"]);
     const handle = fileOf(file, "the file");
     const path = pathOf(handle);
     const extension = path.slice(path.lastIndexOf(".") + 1).toLowerCase();
-    const chosen = format === undefined ? ({ png: "png", jpg: "jpeg", jpeg: "jpeg", heic: "heic" } as Record<string, string>)[extension] ?? "png" : formatOf(format);
-    await run("save", { path, format: chosen, quality: qualityOf(quality) }, [handleOf(this)], signalOf(options));
+    const chosen =
+      format === undefined
+        ? ((
+            { png: "png", jpg: "jpeg", jpeg: "jpeg", heic: "heic" } as Record<
+              string,
+              string
+            >
+          )[extension] ?? "png")
+        : formatOf(format);
+    await run(
+      "save",
+      { path, format: chosen, quality: qualityOf(quality) },
+      [handleOf(this)],
+      signalOf(options),
+    );
     return handle;
   }
 
-  pixel(point: Point, options?: Options): Promise<[red: number, green: number, blue: number, alpha: number]> {
-    return run("pixel", { point: pointOf(point, "the point") }, [handleOf(this)], signalOf(check(options, [])));
+  pixel(
+    point: Point,
+    options?: Options,
+  ): Promise<[red: number, green: number, blue: number, alpha: number]> {
+    return run(
+      "pixel",
+      { point: pointOf(point, "the point") },
+      [handleOf(this)],
+      signalOf(check(options, [])),
+    );
   }
 
-  async stats(options?: Options & { readonly region?: Rect }): Promise<ImageStats> {
+  async stats(
+    options?: Options & { readonly region?: Rect },
+  ): Promise<ImageStats> {
     const { region } = optionsOf(options, ["region"]);
-    return freeze(await run<ImageStats>("stats", { region: region === undefined ? undefined : rectOf(region, "region") }, [handleOf(this)], signalOf(options)));
+    return freeze(
+      await run<ImageStats>(
+        "stats",
+        { region: region === undefined ? undefined : rectOf(region, "region") },
+        [handleOf(this)],
+        signalOf(options),
+      ),
+    );
   }
 
-  async find(template: RasterImage, options?: Options & { readonly threshold?: number; readonly region?: Rect; readonly scales?: readonly number[] }) {
-    const found = await run<TemplateMatch[]>("find", { ...matchOptionsOf(options, []), limit: 1 }, [handleOf(this), handleOf(template, "the template")], signalOf(options));
+  async find(
+    template: RasterImage,
+    options?: Options & {
+      readonly threshold?: number;
+      readonly region?: Rect;
+      readonly scales?: readonly number[];
+    },
+  ) {
+    const found = await run<TemplateMatch[]>(
+      "find",
+      { ...matchOptionsOf(options, []), limit: 1 },
+      [handleOf(this), handleOf(template, "the template")],
+      signalOf(options),
+    );
     return found.length > 0 ? freeze(found[0]) : null;
   }
 
   async findAll(
     template: RasterImage,
-    options?: Options & { readonly threshold?: number; readonly region?: Rect; readonly scales?: readonly number[]; readonly limit?: number; readonly overlap?: number },
+    options?: Options & {
+      readonly threshold?: number;
+      readonly region?: Rect;
+      readonly scales?: readonly number[];
+      readonly limit?: number;
+      readonly overlap?: number;
+    },
   ) {
-    return freeze(await run<TemplateMatch[]>("find", matchOptionsOf(options, ["limit", "overlap"]), [handleOf(this), handleOf(template, "the template")], signalOf(options)));
+    return freeze(
+      await run<TemplateMatch[]>(
+        "find",
+        matchOptionsOf(options, ["limit", "overlap"]),
+        [handleOf(this), handleOf(template, "the template")],
+        signalOf(options),
+      ),
+    );
   }
 
-  async matchColors(checks: readonly { readonly point: Point; readonly color: unknown; readonly tolerance?: number }[], options?: Options): Promise<boolean[]> {
+  async matchColors(
+    checks: readonly {
+      readonly point: Point;
+      readonly color: unknown;
+      readonly tolerance?: number;
+    }[],
+    options?: Options,
+  ): Promise<boolean[]> {
     if (!Array.isArray(checks)) {
       throw new TypeError("the checks must be an array");
     }
     const encoded = checks.map((item, index) => {
-      const { point, color, tolerance } = check(item, ["point", "color", "tolerance"]) as { point?: unknown; color?: unknown; tolerance?: unknown };
-      return { point: pointOf(point, `check ${index + 1}'s point`), color: colorOf(color, `check ${index + 1}'s color`), tolerance: toleranceOf(tolerance) };
+      const { point, color, tolerance } = check(item, [
+        "point",
+        "color",
+        "tolerance",
+      ]) as { point?: unknown; color?: unknown; tolerance?: unknown };
+      return {
+        point: pointOf(point, `check ${index + 1}'s point`),
+        color: colorOf(color, `check ${index + 1}'s color`),
+        tolerance: toleranceOf(tolerance),
+      };
     });
-    return run("colors", { checks: encoded }, [handleOf(this)], signalOf(check(options, [])));
+    return run(
+      "colors",
+      { checks: encoded },
+      [handleOf(this)],
+      signalOf(check(options, [])),
+    );
   }
 
   async components(options?: Options & { readonly minimumPixels?: number }) {
     const { minimumPixels } = optionsOf(options, ["minimumPixels"]);
-    return freeze(await run<ConnectedComponent[]>("components", { minimumPixels: minimumPixels === undefined ? 1 : integer(minimumPixels, "minimumPixels", 1, Number.MAX_SAFE_INTEGER) }, [handleOf(this)], signalOf(options)));
+    return freeze(
+      await run<ConnectedComponent[]>(
+        "components",
+        {
+          minimumPixels:
+            minimumPixels === undefined
+              ? 1
+              : integer(
+                  minimumPixels,
+                  "minimumPixels",
+                  1,
+                  Number.MAX_SAFE_INTEGER,
+                ),
+        },
+        [handleOf(this)],
+        signalOf(options),
+      ),
+    );
   }
 
-  async recognizeText(options?: TextRecognitionOptions): Promise<RecognizedTextLine[]> {
-    return linesOf(await run<{ lines: RawLine[]; text: number }>("text", textOptionsOf(options), [handleOf(this)], signalOf(options)));
+  async recognizeText(
+    options?: TextRecognitionOptions,
+  ): Promise<RecognizedTextLine[]> {
+    return linesOf(
+      await run<{ lines: RawLine[]; text: number }>(
+        "text",
+        textOptionsOf(options),
+        [handleOf(this)],
+        signalOf(options),
+      ),
+    );
   }
 
-  async diff(other: RasterImage, options?: Options & { readonly threshold?: number }) {
+  async diff(
+    other: RasterImage,
+    options?: Options & { readonly threshold?: number },
+  ) {
     const { threshold } = optionsOf(options, ["threshold"]);
-    return freeze(await run<ImageDifference>("diff", { threshold: threshold === undefined ? undefined : integer(threshold, "threshold", 1, 255) }, [handleOf(this), handleOf(other, "the other image")], signalOf(options)));
+    return freeze(
+      await run<ImageDifference>(
+        "diff",
+        {
+          threshold:
+            threshold === undefined
+              ? undefined
+              : integer(threshold, "threshold", 1, 255),
+        },
+        [handleOf(this), handleOf(other, "the other image")],
+        signalOf(options),
+      ),
+    );
   }
 
   distance(other: RasterImage, options?: Options): Promise<number> {
-    return run("distance", {}, [handleOf(this), handleOf(other, "the other image")], signalOf(check(options, [])));
+    return run(
+      "distance",
+      {},
+      [handleOf(this), handleOf(other, "the other image")],
+      signalOf(check(options, [])),
+    );
   }
 
-  async nearest(candidates: readonly RasterImage[], options?: Options): Promise<{ readonly index: number; readonly distance: number }> {
+  async nearest(
+    candidates: readonly RasterImage[],
+    options?: Options,
+  ): Promise<{ readonly index: number; readonly distance: number }> {
     if (!Array.isArray(candidates) || candidates.length === 0) {
       throw new TypeError("the candidates must be a non-empty array of Images");
     }
-    const others = candidates.map((candidate, index) => handleOf(candidate, `candidate ${index + 1}`));
-    return freeze(await run("nearest", {}, [handleOf(this), ...others], signalOf(check(options, []))));
+    const others = candidates.map((candidate, index) =>
+      handleOf(candidate, `candidate ${index + 1}`),
+    );
+    return freeze(
+      await run(
+        "nearest",
+        {},
+        [handleOf(this), ...others],
+        signalOf(check(options, [])),
+      ),
+    );
   }
 
   async detectBarcodes(options?: Options) {
-    return freeze(await run<DetectedBarcode[]>("barcodes", {}, [handleOf(this)], signalOf(check(options, []))));
+    return freeze(
+      await run<DetectedBarcode[]>(
+        "barcodes",
+        {},
+        [handleOf(this)],
+        signalOf(check(options, [])),
+      ),
+    );
   }
 
   toString(): string {
     const [x, y] = this.frame;
-    const at = x === 0 && y === 0 ? "" : ` at [${Math.round(x * 10) / 10}, ${Math.round(y * 10) / 10}]`;
+    const at =
+      x === 0 && y === 0
+        ? ""
+        : ` at [${Math.round(x * 10) / 10}, ${Math.round(y * 10) / 10}]`;
     return `RasterImage ${Math.round(this.width * 10) / 10}x${Math.round(this.height * 10) / 10} @${Math.round(this.scale * 100) / 100}x${at}`;
   }
 }
 
 export { freeze };
 
-export const imageResult = async (result: Promise<{ image: number }>): Promise<RasterImage> => adopt((await result).image);
+export const imageResult = async (
+  result: Promise<{ image: number }>,
+): Promise<RasterImage> => adopt((await result).image);
 
-export const decode = (data: unknown, options?: Options & { readonly scale?: number }) => {
+export const decode = (
+  data: unknown,
+  options?: Options & { readonly scale?: number },
+) => {
   const { scale } = optionsOf(options, ["scale"]);
   const args: Record<string, unknown> = {};
   if (scale !== undefined) {

@@ -37,14 +37,35 @@ export declare const locked: ObservableState<boolean>;
 export declare const displayState: ObservableState<DisplayState>;
 export declare function unlock(options?: CallOptions): Promise<void>;
 
-export declare function applicationEvents(options?: CallOptions): AsyncIterable<ApplicationStateEvent>;
-export declare function installedApplications(options?: CallOptions): Promise<InstalledApplication[]>;
+export declare function applicationEvents(
+  options?: CallOptions,
+): AsyncIterable<ApplicationStateEvent>;
+export declare function installedApplications(
+  options?: CallOptions,
+): Promise<InstalledApplication[]>;
 /** Answers a PNG file in cacheDirectory. */
-export declare function applicationIcon(bundleId: string, options?: CallOptions): Promise<FileHandle>;
-export declare function launchApplication(bundleId: string, options?: CallOptions & { url?: string; restart?: boolean }): Promise<void>;
+export declare function applicationIcon(
+  bundleId: string,
+  options?: CallOptions,
+): Promise<FileHandle>;
+export declare function launchApplication(
+  bundleId: string,
+  options?: CallOptions & { url?: string; restart?: boolean },
+): Promise<void>;
 
-export declare function pasteboard(options?: CallOptions): Promise<string | null>;
-export declare function setPasteboard(text: string | null, options?: CallOptions): Promise<void>;
+export declare function pasteboard(
+  options?: CallOptions,
+): Promise<string | null>;
+export declare function setPasteboard(
+  text: string | null,
+  options?: CallOptions,
+): Promise<void>;
 
-export declare function simulateLocation(latitude: number, longitude: number, options?: CallOptions): Promise<void>;
-export declare function clearSimulatedLocation(options?: CallOptions): Promise<void>;
+export declare function simulateLocation(
+  latitude: number,
+  longitude: number,
+  options?: CallOptions,
+): Promise<void>;
+export declare function clearSimulatedLocation(
+  options?: CallOptions,
+): Promise<void>;

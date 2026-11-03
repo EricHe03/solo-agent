@@ -25,7 +25,11 @@ export interface CallOptions {
   signal?: AbortSignal;
 }
 
-export function invoke<T>(name: string, args: unknown[], options: CallOptions = {}): Promise<T> {
+export function invoke<T>(
+  name: string,
+  args: unknown[],
+  options: CallOptions = {},
+): Promise<T> {
   const { signal } = options;
   return new Promise<T>((resolve, reject) => {
     if (signal?.aborted) {
@@ -33,8 +37,16 @@ export function invoke<T>(name: string, args: unknown[], options: CallOptions = 
       return;
     }
     const id = nextID();
-    const release = signal === undefined ? () => {} : onAbort(signal, () => native.cancel(id));
-    pending.set(id, { resolve: resolve as (value: unknown) => void, reject, signal, release });
+    const release =
+      signal === undefined
+        ? () => {}
+        : onAbort(signal, () => native.cancel(id));
+    pending.set(id, {
+      resolve: resolve as (value: unknown) => void,
+      reject,
+      signal,
+      release,
+    });
     native.start(id, name, JSON.stringify(args));
   });
 }
@@ -75,12 +87,23 @@ export function settle(id: string): void {
   }
 }
 
-export function stream<T>(kind: string, args: unknown[] | (() => unknown[]), signal: AbortSignal | undefined, keep: "latest" | "all", decode: (value: unknown) => T | undefined = value => value as T): AsyncIterable<T> {
+export function stream<T>(
+  kind: string,
+  args: unknown[] | (() => unknown[]),
+  signal: AbortSignal | undefined,
+  keep: "latest" | "all",
+  decode: (value: unknown) => T | undefined = (value) => value as T,
+): AsyncIterable<T> {
   return {
     [Symbol.asyncIterator](): AsyncIterator<T> {
       let id: string | undefined;
       let buffered: T[] = [];
-      let waiter: { resolve(result: IteratorResult<T>): void; reject(error: unknown): void } | undefined;
+      let waiter:
+        | {
+            resolve(result: IteratorResult<T>): void;
+            reject(error: unknown): void;
+          }
+        | undefined;
       let failure: unknown;
       let done = false;
       const finish = () => {
@@ -114,7 +137,7 @@ export function stream<T>(kind: string, args: unknown[] | (() => unknown[]), sig
         }
         id = nextID();
         subscriptions.set(id, {
-          push: value => {
+          push: (value) => {
             const decoded = decode(value);
             if (decoded === undefined) {
               return;
@@ -134,7 +157,11 @@ export function stream<T>(kind: string, args: unknown[] | (() => unknown[]), sig
           fail,
         });
         signal?.addEventListener("abort", abort);
-        native.subscribe(id, kind, JSON.stringify(typeof args === "function" ? args() : args));
+        native.subscribe(
+          id,
+          kind,
+          JSON.stringify(typeof args === "function" ? args() : args),
+        );
       };
       return {
         next(): Promise<IteratorResult<T>> {

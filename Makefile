@@ -65,6 +65,7 @@ altstore_source: altstore_icon
 
 fmt:
 	golangci-lint fmt
+	bun fmt
 	go run ./internal/cmd/format_xcstrings $$(find Swipt -name '*.xcstrings')
 
 lint:

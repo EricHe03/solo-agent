@@ -32,7 +32,10 @@ export interface Console {
 
 const specifiers = /%[sdifoOc]/g;
 
-const wide = new RegExp("[\\u1100-\\u115f\\u231a\\u231b\\u2329\\u232a\\u23e9-\\u23ec\\u23f0\\u23f3\\u25fd\\u25fe\\u2614\\u2615\\u2648-\\u2653\\u267f\\u2693\\u26a1\\u26aa\\u26ab\\u26bd\\u26be\\u26c4\\u26c5\\u26ce\\u26d4\\u26ea\\u26f2\\u26f3\\u26f5\\u26fa\\u26fd\\u2705\\u270a\\u270b\\u2728\\u274c\\u274e\\u2753-\\u2755\\u2757\\u2795-\\u2797\\u27b0\\u27bf\\u2b1b\\u2b1c\\u2b50\\u2b55\\u2e80-\\u303e\\u3041-\\u33ff\\u3400-\\u4dbf\\u4e00-\\u9fff\\ua000-\\ua4cf\\ua960-\\ua97f\\uac00-\\ud7a3\\uf900-\\ufaff\\ufe10-\\ufe19\\ufe30-\\ufe6f\\uff00-\\uff60\\uffe0-\\uffe6\\u{16fe0}-\\u{1b2ff}\\u{1f004}\\u{1f0cf}\\u{1f18e}\\u{1f191}-\\u{1f19a}\\u{1f200}-\\u{1f251}\\u{1f300}-\\u{1f64f}\\u{1f680}-\\u{1f6ff}\\u{1f7e0}-\\u{1f7eb}\\u{1f90c}-\\u{1f9ff}\\u{1fa70}-\\u{1faff}\\u{20000}-\\u{3fffd}]", "u");
+const wide = new RegExp(
+  "[\\u1100-\\u115f\\u231a\\u231b\\u2329\\u232a\\u23e9-\\u23ec\\u23f0\\u23f3\\u25fd\\u25fe\\u2614\\u2615\\u2648-\\u2653\\u267f\\u2693\\u26a1\\u26aa\\u26ab\\u26bd\\u26be\\u26c4\\u26c5\\u26ce\\u26d4\\u26ea\\u26f2\\u26f3\\u26f5\\u26fa\\u26fd\\u2705\\u270a\\u270b\\u2728\\u274c\\u274e\\u2753-\\u2755\\u2757\\u2795-\\u2797\\u27b0\\u27bf\\u2b1b\\u2b1c\\u2b50\\u2b55\\u2e80-\\u303e\\u3041-\\u33ff\\u3400-\\u4dbf\\u4e00-\\u9fff\\ua000-\\ua4cf\\ua960-\\ua97f\\uac00-\\ud7a3\\uf900-\\ufaff\\ufe10-\\ufe19\\ufe30-\\ufe6f\\uff00-\\uff60\\uffe0-\\uffe6\\u{16fe0}-\\u{1b2ff}\\u{1f004}\\u{1f0cf}\\u{1f18e}\\u{1f191}-\\u{1f19a}\\u{1f200}-\\u{1f251}\\u{1f300}-\\u{1f64f}\\u{1f680}-\\u{1f6ff}\\u{1f7e0}-\\u{1f7eb}\\u{1f90c}-\\u{1f9ff}\\u{1fa70}-\\u{1faff}\\u{20000}-\\u{3fffd}]",
+  "u",
+);
 const zeroWidth = /[\p{Mn}\p{Me}\p{Cf}]/u;
 
 const widthOf = (text: string): number => {
@@ -44,22 +47,39 @@ const widthOf = (text: string): number => {
 };
 
 const domString = (value: unknown): string => `${value as string}`;
-const labelOf = (label: unknown): string => (label === undefined ? "default" : domString(label));
+const labelOf = (label: unknown): string =>
+  label === undefined ? "default" : domString(label);
 
 const strings = (value: unknown): string[] => {
-  if (value === null || typeof value !== "object" || typeof (value as Iterable<unknown>)[Symbol.iterator] !== "function") {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    typeof (value as Iterable<unknown>)[Symbol.iterator] !== "function"
+  ) {
     throw new TypeError("the properties are not a sequence");
   }
   return Array.from(value as Iterable<unknown>, domString);
 };
 
-const isObject = (value: unknown): value is object => (typeof value === "object" && value !== null) || typeof value === "function";
+const isObject = (value: unknown): value is object =>
+  (typeof value === "object" && value !== null) || typeof value === "function";
 
 const render = (header: string[], rows: string[][]): string => {
-  const widths = header.map((name, column) => Math.max(widthOf(name), ...rows.map(row => widthOf(row[column]))) + 2);
-  const line = (left: string, middle: string, right: string) => left + widths.map(width => "\u2500".repeat(width)).join(middle) + right;
-  const row = (cells: string[]) => `\u2502${cells.map((cell, column) => ` ${cell}${" ".repeat(widths[column] - widthOf(cell) - 1)}`).join("\u2502")}\u2502`;
-  return [line("\u250c", "\u252c", "\u2510"), row(header), line("\u251c", "\u253c", "\u2524"), ...rows.map(row), line("\u2514", "\u2534", "\u2518")].join("\n");
+  const widths = header.map(
+    (name, column) =>
+      Math.max(widthOf(name), ...rows.map((row) => widthOf(row[column]))) + 2,
+  );
+  const line = (left: string, middle: string, right: string) =>
+    left + widths.map((width) => "\u2500".repeat(width)).join(middle) + right;
+  const row = (cells: string[]) =>
+    `\u2502${cells.map((cell, column) => ` ${cell}${" ".repeat(widths[column] - widthOf(cell) - 1)}`).join("\u2502")}\u2502`;
+  return [
+    line("\u250c", "\u252c", "\u2510"),
+    row(header),
+    line("\u251c", "\u253c", "\u2524"),
+    ...rows.map(row),
+    line("\u2514", "\u2534", "\u2518"),
+  ].join("\n");
 };
 
 export function createConsole(host: ConsoleHost): Console {
@@ -69,7 +89,10 @@ export function createConsole(host: ConsoleHost): Console {
 
   const printer = (severity: Severity, args: readonly unknown[]): void => {
     const text = args.map(host.format).join(" ");
-    host.print(severity, depth === 0 ? text : text.replace(/^/gm, "  ".repeat(depth)));
+    host.print(
+      severity,
+      depth === 0 ? text : text.replace(/^/gm, "  ".repeat(depth)),
+    );
   };
 
   const convert = (specifier: string, current: unknown): string => {
@@ -83,13 +106,17 @@ export function createConsole(host: ConsoleHost): Console {
       case "%d":
       case "%i":
         try {
-          return String(typeof current === "symbol" ? NaN : parseInt(current as string, 10));
+          return String(
+            typeof current === "symbol" ? NaN : parseInt(current as string, 10),
+          );
         } catch {
           return "NaN";
         }
       case "%f":
         try {
-          return String(typeof current === "symbol" ? NaN : parseFloat(current as string));
+          return String(
+            typeof current === "symbol" ? NaN : parseFloat(current as string),
+          );
         } catch {
           return "NaN";
         }
@@ -105,7 +132,9 @@ export function createConsole(host: ConsoleHost): Console {
       return [...args];
     }
     let index = 1;
-    const target = args[0].replace(specifiers, specifier => (index < args.length ? convert(specifier, args[index++]) : specifier));
+    const target = args[0].replace(specifiers, (specifier) =>
+      index < args.length ? convert(specifier, args[index++]) : specifier,
+    );
     return [target, ...args.slice(index)];
   };
 
@@ -118,14 +147,19 @@ export function createConsole(host: ConsoleHost): Console {
   const elapsed = (label: string, method: string): string | undefined => {
     const start = timers.get(label);
     if (start === undefined) {
-      printer("warn", [`Timer "${label}" does not exist for console.${method}()`]);
+      printer("warn", [
+        `Timer "${label}" does not exist for console.${method}()`,
+      ]);
       return undefined;
     }
     return `${label}: ${Number((host.now() - start).toFixed(3))}ms`;
   };
 
   const group = (method: string, data: readonly unknown[]): void => {
-    printer("info", data.length === 0 ? [`console.${method}`] : formatter(data));
+    printer(
+      "info",
+      data.length === 0 ? [`console.${method}`] : formatter(data),
+    );
     depth++;
   };
 
@@ -135,19 +169,29 @@ export function createConsole(host: ConsoleHost): Console {
       logger("info", [tabularData]);
       return;
     }
-    const cell = (value: unknown) => host.inspect(value).replace(/\s*\n\s*/g, " ");
+    const cell = (value: unknown) =>
+      host.inspect(value).replace(/\s*\n\s*/g, " ");
     let index = "(index)";
     let entries: [key: string, value: unknown][];
     const leading: [name: string, values: string[]][] = [];
     if (tabularData instanceof Map) {
       index = "(iteration index)";
-      entries = Array.from(tabularData.values(), (value, position) => [String(position), value]);
+      entries = Array.from(tabularData.values(), (value, position) => [
+        String(position),
+        value,
+      ]);
       leading.push(["Key", Array.from(tabularData.keys(), cell)]);
     } else if (tabularData instanceof Set) {
       index = "(iteration index)";
-      entries = Array.from(tabularData, (value, position) => [String(position), value]);
+      entries = Array.from(tabularData, (value, position) => [
+        String(position),
+        value,
+      ]);
     } else {
-      entries = Object.keys(tabularData).map(key => [key, (tabularData as { [key: string]: unknown })[key]]);
+      entries = Object.keys(tabularData).map((key) => [
+        key,
+        (tabularData as { [key: string]: unknown })[key],
+      ]);
     }
     const keys: string[] = columns ?? [];
     let primitives = false;
@@ -162,20 +206,34 @@ export function createConsole(host: ConsoleHost): Console {
         }
       }
     }
-    const header = [index, ...leading.map(([name]) => name), ...keys, ...(primitives ? ["Values"] : [])];
+    const header = [
+      index,
+      ...leading.map(([name]) => name),
+      ...keys,
+      ...(primitives ? ["Values"] : []),
+    ];
     const rows = entries.map(([key, value], position) => {
-      const object = isObject(value) && typeof value !== "function" ? (value as { [key: string]: unknown }) : undefined;
+      const object =
+        isObject(value) && typeof value !== "function"
+          ? (value as { [key: string]: unknown })
+          : undefined;
       return [
         key,
         ...leading.map(([, values]) => values[position]),
-        ...keys.map(name => (object !== undefined && Object.hasOwn(object, name) ? cell(object[name]) : "")),
+        ...keys.map((name) =>
+          object !== undefined && Object.hasOwn(object, name)
+            ? cell(object[name])
+            : "",
+        ),
         ...(primitives ? [object === undefined ? cell(value) : ""] : []),
       ];
     });
     printer("info", [render(header, rows)]);
   };
 
-  const console = Object.create(Object.create(Object.prototype) as object) as Console;
+  const console = Object.create(
+    Object.create(Object.prototype) as object,
+  ) as Console;
   Object.assign(console, {
     assert(condition = false, ...data: unknown[]) {
       if (condition) {
@@ -248,6 +306,9 @@ export function createConsole(host: ConsoleHost): Console {
       }
     },
   } satisfies Console);
-  Object.defineProperty(console, Symbol.toStringTag, { value: "console", configurable: true });
+  Object.defineProperty(console, Symbol.toStringTag, {
+    value: "console",
+    configurable: true,
+  });
   return console;
 }

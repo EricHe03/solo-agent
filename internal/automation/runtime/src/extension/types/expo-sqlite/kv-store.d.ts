@@ -1,13 +1,24 @@
-export type SQLiteStorageSetItemUpdateFunction = (previous: string | null) => string;
+export type SQLiteStorageSetItemUpdateFunction = (
+  previous: string | null,
+) => string;
 
 export declare class SQLiteStorage {
   constructor(databaseName: string);
   getItemSync(key: string): string | null;
   getItemAsync(key: string): Promise<string | null>;
   getItem(key: string): Promise<string | null>;
-  setItemSync(key: string, value: string | SQLiteStorageSetItemUpdateFunction): void;
-  setItemAsync(key: string, value: string | SQLiteStorageSetItemUpdateFunction): Promise<void>;
-  setItem(key: string, value: string | SQLiteStorageSetItemUpdateFunction): Promise<void>;
+  setItemSync(
+    key: string,
+    value: string | SQLiteStorageSetItemUpdateFunction,
+  ): void;
+  setItemAsync(
+    key: string,
+    value: string | SQLiteStorageSetItemUpdateFunction,
+  ): Promise<void>;
+  setItem(
+    key: string,
+    value: string | SQLiteStorageSetItemUpdateFunction,
+  ): Promise<void>;
   removeItemSync(key: string): boolean;
   removeItemAsync(key: string): Promise<boolean>;
   removeItem(key: string): Promise<void>;

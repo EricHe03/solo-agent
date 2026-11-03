@@ -23,19 +23,36 @@ export interface Native {
   digest(algorithm: string, data: Uint8Array): Uint8Array;
   finish(failure: string, output: string, id?: string): void;
   show(image: Uint8Array): void;
-  match(snapshot: string, scope: string, json: string, mode: "one" | "all", call: (kind: string, id: string, value: string) => string): { elements?: Raw[]; failure?: string; thrown?: boolean };
+  match(
+    snapshot: string,
+    scope: string,
+    json: string,
+    mode: "one" | "all",
+    call: (kind: string, id: string, value: string) => string,
+  ): { elements?: Raw[]; failure?: string; thrown?: boolean };
   preferredLocalizations(localizations: string): string[];
   locate(line: number, column: number): Position | undefined;
   sqlite(request: string): unknown;
   encodeText(text: string): Uint8Array;
   decodeText(data: Uint8Array, fatal: number): string | number;
   release(id: string, reason?: string): void;
-  compression(format: string, mode: "compress" | "decompress"): [writer: string, reader: string];
+  compression(
+    format: string,
+    mode: "compress" | "decompress",
+  ): [writer: string, reader: string];
   openFile(root: string, path: string): string;
   publishObjectURL?(url: string, data: Uint8Array | null): void;
   chunk(name: string): (core: object) => unknown;
-  setTimeout(callback: (...args: unknown[]) => void, timeout: number, ...args: unknown[]): number;
-  setInterval(callback: (...args: unknown[]) => void, timeout: number, ...args: unknown[]): number;
+  setTimeout(
+    callback: (...args: unknown[]) => void,
+    timeout: number,
+    ...args: unknown[]
+  ): number;
+  setInterval(
+    callback: (...args: unknown[]) => void,
+    timeout: number,
+    ...args: unknown[]
+  ): number;
   clearTimer(id: number): void;
   readonly graphics?: GraphicsNative;
 }

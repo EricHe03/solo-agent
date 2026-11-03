@@ -18,11 +18,37 @@ export interface ScreenChange {
 }
 
 export type TimelineEvent =
-  | { readonly time: number; readonly type: "operation"; readonly name: string; readonly arguments?: readonly unknown[]; readonly durationMs?: number; readonly error?: string; readonly message?: string; readonly swiplet?: string }
-  | { readonly time: number; readonly type: "action"; readonly swiplet: string; readonly action: string; readonly caller: "app" | "shortcuts" | "api" }
+  | {
+      readonly time: number;
+      readonly type: "operation";
+      readonly name: string;
+      readonly arguments?: readonly unknown[];
+      readonly durationMs?: number;
+      readonly error?: string;
+      readonly message?: string;
+      readonly swiplet?: string;
+    }
+  | {
+      readonly time: number;
+      readonly type: "action";
+      readonly swiplet: string;
+      readonly action: string;
+      readonly caller: "app" | "shortcuts" | "api";
+    }
   | { readonly time: number; readonly type: "foreground"; readonly app: string }
-  | { readonly time: number; readonly type: "log"; readonly swiplet: string; readonly level: "error" | "warn" | "info" | "debug"; readonly message: string }
-  | { readonly time: number; readonly type: "feed"; readonly frames: number; readonly decodedMs: number };
+  | {
+      readonly time: number;
+      readonly type: "log";
+      readonly swiplet: string;
+      readonly level: "error" | "warn" | "info" | "debug";
+      readonly message: string;
+    }
+  | {
+      readonly time: number;
+      readonly type: "feed";
+      readonly frames: number;
+      readonly decodedMs: number;
+    };
 
 export interface ScreenRecording {
   readonly file: FileHandle;
@@ -35,20 +61,46 @@ export interface ScreenRecording {
   readonly events: readonly TimelineEvent[];
 
   frame(time: number): RasterImage;
-  frames(times: readonly number[] | { readonly everyMs: number; readonly from?: number; readonly to?: number }): RasterImage[];
-  grid(options?: CallOptions & { readonly times?: readonly number[]; readonly columns?: number; readonly width?: number }): Promise<RasterImage>;
-  diff(from: number, to: number, options?: CallOptions & { readonly threshold?: number }): Promise<ImageDifference>;
-  find(target: ScreenTarget | readonly ScreenTarget[], options?: Omit<ScreenFindOptions, "timeoutMs"> & { readonly from?: number; readonly to?: number }): Promise<(ScreenMatch & { readonly time: number }) | null>;
-  export(options?: CallOptions & {
-    /** Omitted, the export goes to a new file in cacheDirectory. */
-    readonly file?: FileHandle | string;
-    readonly from?: number;
-    readonly to?: number;
-    readonly region?: Rect;
-    readonly scale?: number;
-    readonly format?: "mov" | "mp4" | "gif";
-    readonly frameRate?: number;
-  }): Promise<FileHandle>;
+  frames(
+    times:
+      | readonly number[]
+      | {
+          readonly everyMs: number;
+          readonly from?: number;
+          readonly to?: number;
+        },
+  ): RasterImage[];
+  grid(
+    options?: CallOptions & {
+      readonly times?: readonly number[];
+      readonly columns?: number;
+      readonly width?: number;
+    },
+  ): Promise<RasterImage>;
+  diff(
+    from: number,
+    to: number,
+    options?: CallOptions & { readonly threshold?: number },
+  ): Promise<ImageDifference>;
+  find(
+    target: ScreenTarget | readonly ScreenTarget[],
+    options?: Omit<ScreenFindOptions, "timeoutMs"> & {
+      readonly from?: number;
+      readonly to?: number;
+    },
+  ): Promise<(ScreenMatch & { readonly time: number }) | null>;
+  export(
+    options?: CallOptions & {
+      /** Omitted, the export goes to a new file in cacheDirectory. */
+      readonly file?: FileHandle | string;
+      readonly from?: number;
+      readonly to?: number;
+      readonly region?: Rect;
+      readonly scale?: number;
+      readonly format?: "mov" | "mp4" | "gif";
+      readonly frameRate?: number;
+    },
+  ): Promise<FileHandle>;
 }
 
 export interface RecordingSession {
@@ -81,13 +133,28 @@ export interface ScreenMatch {
 }
 
 export declare function screenshot(options?: CallOptions): Promise<RasterImage>;
-export declare function find(target: ScreenTarget | readonly ScreenTarget[], options?: ScreenFindOptions): Promise<ScreenMatch | null>;
+export declare function find(
+  target: ScreenTarget | readonly ScreenTarget[],
+  options?: ScreenFindOptions,
+): Promise<ScreenMatch | null>;
 export declare const frames: ObservableState<RasterImage>;
-export declare function waitFor(predicate: (frame: RasterImage) => boolean | Promise<boolean>, options?: CallOptions & { readonly timeoutMs?: number }): Promise<RasterImage>;
-export declare function waitForChange(options?: WaitOptions & { readonly from?: RasterImage }): Promise<RasterImage>;
-export declare function waitForStable(options?: WaitOptions & { readonly durationMs?: number }): Promise<RasterImage>;
-export declare function record(options?: CallOptions & {
-  /** Omitted, the recording goes to a new file in cacheDirectory. */
-  readonly file?: FileHandle | string;
-}): Promise<RecordingSession>;
-export declare function openRecording(file: FileHandle | string, options?: CallOptions): Promise<ScreenRecording>;
+export declare function waitFor(
+  predicate: (frame: RasterImage) => boolean | Promise<boolean>,
+  options?: CallOptions & { readonly timeoutMs?: number },
+): Promise<RasterImage>;
+export declare function waitForChange(
+  options?: WaitOptions & { readonly from?: RasterImage },
+): Promise<RasterImage>;
+export declare function waitForStable(
+  options?: WaitOptions & { readonly durationMs?: number },
+): Promise<RasterImage>;
+export declare function record(
+  options?: CallOptions & {
+    /** Omitted, the recording goes to a new file in cacheDirectory. */
+    readonly file?: FileHandle | string;
+  },
+): Promise<RecordingSession>;
+export declare function openRecording(
+  file: FileHandle | string,
+  options?: CallOptions,
+): Promise<ScreenRecording>;

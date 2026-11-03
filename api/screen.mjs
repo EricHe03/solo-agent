@@ -1,5 +1,7 @@
 const outside = () => {
-  throw new Error("@swipt/api/screen runs inside Swipt; build the swiplet with `swipt project build`");
+  throw new Error(
+    "@swipt/api/screen runs inside Swipt; build the swiplet with `swipt project build`",
+  );
 };
 
 export const screenshot = outside;

@@ -1,13 +1,13 @@
 import { parse } from "meriyah";
 
-export const hiddenSlots = code => {
+export const hiddenSlots = (code) => {
   const program = parse(code, { module: true, next: true, ranges: true });
   const visit = (node, enter) => {
     if (node === null || typeof node !== "object") {
       return;
     }
     if (Array.isArray(node)) {
-      node.forEach(child => visit(child, enter));
+      node.forEach((child) => visit(child, enter));
       return;
     }
     if (typeof node.type !== "string") {
@@ -20,26 +20,57 @@ export const hiddenSlots = code => {
       }
     }
   };
-  const slot = name => typeof name === "string" && name.startsWith("_");
+  const slot = (name) => typeof name === "string" && name.startsWith("_");
   const plain = new Set();
-  visit(program, node => {
-    if ((node.type === "Property" || node.type === "PropertyDefinition" || node.type === "MethodDefinition") && !node.computed && slot(node.key.name ?? node.key.value)) {
+  visit(program, (node) => {
+    if (
+      (node.type === "Property" ||
+        node.type === "PropertyDefinition" ||
+        node.type === "MethodDefinition") &&
+      !node.computed &&
+      slot(node.key.name ?? node.key.value)
+    ) {
       if (node.type === "PropertyDefinition") {
-        throw new Error(`web-streams-polyfill declares the class field ${node.key.name}, which internal slots can't hide`);
+        throw new Error(
+          `web-streams-polyfill declares the class field ${node.key.name}, which internal slots can't hide`,
+        );
       }
       plain.add(node.key.name ?? node.key.value);
     }
   });
   const edits = [];
-  visit(program, node => {
-    if (node.type === "MemberExpression" && !node.computed && node.object.type !== "Super" && slot(node.property.name) && !plain.has(node.property.name)) {
-      edits.push([node.object.start, node.object.start, "__swiptSlots("], [node.object.end, node.object.end, ")"]);
+  visit(program, (node) => {
+    if (
+      node.type === "MemberExpression" &&
+      !node.computed &&
+      node.object.type !== "Super" &&
+      slot(node.property.name) &&
+      !plain.has(node.property.name)
+    ) {
+      edits.push(
+        [node.object.start, node.object.start, "__swiptSlots("],
+        [node.object.end, node.object.end, ")"],
+      );
     }
-    if (node.type === "CallExpression" && code.slice(node.callee.start, node.callee.end) === "Object.prototype.hasOwnProperty.call" && slot(node.arguments[1]?.value)) {
-      if (node.arguments[0].type !== "Identifier" || plain.has(node.arguments[1].value)) {
-        throw new Error(`web-streams-polyfill checks ${node.arguments[1].value} in a form internal slots can't hide`);
+    if (
+      node.type === "CallExpression" &&
+      code.slice(node.callee.start, node.callee.end) ===
+        "Object.prototype.hasOwnProperty.call" &&
+      slot(node.arguments[1]?.value)
+    ) {
+      if (
+        node.arguments[0].type !== "Identifier" ||
+        plain.has(node.arguments[1].value)
+      ) {
+        throw new Error(
+          `web-streams-polyfill checks ${node.arguments[1].value} in a form internal slots can't hide`,
+        );
       }
-      edits.push([node.start, node.end, `__swiptHasSlot(${node.arguments[0].name}, ${JSON.stringify(node.arguments[1].value)})`]);
+      edits.push([
+        node.start,
+        node.end,
+        `__swiptHasSlot(${node.arguments[0].name}, ${JSON.stringify(node.arguments[1].value)})`,
+      ]);
     }
   });
   edits.sort((left, right) => right[0] - left[0] || right[1] - left[1]);

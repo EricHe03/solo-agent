@@ -1,9 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const excluded = name => name.startsWith(".") || name === "node_modules" || name === "dist";
+const excluded = (name) =>
+  name.startsWith(".") || name === "node_modules" || name === "dist";
 
-const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 function parseRule(line) {
   line = line.replace(/[ \t\r]+$/, "");
@@ -67,14 +68,18 @@ function parseRule(line) {
 
 export const relativePath = (root, name) => {
   const relative = path.relative(root, name);
-  return relative === "" || relative.startsWith("..") || path.isAbsolute(relative) ? "" : relative.split(path.sep).join("/");
+  return relative === "" ||
+    relative.startsWith("..") ||
+    path.isAbsolute(relative)
+    ? ""
+    : relative.split(path.sep).join("/");
 };
 
 export class Ignorer {
   rules = [];
 
   constructor(root) {
-    const walk = directory => {
+    const walk = (directory) => {
       const relative = relativePath(root, directory);
       if (relative !== "" && this.ignored(relative, true)) {
         return;
@@ -112,7 +117,14 @@ export class Ignorer {
 
   ignored(relative, directory) {
     const parts = relative.split("/");
-    return parts.some((part, index) => excluded(part) || this.matches(parts.slice(0, index + 1).join("/"), directory || index < parts.length - 1));
+    return parts.some(
+      (part, index) =>
+        excluded(part) ||
+        this.matches(
+          parts.slice(0, index + 1).join("/"),
+          directory || index < parts.length - 1,
+        ),
+    );
   }
 
   matches(relative, directory) {

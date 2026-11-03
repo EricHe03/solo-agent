@@ -1,8 +1,24 @@
-import { registerRootComponent, requireNativeModule, type EventSubscription } from "expo";
-import { Component, useEffect, useMemo, useSyncExternalStore, useState, type ComponentType, type ReactNode } from "react";
+import {
+  registerRootComponent,
+  requireNativeModule,
+  type EventSubscription,
+} from "expo";
+import {
+  Component,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 
 import { inspect } from "../shared/inspect";
-import { createSQLite, type DatabaseChangeEvent, type SQLiteBridge } from "../shared/sqlite";
+import {
+  createSQLite,
+  type DatabaseChangeEvent,
+  type SQLiteBridge,
+} from "../shared/sqlite";
 import { sqliteHooks } from "./sqlite";
 
 type ServiceStatus = "starting" | "running" | "stopped" | "failed";
@@ -43,35 +59,68 @@ interface SwiptHost {
   report(message: string): void;
   sqlite(request: string): string;
   sqliteAsync(request: string): Promise<string>;
-  addListener(event: "service", listener: (event: ServiceEvent) => void): EventSubscription;
-  addListener(event: "sqlite", listener: (event: DatabaseChangeEvent) => void): EventSubscription;
+  addListener(
+    event: "service",
+    listener: (event: ServiceEvent) => void,
+  ): EventSubscription;
+  addListener(
+    event: "sqlite",
+    listener: (event: DatabaseChangeEvent) => void,
+  ): EventSubscription;
 }
 
 const host = requireNativeModule<SwiptHost>("SwiptHost");
 
-const describe = (error: unknown): string => (error instanceof Error ? String(error.stack ?? `${error.name}: ${error.message}`) : `Uncaught ${inspect(error)}`);
+const describe = (error: unknown): string =>
+  error instanceof Error
+    ? String(error.stack ?? `${error.name}: ${error.message}`)
+    : `Uncaught ${inspect(error)}`;
 
-const messageOf = (error: unknown): string => (error instanceof Error ? error.message || error.name : inspect(error));
+const messageOf = (error: unknown): string =>
+  error instanceof Error ? error.message || error.name : inspect(error);
 
-const format = (value: unknown): string => (typeof value === "string" ? value : value instanceof Error ? describe(value) : inspect(value));
+const format = (value: unknown): string =>
+  typeof value === "string"
+    ? value
+    : value instanceof Error
+      ? describe(value)
+      : inspect(value);
 
-(console as { reportErrorsAsExceptions?: boolean }).reportErrorsAsExceptions = false;
+(console as { reportErrorsAsExceptions?: boolean }).reportErrorsAsExceptions =
+  false;
 const web = require("./web") as {
   installWeb(host: SwiptHost, format: (value: unknown) => string): void;
   pathOfURI(uri: string): string;
-  fileSystem(dataURI: string, assetsURI: string, cacheURI: string): Record<string, unknown>;
+  fileSystem(
+    dataURI: string,
+    assetsURI: string,
+    cacheURI: string,
+  ): Record<string, unknown>;
 };
 web.installWeb(host, format);
-Object.defineProperty(globalThis, "sleep", { value: (require("../extension/async") as { sleep: unknown }).sleep, writable: true, configurable: true, enumerable: false });
+Object.defineProperty(globalThis, "sleep", {
+  value: (require("../extension/async") as { sleep: unknown }).sleep,
+  writable: true,
+  configurable: true,
+  enumerable: false,
+});
 
-let service: Service = { enabled: false, status: "stopped", error: null, since: null };
+let service: Service = {
+  enabled: false,
+  status: "stopped",
+  error: null,
+  since: null,
+};
 const serviceListeners = new Set<() => void>();
 
 const serviceOf = (event: ServiceEvent): Service => ({
-  enabled: Boolean(event.enabled), status: event.status, error: event.error || null, since: event.since > 0 ? new Date(event.since) : null,
+  enabled: Boolean(event.enabled),
+  status: event.status,
+  error: event.error || null,
+  since: event.since > 0 ? new Date(event.since) : null,
 });
 
-host.addListener("service", event => {
+host.addListener("service", (event) => {
   service = serviceOf(event);
   for (const listener of serviceListeners) {
     listener();
@@ -88,7 +137,11 @@ const fail = (surface: string, error: unknown) => {
   host.fail(surface, messageOf(error));
 };
 
-const exceptions = (require("react-native/Libraries/Core/ExceptionsManager") as { default: { handleException(error: unknown, isFatal: boolean): void } }).default;
+const exceptions = (
+  require("react-native/Libraries/Core/ExceptionsManager") as {
+    default: { handleException(error: unknown, isFatal: boolean): void };
+  }
+).default;
 
 exceptions.handleException = (error, isFatal) => {
   if (isFatal || !(error as { isComponentError?: boolean }).isComponentError) {
@@ -96,23 +149,40 @@ exceptions.handleException = (error, isFatal) => {
   }
 };
 
-(HermesInternal as { enablePromiseRejectionTracker?: (options: { allRejections: boolean; onUnhandled: (id: number, error: unknown) => void }) => void } | null)
-  ?.enablePromiseRejectionTracker?.({ allRejections: true, onUnhandled: (_, error) => report(error) });
+(
+  HermesInternal as {
+    enablePromiseRejectionTracker?: (options: {
+      allRejections: boolean;
+      onUnhandled: (id: number, error: unknown) => void;
+    }) => void;
+  } | null
+)?.enablePromiseRejectionTracker?.({
+  allRejections: true,
+  onUnhandled: (_, error) => report(error),
+});
 
 const exportsOf = (specifier: string, values: Record<string, unknown>) =>
-  new Proxy({ __esModule: true, ...values }, {
-    get: (target, key) => {
-      if (typeof key === "string" && key !== "then" && !(key in target)) {
-        throw new Error(`${specifier} has no export "${key}"`);
-      }
-      return Reflect.get(target, key);
+  new Proxy(
+    { __esModule: true, ...values },
+    {
+      get: (target, key) => {
+        if (typeof key === "string" && key !== "then" && !(key in target)) {
+          throw new Error(`${specifier} has no export "${key}"`);
+        }
+        return Reflect.get(target, key);
+      },
     },
-  });
+  );
 
-const abortError = (signal: AbortSignal): unknown => signal.reason ?? Object.assign(new Error("the call was aborted"), { name: "AbortError" });
+const abortError = (signal: AbortSignal): unknown =>
+  signal.reason ??
+  Object.assign(new Error("the call was aborted"), { name: "AbortError" });
 
 const preferredLocalizations = (localizations: readonly string[]): string[] => {
-  if (!Array.isArray(localizations) || !localizations.every(localization => typeof localization === "string")) {
+  if (
+    !Array.isArray(localizations) ||
+    !localizations.every((localization) => typeof localization === "string")
+  ) {
     throw new TypeError("the localizations must be an array of strings");
   }
   return host.preferredLocalizations([...localizations]);
@@ -126,30 +196,48 @@ function interfaceModule(props: Props) {
       serviceListeners.delete(listener);
     };
   };
-  const call = (action: string, input: unknown, options: { signal?: AbortSignal } = {}): Promise<unknown> => {
+  const call = (
+    action: string,
+    input: unknown,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<unknown> => {
     const { signal } = options;
     if (signal?.aborted) {
       return Promise.reject(abortError(signal));
     }
-    const reply = host.call(action, JSON.stringify(input === undefined ? null : input)).then(value => (value ? JSON.parse(value) : undefined));
+    const reply = host
+      .call(action, JSON.stringify(input === undefined ? null : input))
+      .then((value) => (value ? JSON.parse(value) : undefined));
     if (signal === undefined) {
       return reply;
     }
     return new Promise((resolve, reject) => {
       const abort = () => reject(abortError(signal));
       signal.addEventListener("abort", abort, { once: true });
-      reply.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+      reply
+        .then(resolve, reject)
+        .finally(() => signal.removeEventListener("abort", abort));
     });
   };
   const calls = new Proxy({} as Record<string, unknown>, {
-    get: (_, action) => (typeof action !== "string" || action === "then" ? undefined : (input?: unknown, options?: { signal?: AbortSignal }) => call(action, input, options)),
+    get: (_, action) =>
+      typeof action !== "string" || action === "then"
+        ? undefined
+        : (input?: unknown, options?: { signal?: AbortSignal }) =>
+            call(action, input, options),
   });
-  const setEnabled = (enabled: boolean) => host.setServiceEnabled(Boolean(enabled));
+  const setEnabled = (enabled: boolean) =>
+    host.setServiceEnabled(Boolean(enabled));
   const useService = () => {
     const current = useSyncExternalStore(subscribe, () => service);
     return useMemo(() => ({ ...current, setEnabled }), [current]);
   };
-  return exportsOf("@swipt/api/swiplet", { actions: () => calls, useService, exit: () => host.exit(), preferredLocalizations });
+  return exportsOf("@swipt/api/swiplet", {
+    actions: () => calls,
+    useService,
+    exit: () => host.exit(),
+    preferredLocalizations,
+  });
 }
 
 const modules: Record<string, () => unknown> = {
@@ -162,19 +250,25 @@ const modules: Record<string, () => unknown> = {
   "@expo/ui": () => require("@expo/ui"),
   "@expo/ui/swift-ui": () => require("@expo/ui/swift-ui"),
   "@expo/ui/swift-ui/modifiers": () => require("@expo/ui/swift-ui/modifiers"),
-  "@expo/ui/community/bottom-sheet": () => require("@expo/ui/community/bottom-sheet"),
-  "@expo/ui/community/datetime-picker": () => require("@expo/ui/community/datetime-picker"),
-  "@expo/ui/community/masked-view": () => require("@expo/ui/community/masked-view"),
+  "@expo/ui/community/bottom-sheet": () =>
+    require("@expo/ui/community/bottom-sheet"),
+  "@expo/ui/community/datetime-picker": () =>
+    require("@expo/ui/community/datetime-picker"),
+  "@expo/ui/community/masked-view": () =>
+    require("@expo/ui/community/masked-view"),
   "@expo/ui/community/menu": () => require("@expo/ui/community/menu"),
-  "@expo/ui/community/pager-view": () => require("@expo/ui/community/pager-view"),
+  "@expo/ui/community/pager-view": () =>
+    require("@expo/ui/community/pager-view"),
   "@expo/ui/community/picker": () => require("@expo/ui/community/picker"),
-  "@expo/ui/community/segmented-control": () => require("@expo/ui/community/segmented-control"),
+  "@expo/ui/community/segmented-control": () =>
+    require("@expo/ui/community/segmented-control"),
   "@expo/ui/community/slider": () => require("@expo/ui/community/slider"),
 };
 
 const sqliteBridge = (props: Props): SQLiteBridge => ({
-  request: call => JSON.parse(host.sqlite(JSON.stringify(call))),
-  requestAsync: async call => JSON.parse(await host.sqliteAsync(JSON.stringify(call))),
+  request: (call) => JSON.parse(host.sqlite(JSON.stringify(call))),
+  requestAsync: async (call) =>
+    JSON.parse(await host.sqliteAsync(JSON.stringify(call))),
   defaultDirectory: web.pathOfURI(props.dataDirectory),
   subscribe(listener) {
     const subscription = host.addListener("sqlite", listener);
@@ -186,7 +280,12 @@ let storage: ReturnType<typeof createSQLite> | undefined;
 
 const installLocalStorage = (props: Props) => {
   storage ??= createSQLite(sqliteBridge(props));
-  Object.defineProperty(globalThis, "localStorage", { value: storage.localStorage, configurable: true, enumerable: true, writable: true });
+  Object.defineProperty(globalThis, "localStorage", {
+    value: storage.localStorage,
+    configurable: true,
+    enumerable: true,
+    writable: true,
+  });
   return { __esModule: true };
 };
 
@@ -196,8 +295,20 @@ function load(props: Props): { Swiplet: ComponentType; close(): void } {
   const own: Record<string, () => unknown> = {
     "@swipt/api": () => exportsOf("@swipt/api", {}),
     "@swipt/api/swiplet": () => interfaceModule(props),
-    "@swipt/api/file-system": () => exportsOf("@swipt/api/file-system", web.fileSystem(props.dataDirectory, props.assetsDirectory, props.cacheDirectory)),
-    "expo-sqlite": () => (sqliteModule ??= Object.freeze({ ...sqlite.exports, ...sqliteHooks(sqlite.exports) })),
+    "@swipt/api/file-system": () =>
+      exportsOf(
+        "@swipt/api/file-system",
+        web.fileSystem(
+          props.dataDirectory,
+          props.assetsDirectory,
+          props.cacheDirectory,
+        ),
+      ),
+    "expo-sqlite": () =>
+      (sqliteModule ??= Object.freeze({
+        ...sqlite.exports,
+        ...sqliteHooks(sqlite.exports),
+      })),
     "expo-sqlite/kv-store": () => sqlite.kvStore,
     "expo-sqlite/localStorage/install": () => installLocalStorage(props),
   };
@@ -208,23 +319,40 @@ function load(props: Props): { Swiplet: ComponentType; close(): void } {
     }
     const module = own[specifier] ?? modules[specifier];
     if (module === undefined) {
-      throw new Error(`Swipt doesn't provide "${specifier}"; bundle it into ${props.file}`);
+      throw new Error(
+        `Swipt doesn't provide "${specifier}"; bundle it into ${props.file}`,
+      );
     }
     const exports = module();
     required.set(specifier, exports);
     return exports;
   };
-  const module: { exports: { default?: ComponentType } & Record<string, unknown> } = { exports: {} };
+  const module: {
+    exports: { default?: ComponentType } & Record<string, unknown>;
+  } = { exports: {} };
   try {
-    new Function("require", "module", "exports", "reportError", `${props.source}\n//# sourceURL=swiplet://${props.name}/${props.file}`)(resolve, module, module.exports, report);
+    new Function(
+      "require",
+      "module",
+      "exports",
+      "reportError",
+      `${props.source}\n//# sourceURL=swiplet://${props.name}/${props.file}`,
+    )(resolve, module, module.exports, report);
   } catch (error) {
     sqlite.close();
     throw error;
   }
-  return { Swiplet: module.exports.default ?? (module.exports as unknown as ComponentType), close: sqlite.close };
+  return {
+    Swiplet:
+      module.exports.default ?? (module.exports as unknown as ComponentType),
+    close: sqlite.close,
+  };
 }
 
-class Boundary extends Component<{ surface: string; children: ReactNode }, { failed: boolean }> {
+class Boundary extends Component<
+  { surface: string; children: ReactNode },
+  { failed: boolean }
+> {
   state = { failed: false };
 
   static getDerivedStateFromError() {
@@ -241,20 +369,25 @@ class Boundary extends Component<{ surface: string; children: ReactNode }, { fai
 }
 
 function Root(props: Props) {
-  const [loaded] = useState((): ReturnType<typeof load> | { error: unknown } => {
-    try {
-      return load(props);
-    } catch (error) {
-      return { error };
-    }
-  });
+  const [loaded] = useState(
+    (): ReturnType<typeof load> | { error: unknown } => {
+      try {
+        return load(props);
+      } catch (error) {
+        return { error };
+      }
+    },
+  );
   useEffect(() => {
     if ("error" in loaded) {
       fail(props.surface, loaded.error);
     }
     host.mounted(props.surface);
   }, [loaded, props.surface]);
-  useEffect(() => () => ("close" in loaded ? loaded.close() : undefined), [loaded]);
+  useEffect(
+    () => () => ("close" in loaded ? loaded.close() : undefined),
+    [loaded],
+  );
   if ("error" in loaded) {
     return null;
   }

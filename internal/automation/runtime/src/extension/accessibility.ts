@@ -1,9 +1,20 @@
 import { invoke } from "./async";
-import { AccessibilityElement, encode, isSelector, refOf, snapshotOf, type RawSnapshot, type Selector } from "./elements";
+import {
+  AccessibilityElement,
+  encode,
+  isSelector,
+  refOf,
+  snapshotOf,
+  type RawSnapshot,
+  type Selector,
+} from "./elements";
 import { act, check, optionsOf, signalOf, type Options } from "./options";
 
 const view = (options: unknown) => {
-  const { scope = "frontApp", full = false } = optionsOf(options, ["scope", "full"]);
+  const { scope = "frontApp", full = false } = optionsOf(options, [
+    "scope",
+    "full",
+  ]);
   if (scope !== "frontApp" && scope !== "screen") {
     throw new TypeError("scope must be frontApp or screen");
   }
@@ -20,7 +31,9 @@ const selectorsOf = (selector: unknown): Selector[] => {
   }
   for (const item of selectors) {
     if (!isSelector(item)) {
-      throw new TypeError("expected a selector: an object of element fields, or a function of an element");
+      throw new TypeError(
+        "expected a selector: an object of element fields, or a function of an element",
+      );
     }
   }
   return selectors as Selector[];
@@ -34,7 +47,9 @@ const limitOf = (value: unknown, name: string): number => {
     return Infinity;
   }
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
-    throw new TypeError(`${name} must be a non-negative number of milliseconds, or Infinity`);
+    throw new TypeError(
+      `${name} must be a non-negative number of milliseconds, or Infinity`,
+    );
   }
   return value;
 };
@@ -52,11 +67,22 @@ interface Found {
 }
 
 export const snapshot = async (options?: Options) =>
-  snapshotOf(await invoke<RawSnapshot>("accessibility.snapshot", [view(options)], { signal: signalOf(options) }));
+  snapshotOf(
+    await invoke<RawSnapshot>("accessibility.snapshot", [view(options)], {
+      signal: signalOf(options),
+    }),
+  );
 
-export const find = async (selector: unknown, options?: Options): Promise<AccessibilityElement | null> => {
+export const find = async (
+  selector: unknown,
+  options?: Options,
+): Promise<AccessibilityElement | null> => {
   const selectors = selectorsOf(selector);
-  const { timeoutMs, poll = false, pollTimeoutMs } = optionsOf(options, ["timeoutMs", "poll", "pollTimeoutMs"]);
+  const {
+    timeoutMs,
+    poll = false,
+    pollTimeoutMs,
+  } = optionsOf(options, ["timeoutMs", "poll", "pollTimeoutMs"]);
   const timeout = limitOf(timeoutMs, "timeoutMs");
   if (typeof poll !== "boolean") {
     throw new TypeError("poll must be a boolean");
@@ -64,14 +90,19 @@ export const find = async (selector: unknown, options?: Options): Promise<Access
   if (pollTimeoutMs !== undefined && !poll) {
     throw new TypeError("pollTimeoutMs applies with poll");
   }
-  const pollLimit = pollTimeoutMs === undefined ? Infinity : limitOf(pollTimeoutMs, "pollTimeoutMs");
+  const pollLimit =
+    pollTimeoutMs === undefined
+      ? Infinity
+      : limitOf(pollTimeoutMs, "pollTimeoutMs");
   const signal = signalOf(options);
-  const encoded = selectors.map(item => encode(item).value);
+  const encoded = selectors.map((item) => encode(item).value);
   const started = Date.now();
   const deadline = started + timeout;
   const pollUntil = poll ? started + pollLimit : -Infinity;
   for (;;) {
-    const found = await invoke<Found>("accessibility.find", [encoded], { signal });
+    const found = await invoke<Found>("accessibility.find", [encoded], {
+      signal,
+    });
     if (found.snapshot !== null) {
       const taken = snapshotOf(found.snapshot);
       for (const item of selectors) {
@@ -88,7 +119,11 @@ export const find = async (selector: unknown, options?: Options): Promise<Access
     if (now < pollUntil) {
       continue;
     }
-    await invoke("accessibility.changed", [found.seen, deadline === Infinity ? null : deadline - now], { signal });
+    await invoke(
+      "accessibility.changed",
+      [found.seen, deadline === Infinity ? null : deadline - now],
+      { signal },
+    );
   }
 };
 
@@ -99,17 +134,29 @@ export const setText = (element: unknown, text: unknown, options?: Options) => {
   }
   const { timeoutMs } = optionsOf(options, ["timeoutMs"]);
   const limit = limitOf(timeoutMs, "timeoutMs");
-  return act("accessibility.setText", [ref, text, limit === Infinity ? null : limit], options);
+  return act(
+    "accessibility.setText",
+    [ref, text, limit === Infinity ? null : limit],
+    options,
+  );
 };
 
 export const tap = (element: unknown, options?: Options) => {
   const ref = elementOf(element, "accessibility.tap");
   const { timeoutMs } = optionsOf(options, ["timeoutMs"]);
   const limit = limitOf(timeoutMs, "timeoutMs");
-  return act("accessibility.tap", [ref, limit === Infinity ? null : limit], options);
+  return act(
+    "accessibility.tap",
+    [ref, limit === Infinity ? null : limit],
+    options,
+  );
 };
 
-export const perform = (element: unknown, action: unknown, options?: Options) => {
+export const perform = (
+  element: unknown,
+  action: unknown,
+  options?: Options,
+) => {
   const ref = elementOf(element, "accessibility.perform");
   if (typeof action !== "string") {
     throw new TypeError("the action must be a string");

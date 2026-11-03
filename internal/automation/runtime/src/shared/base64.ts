@@ -1,4 +1,5 @@
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const alphabet =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 export const encodeBase64 = (bytes: Uint8Array): string => {
   let out = "";
@@ -20,7 +21,7 @@ for (let index = 0; index < alphabet.length; index++) {
 }
 
 export const decodeBase64 = (text: string): Uint8Array => {
-  const out = new Uint8Array(Math.floor(text.length * 3 / 4) + 3);
+  const out = new Uint8Array(Math.floor((text.length * 3) / 4) + 3);
   let written = 0;
   let buffer = 0;
   let bits = 0;

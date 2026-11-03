@@ -7,6 +7,7 @@ export const console = createConsole({
   print: (severity, text) => native.print(severity, text),
   format,
   inspect,
-  trace: label => `Trace${label === "" ? "" : `: ${label}`}${stackOf(new Error())}`,
+  trace: (label) =>
+    `Trace${label === "" ? "" : `: ${label}`}${stackOf(new Error())}`,
   now: () => native.now(),
 });

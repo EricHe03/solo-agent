@@ -12,7 +12,9 @@ import { build } from "esbuild";
 
 import { loadEnvironment, metro } from "./metro.mjs";
 
-const { version } = JSON.parse(fs.readFileSync(new URL("package.json", import.meta.url), "utf8"));
+const { version } = JSON.parse(
+  fs.readFileSync(new URL("package.json", import.meta.url), "utf8"),
+);
 const require = createRequire(import.meta.url);
 const { peerDependencies } = require("@swipt/api/package.json");
 
@@ -49,41 +51,92 @@ const extensionModules = [
 
 const idPattern = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 
-const storedSuffixes = [".webp", ".jxl", ".avif", ".heic", ".heif", ".jpg", ".jpeg", ".png", ".gif", ".mp4", ".mov", ".m4a", ".mp3", ".aac", ".zip", ".gz", ".br", ".zst", ".xz"].join(":");
+const storedSuffixes = [
+  ".webp",
+  ".jxl",
+  ".avif",
+  ".heic",
+  ".heif",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".mp4",
+  ".mov",
+  ".m4a",
+  ".mp3",
+  ".aac",
+  ".zip",
+  ".gz",
+  ".br",
+  ".zst",
+  ".xz",
+].join(":");
 
 export function loadProject(root) {
-  const manifest = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(root, "package.json"), "utf8"),
+  );
   const config = manifest.swiplet ?? {};
   if (typeof config.id !== "string" || !idPattern.test(config.id)) {
-    throw new Error('"swiplet.id" in package.json must be 1 to 128 lowercase letters, digits, dots, underscores and hyphens starting with a letter or a digit');
+    throw new Error(
+      '"swiplet.id" in package.json must be 1 to 128 lowercase letters, digits, dots, underscores and hyphens starting with a letter or a digit',
+    );
   }
   if (typeof config.name !== "string" || config.name === "") {
-    throw new Error('"swiplet.name" in package.json must be a non-empty string');
+    throw new Error(
+      '"swiplet.name" in package.json must be a non-empty string',
+    );
   }
   const localizedNames = config.localizedNames ?? {};
-  if (localizedNames === null || typeof localizedNames !== "object" || !Object.values(localizedNames).every(name => typeof name === "string")) {
-    throw new Error('"swiplet.localizedNames" in package.json must map languages to names');
+  if (
+    localizedNames === null ||
+    typeof localizedNames !== "object" ||
+    !Object.values(localizedNames).every((name) => typeof name === "string")
+  ) {
+    throw new Error(
+      '"swiplet.localizedNames" in package.json must map languages to names',
+    );
   }
   for (const field of ["description", "updateURL"]) {
     if (config[field] !== undefined && typeof config[field] !== "string") {
       throw new Error(`"swiplet.${field}" in package.json must be a string`);
     }
   }
-  if (config.versionCode !== undefined && (!Number.isInteger(config.versionCode) || config.versionCode < 1)) {
-    throw new Error('"swiplet.versionCode" in package.json must be a positive integer');
+  if (
+    config.versionCode !== undefined &&
+    (!Number.isInteger(config.versionCode) || config.versionCode < 1)
+  ) {
+    throw new Error(
+      '"swiplet.versionCode" in package.json must be a positive integer',
+    );
   }
-  const entry = name => (config[name] === undefined ? undefined : path.resolve(root, config[name]));
-  return { root, manifest, config, localizedNames, app: entry("app"), extension: entry("extension") };
+  const entry = (name) =>
+    config[name] === undefined ? undefined : path.resolve(root, config[name]);
+  return {
+    root,
+    manifest,
+    config,
+    localizedNames,
+    app: entry("app"),
+    extension: entry("extension"),
+  };
 }
 
-const typeImport = extension => ({
+const typeImport = (extension) => ({
   name: "swiplet-type-import",
   setup(build) {
-    build.onLoad({ filter: /.*/ }, args => {
+    build.onLoad({ filter: /.*/ }, (args) => {
       if (args.path !== extension) {
         return undefined;
       }
-      return { errors: [{ text: `the interface imports ${path.basename(extension)} at run time; import its type with \`import type\`` }] };
+      return {
+        errors: [
+          {
+            text: `the interface imports ${path.basename(extension)} at run time; import its type with \`import type\``,
+          },
+        ],
+      };
     });
   },
 });
@@ -92,7 +145,13 @@ async function bundle(project) {
   const out = { app: "", extension: "", extensionMap: "", assets: new Map() };
   loadEnvironment(project.root);
   if (project.extension) {
-    const outfile = path.join(project.root, "dist", project.config.id, "src", "extension.js");
+    const outfile = path.join(
+      project.root,
+      "dist",
+      project.config.id,
+      "src",
+      "extension.js",
+    );
     const result = await build({
       entryPoints: [project.extension],
       outfile,
@@ -108,10 +167,26 @@ async function bundle(project) {
       logLevel: "silent",
       plugins: [metro(project.root, { sourcemap: true })],
     });
-    out.extension = result.outputFiles.find(file => file.path.endsWith(".js")).text;
-    const map = JSON.parse(result.outputFiles.find(file => file.path.endsWith(".map")).text);
-    const sources = map.sources.map(source => path.relative(project.root, path.resolve(path.dirname(outfile), map.sourceRoot ?? "", source)).split(path.sep).join("/"));
-    out.extensionMap = JSON.stringify({ ...map, sourceRoot: undefined, sources });
+    out.extension = result.outputFiles.find((file) =>
+      file.path.endsWith(".js"),
+    ).text;
+    const map = JSON.parse(
+      result.outputFiles.find((file) => file.path.endsWith(".map")).text,
+    );
+    const sources = map.sources.map((source) =>
+      path
+        .relative(
+          project.root,
+          path.resolve(path.dirname(outfile), map.sourceRoot ?? "", source),
+        )
+        .split(path.sep)
+        .join("/"),
+    );
+    out.extensionMap = JSON.stringify({
+      ...map,
+      sourceRoot: undefined,
+      sources,
+    });
   }
   if (project.app) {
     const result = await build({
@@ -121,22 +196,44 @@ async function bundle(project) {
       platform: "neutral",
       mainFields: ["react-native", "browser", "module", "main"],
       conditions: ["react-native"],
-      resolveExtensions: [".ios.tsx", ".ios.ts", ".native.tsx", ".native.ts", ".tsx", ".ts", ".ios.jsx", ".ios.js", ".native.js", ".jsx", ".js", ".json"],
+      resolveExtensions: [
+        ".ios.tsx",
+        ".ios.ts",
+        ".native.tsx",
+        ".native.ts",
+        ".tsx",
+        ".ts",
+        ".ios.jsx",
+        ".ios.js",
+        ".native.js",
+        ".jsx",
+        ".js",
+        ".json",
+      ],
       jsx: "automatic",
       target: "es2020",
       define: { "process.env.NODE_ENV": '"production"', __DEV__: "false" },
       external: appModules,
       write: false,
       logLevel: "silent",
-      plugins: [...(project.extension ? [typeImport(project.extension)] : []), metro(project.root, { assets: out.assets })],
+      plugins: [
+        ...(project.extension ? [typeImport(project.extension)] : []),
+        metro(project.root, { assets: out.assets }),
+      ],
     });
     const scoped = await transformAsync(result.outputFiles[0].text, {
-      babelrc: false, configFile: false, sourceType: "script", compact: false, plugins: [require.resolve("@babel/plugin-transform-block-scoping")],
+      babelrc: false,
+      configFile: false,
+      sourceType: "script",
+      compact: false,
+      plugins: [require.resolve("@babel/plugin-transform-block-scoping")],
     });
     out.app = scoped.code;
   }
   if (out.app === "" && out.extension === "") {
-    throw new Error('package.json names neither "swiplet.app" nor "swiplet.extension"');
+    throw new Error(
+      'package.json names neither "swiplet.app" nor "swiplet.extension"',
+    );
   }
   return out;
 }
@@ -147,31 +244,45 @@ function describeExtension(source) {
   if (source === "") {
     return { service: false, actions: [] };
   }
-  const loading = name => {
+  const loading = (name) => {
     const fail = () => {
-      throw new Error(`${name} is used while extension.js loads; use it inside run or an action`);
+      throw new Error(
+        `${name} is used while extension.js loads; use it inside run or an action`,
+      );
     };
-    const get = (_, key) => (key === "__esModule" ? true : typeof key === "symbol" || key === "then" ? undefined : fail());
+    const get = (_, key) =>
+      key === "__esModule"
+        ? true
+        : typeof key === "symbol" || key === "then"
+          ? undefined
+          : fail();
     return new Proxy(fail, { get, apply: fail, construct: fail });
   };
   const modules = {
     "@swipt/api": {},
     "@swipt/api/swiplet": {
-      defineExtension: definition => ({ [definitionKey]: definition }),
-      defineAction: definition => definition,
+      defineExtension: (definition) => ({ [definitionKey]: definition }),
+      defineAction: (definition) => definition,
       actions: loading("actions"),
       useService: loading("useService"),
-      preferredLocalizations: localizations => (localizations.includes("en") ? ["en"] : localizations.slice(0, 1)),
+      preferredLocalizations: (localizations) =>
+        localizations.includes("en") ? ["en"] : localizations.slice(0, 1),
     },
     "@swipt/api/file-system": {
       get dataDirectory() {
-        throw new Error("dataDirectory is used while extension.js loads; use it inside run or an action");
+        throw new Error(
+          "dataDirectory is used while extension.js loads; use it inside run or an action",
+        );
       },
       get cacheDirectory() {
-        throw new Error("cacheDirectory is used while extension.js loads; use it inside run or an action");
+        throw new Error(
+          "cacheDirectory is used while extension.js loads; use it inside run or an action",
+        );
       },
       get assets() {
-        throw new Error("assets is used while extension.js loads; use it inside run or an action");
+        throw new Error(
+          "assets is used while extension.js loads; use it inside run or an action",
+        );
       },
     },
     "@swipt/api/accessibility": loading("accessibility"),
@@ -179,7 +290,10 @@ function describeExtension(source) {
     "@swipt/api/device": loading("device"),
     "@swipt/api/screen": loading("screen"),
     "@swipt/api/image": loading("image"),
-    "expo-localization": { getLocales: () => [{ languageTag: "en", languageCode: "en" }], getCalendars: () => [] },
+    "expo-localization": {
+      getLocales: () => [{ languageTag: "en", languageCode: "en" }],
+      getCalendars: () => [],
+    },
     "expo-sqlite": {
       SQLiteDatabase: loading("SQLiteDatabase"),
       SQLiteStatement: loading("SQLiteStatement"),
@@ -202,17 +316,29 @@ function describeExtension(source) {
         if (a === b) {
           return true;
         }
-        if (a === null || b === null || typeof a !== "object" || typeof b !== "object") {
+        if (
+          a === null ||
+          b === null ||
+          typeof a !== "object" ||
+          typeof b !== "object"
+        ) {
           return false;
         }
         const keys = Object.keys(a);
-        return keys.length === Object.keys(b).length && keys.every(key => deepEqual(a[key], b[key]));
+        return (
+          keys.length === Object.keys(b).length &&
+          keys.every((key) => deepEqual(a[key], b[key]))
+        );
       },
       SQLiteProvider: () => {
-        throw new Error("SQLiteProvider renders React, so it works only in the swiplet interface");
+        throw new Error(
+          "SQLiteProvider renders React, so it works only in the swiplet interface",
+        );
       },
       useSQLiteContext: () => {
-        throw new Error("useSQLiteContext renders React, so it works only in the swiplet interface");
+        throw new Error(
+          "useSQLiteContext renders React, so it works only in the swiplet interface",
+        );
       },
     },
     "expo-sqlite/kv-store": {
@@ -228,34 +354,84 @@ function describeExtension(source) {
   };
   const ignored = () => 0;
   const webGlobals = [
-    "ErrorEvent", "File", "FormData", "ReadableStream", "ReadableStreamDefaultReader", "ReadableStreamBYOBReader", "ReadableStreamBYOBRequest",
-    "ReadableStreamDefaultController", "ReadableByteStreamController", "WritableStream", "WritableStreamDefaultWriter", "WritableStreamDefaultController",
-    "TransformStream", "TransformStreamDefaultController", "ByteLengthQueuingStrategy", "CountQueuingStrategy", "TextEncoderStream", "TextDecoderStream",
-    "CompressionStream", "DecompressionStream", "performance", "Performance", "PerformanceEntry", "PerformanceMark", "PerformanceMeasure",
-    "PerformanceObserver", "PerformanceObserverEntryList",
+    "ErrorEvent",
+    "File",
+    "FormData",
+    "ReadableStream",
+    "ReadableStreamDefaultReader",
+    "ReadableStreamBYOBReader",
+    "ReadableStreamBYOBRequest",
+    "ReadableStreamDefaultController",
+    "ReadableByteStreamController",
+    "WritableStream",
+    "WritableStreamDefaultWriter",
+    "WritableStreamDefaultController",
+    "TransformStream",
+    "TransformStreamDefaultController",
+    "ByteLengthQueuingStrategy",
+    "CountQueuingStrategy",
+    "TextEncoderStream",
+    "TextDecoderStream",
+    "CompressionStream",
+    "DecompressionStream",
+    "performance",
+    "Performance",
+    "PerformanceEntry",
+    "PerformanceMark",
+    "PerformanceMeasure",
+    "PerformanceObserver",
+    "PerformanceObserverEntryList",
   ];
   const context = vm.createContext({
-    console, URL, URLSearchParams, TextEncoder, TextDecoder, atob, btoa, structuredClone, queueMicrotask, crypto,
-    AbortController, AbortSignal, Event, EventTarget, CustomEvent, DOMException, Blob,
-    ...Object.fromEntries(webGlobals.map(name => [name, globalThis[name]])),
-    setTimeout: ignored, setInterval: ignored, clearTimeout: ignored, clearInterval: ignored,
+    console,
+    URL,
+    URLSearchParams,
+    TextEncoder,
+    TextDecoder,
+    atob,
+    btoa,
+    structuredClone,
+    queueMicrotask,
+    crypto,
+    AbortController,
+    AbortSignal,
+    Event,
+    EventTarget,
+    CustomEvent,
+    DOMException,
+    Blob,
+    ...Object.fromEntries(webGlobals.map((name) => [name, globalThis[name]])),
+    setTimeout: ignored,
+    setInterval: ignored,
+    clearTimeout: ignored,
+    clearInterval: ignored,
     navigator: { userAgent: "Swipt", language: "en", languages: ["en"] },
   });
-  const factory = vm.runInContext(`(function (require, module, exports) {${source}\n})`, context, { filename: "extension.js" });
+  const factory = vm.runInContext(
+    `(function (require, module, exports) {${source}\n})`,
+    context,
+    { filename: "extension.js" },
+  );
   const module = { exports: {} };
   factory(
-    specifier => {
+    (specifier) => {
       if (!Object.hasOwn(modules, specifier)) {
-        throw new Error(`Swipt doesn't provide "${specifier}" to extensions; bundle it into extension.js`);
+        throw new Error(
+          `Swipt doesn't provide "${specifier}" to extensions; bundle it into extension.js`,
+        );
       }
       return modules[specifier];
     },
     module,
     module.exports,
   );
-  const definition = (module.exports.default ?? module.exports)?.[definitionKey];
+  const definition = (module.exports.default ?? module.exports)?.[
+    definitionKey
+  ];
   if (definition === undefined) {
-    throw new Error("the extension's default export is not the result of defineExtension");
+    throw new Error(
+      "the extension's default export is not the result of defineExtension",
+    );
   }
   const schema = (name, value, side) => {
     if (value === undefined) {
@@ -263,27 +439,38 @@ function describeExtension(source) {
     }
     const converter = value?.["~standard"]?.jsonSchema;
     if (typeof converter?.[side] !== "function") {
-      throw new Error(`the ${side} schema of the action ${JSON.stringify(name)} doesn't implement Standard JSON Schema; use a library that does, such as Zod 4`);
+      throw new Error(
+        `the ${side} schema of the action ${JSON.stringify(name)} doesn't implement Standard JSON Schema; use a library that does, such as Zod 4`,
+      );
     }
     return converter[side]({ target: "draft-2020-12" });
   };
-  const actions = Object.entries(definition.actions ?? {}).map(([name, action]) => {
-    if (typeof action?.title !== "string" || action.title === "") {
-      throw new Error(`the action ${JSON.stringify(name)} needs a title`);
-    }
-    const expose = action.expose ?? [];
-    if (!Array.isArray(expose) || !expose.every(caller => caller === "shortcuts")) {
-      throw new Error(`the action ${JSON.stringify(name)} can only expose itself to "shortcuts"`);
-    }
-    return {
-      name,
-      title: action.title,
-      ...(action.description ? { description: action.description } : {}),
-      ...(expose.length > 0 ? { expose } : {}),
-      ...(action.input ? { input: schema(name, action.input, "input") } : {}),
-      ...(action.output ? { output: schema(name, action.output, "output") } : {}),
-    };
-  });
+  const actions = Object.entries(definition.actions ?? {}).map(
+    ([name, action]) => {
+      if (typeof action?.title !== "string" || action.title === "") {
+        throw new Error(`the action ${JSON.stringify(name)} needs a title`);
+      }
+      const expose = action.expose ?? [];
+      if (
+        !Array.isArray(expose) ||
+        !expose.every((caller) => caller === "shortcuts")
+      ) {
+        throw new Error(
+          `the action ${JSON.stringify(name)} can only expose itself to "shortcuts"`,
+        );
+      }
+      return {
+        name,
+        title: action.title,
+        ...(action.description ? { description: action.description } : {}),
+        ...(expose.length > 0 ? { expose } : {}),
+        ...(action.input ? { input: schema(name, action.input, "input") } : {}),
+        ...(action.output
+          ? { output: schema(name, action.output, "output") }
+          : {}),
+      };
+    },
+  );
   return { service: typeof definition.run === "function", actions };
 }
 
@@ -305,7 +492,7 @@ function swipletManifest(project, output) {
   };
 }
 
-const sourceFiles = output => ({
+const sourceFiles = (output) => ({
   ...(output.app ? { "app.js": output.app } : {}),
   ...(output.extension ? { "extension.js": output.extension } : {}),
 });
@@ -318,23 +505,34 @@ export async function buildProject(root) {
   const folder = path.join(dist, manifest.id);
   fs.rmSync(folder, { recursive: true, force: true });
   fs.mkdirSync(path.join(folder, "src"), { recursive: true });
-  fs.writeFileSync(path.join(folder, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+  fs.writeFileSync(
+    path.join(folder, "manifest.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+  );
   for (const [file, contents] of Object.entries(sourceFiles(output))) {
     fs.writeFileSync(path.join(folder, "src", file), contents);
   }
   if (output.extensionMap) {
-    fs.writeFileSync(path.join(folder, "src", "extension.js.map"), output.extensionMap);
+    fs.writeFileSync(
+      path.join(folder, "src", "extension.js.map"),
+      output.extensionMap,
+    );
   }
   if (fs.existsSync(path.join(root, "icon.png"))) {
     fs.copyFileSync(path.join(root, "icon.png"), path.join(folder, "icon.png"));
   }
   if (fs.existsSync(path.join(root, "assets"))) {
-    fs.cpSync(path.join(root, "assets"), path.join(folder, "assets"), { recursive: true, filter: source => !path.basename(source).startsWith(".") });
+    fs.cpSync(path.join(root, "assets"), path.join(folder, "assets"), {
+      recursive: true,
+      filter: (source) => !path.basename(source).startsWith("."),
+    });
   }
   for (const [name, source] of output.assets) {
     const target = path.join(folder, "assets", name);
     if (fs.existsSync(target)) {
-      throw new Error(`${path.relative(root, source)} and ${path.join("assets", name)} would both be assets/${name} in the swiplet`);
+      throw new Error(
+        `${path.relative(root, source)} and ${path.join("assets", name)} would both be assets/${name} in the swiplet`,
+      );
     }
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.copyFileSync(source, target);
@@ -342,14 +540,20 @@ export async function buildProject(root) {
   const archive = path.join(dist, `${manifest.id}.swiplet`);
   fs.rmSync(archive, { force: true });
   fs.rmSync(path.join(dist, `${manifest.id}.zip`), { force: true });
-  execFileSync("zip", ["-qr", "-n", storedSuffixes, archive, ...fs.readdirSync(folder)], { cwd: folder });
+  execFileSync(
+    "zip",
+    ["-qr", "-n", storedSuffixes, archive, ...fs.readdirSync(folder)],
+    { cwd: folder },
+  );
   return { id: manifest.id, archive, digest: folderDigest(folder) };
 }
 
 function folderDigest(folder) {
   const hash = createHash("sha256");
-  const walk = directory => {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+  const walk = (directory) => {
+    for (const entry of fs
+      .readdirSync(directory, { withFileTypes: true })
+      .sort((a, b) => (a.name < b.name ? -1 : 1))) {
       const name = path.join(directory, entry.name);
       if (entry.isDirectory()) {
         walk(name);
@@ -367,7 +571,9 @@ function folderDigest(folder) {
 const manifestEntry = /^(?:[^/]+\/)?manifest\.json$/;
 
 function loadSource(root) {
-  const manifest = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(root, "package.json"), "utf8"),
+  );
   const config = manifest.source ?? {};
   for (const field of ["name", "image", "url"]) {
     if (config[field] !== undefined && typeof config[field] !== "string") {
@@ -375,21 +581,38 @@ function loadSource(root) {
     }
   }
   const localizedNames = config.localizedNames ?? {};
-  if (localizedNames === null || typeof localizedNames !== "object" || !Object.values(localizedNames).every(name => typeof name === "string")) {
-    throw new Error('"source.localizedNames" in package.json must map languages to names');
+  if (
+    localizedNames === null ||
+    typeof localizedNames !== "object" ||
+    !Object.values(localizedNames).every((name) => typeof name === "string")
+  ) {
+    throw new Error(
+      '"source.localizedNames" in package.json must map languages to names',
+    );
   }
-  if (config.icon !== undefined && (typeof config.icon?.symbol !== "string" || (config.icon.color !== undefined && typeof config.icon.color !== "string"))) {
-    throw new Error('"source.icon" in package.json must have a symbol and may have a color');
+  if (
+    config.icon !== undefined &&
+    (typeof config.icon?.symbol !== "string" ||
+      (config.icon.color !== undefined &&
+        typeof config.icon.color !== "string"))
+  ) {
+    throw new Error(
+      '"source.icon" in package.json must have a symbol and may have a color',
+    );
   }
   let prefix;
   if (config.url !== undefined) {
     try {
-      prefix = new URL(config.url.endsWith("/") ? config.url : `${config.url}/`);
+      prefix = new URL(
+        config.url.endsWith("/") ? config.url : `${config.url}/`,
+      );
     } catch {
       throw new Error('"source.url" in package.json is not an absolute URL');
     }
   }
-  const workspaces = Array.isArray(manifest.workspaces) ? manifest.workspaces : manifest.workspaces?.packages ?? [];
+  const workspaces = Array.isArray(manifest.workspaces)
+    ? manifest.workspaces
+    : (manifest.workspaces?.packages ?? []);
   return { root, config, localizedNames, prefix, workspaces };
 }
 
@@ -407,7 +630,9 @@ function workspaceSwiplets(source) {
       }
       const built = path.join(source.root, directory, "dist", `${id}.swiplet`);
       if (!fs.existsSync(built)) {
-        throw new Error(`${path.relative(source.root, built)} is missing; build ${directory} first`);
+        throw new Error(
+          `${path.relative(source.root, built)} is missing; build ${directory} first`,
+        );
       }
       files.push(built);
     }
@@ -416,11 +641,16 @@ function workspaceSwiplets(source) {
 }
 
 function readSwiplet(file) {
-  const entry = execFileSync("unzip", ["-Z1", file], { encoding: "utf8" }).split("\n").filter(name => manifestEntry.test(name)).sort((a, b) => a.length - b.length)[0];
+  const entry = execFileSync("unzip", ["-Z1", file], { encoding: "utf8" })
+    .split("\n")
+    .filter((name) => manifestEntry.test(name))
+    .sort((a, b) => a.length - b.length)[0];
   if (entry === undefined) {
     throw new Error(`${file} has no manifest.json`);
   }
-  const manifest = JSON.parse(execFileSync("unzip", ["-p", file, entry], { encoding: "utf8" }));
+  const manifest = JSON.parse(
+    execFileSync("unzip", ["-p", file, entry], { encoding: "utf8" }),
+  );
   if (typeof manifest.id !== "string" || !idPattern.test(manifest.id)) {
     throw new Error(`${file} has no valid swiplet id in its manifest`);
   }
@@ -429,49 +659,90 @@ function readSwiplet(file) {
 
 export function sourceCommand(root, given) {
   const source = loadSource(root);
-  const files = given.length > 0 ? given.map(file => path.resolve(file)) : workspaceSwiplets(source);
+  const files =
+    given.length > 0
+      ? given.map((file) => path.resolve(file))
+      : workspaceSwiplets(source);
   if (files.length === 0) {
-    throw new Error("package.json lists no workspaces with swiplets; name the swiplets to list");
+    throw new Error(
+      "package.json lists no workspaces with swiplets; name the swiplets to list",
+    );
   }
   const swiplets = new Map();
   for (const read of files.map(readSwiplet)) {
     const { id } = read.manifest;
     if (swiplets.has(id)) {
-      throw new Error(`${id} is both ${swiplets.get(id).file} and ${read.file}`);
+      throw new Error(
+        `${id} is both ${swiplets.get(id).file} and ${read.file}`,
+      );
     }
     swiplets.set(id, read);
   }
-  const image = source.config.image === undefined ? undefined : { name: path.basename(source.config.image), data: fs.readFileSync(path.resolve(root, source.config.image)) };
-  const located = name => (source.prefix ? new URL(name, source.prefix).href : name);
+  const image =
+    source.config.image === undefined
+      ? undefined
+      : {
+          name: path.basename(source.config.image),
+          data: fs.readFileSync(path.resolve(root, source.config.image)),
+        };
+  const located = (name) =>
+    source.prefix ? new URL(name, source.prefix).href : name;
   const dist = path.join(root, "dist");
   fs.rmSync(dist, { recursive: true, force: true });
   fs.mkdirSync(dist, { recursive: true });
-  const entries = [...swiplets.keys()].sort().map(id => {
+  const entries = [...swiplets.keys()].sort().map((id) => {
     const { manifest, data } = swiplets.get(id);
     const name = `${id}.swiplet`;
     fs.writeFileSync(path.join(dist, name), data);
-    return { ...manifest, url: located(name), size: data.length, sha256: createHash("sha256").update(data).digest("hex") };
+    return {
+      ...manifest,
+      url: located(name),
+      size: data.length,
+      sha256: createHash("sha256").update(data).digest("hex"),
+    };
   });
   if (image) {
     fs.writeFileSync(path.join(dist, image.name), image.data);
   }
   const index = {
     ...(source.config.name ? { name: source.config.name } : {}),
-    ...(Object.keys(source.localizedNames).length > 0 ? { localizedNames: source.localizedNames } : {}),
-    ...(source.config.icon ? { icon: { symbol: source.config.icon.symbol, ...(source.config.icon.color ? { color: source.config.icon.color } : {}) } } : {}),
+    ...(Object.keys(source.localizedNames).length > 0
+      ? { localizedNames: source.localizedNames }
+      : {}),
+    ...(source.config.icon
+      ? {
+          icon: {
+            symbol: source.config.icon.symbol,
+            ...(source.config.icon.color
+              ? { color: source.config.icon.color }
+              : {}),
+          },
+        }
+      : {}),
     ...(image ? { image: located(image.name) } : {}),
     swiplets: entries,
   };
-  fs.writeFileSync(path.join(dist, "swiplets.json"), `${JSON.stringify(index, null, 2)}\n`);
+  fs.writeFileSync(
+    path.join(dist, "swiplets.json"),
+    `${JSON.stringify(index, null, 2)}\n`,
+  );
   console.log(path.relative(process.cwd(), path.join(dist, "swiplets.json")));
 }
 
-const swiptRange = version.includes("-") ? version : `>=${version}-0 <=${version}`;
+const swiptRange = version.includes("-")
+  ? version
+  : `>=${version}-0 <=${version}`;
 
-const idOf = name => name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^[._-]+/, "").slice(0, 128).replace(/[._-]+$/, "") || "swiplet";
+const idOf = (name) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^[._-]+/, "")
+    .slice(0, 128)
+    .replace(/[._-]+$/, "") || "swiplet";
 
 const templates = {
-  "package.json": name =>
+  "package.json": (name) =>
     `${JSON.stringify(
       {
         name: idOf(name),
@@ -491,7 +762,12 @@ const templates = {
           "@swipt/api": swiptRange,
           "@swipt/cli": swiptRange,
           typescript: "^7.0.2",
-          ...Object.fromEntries(["@expo/ui", "@types/react", "react"].map(name => [name, peerDependencies[name]])),
+          ...Object.fromEntries(
+            ["@expo/ui", "@types/react", "react"].map((name) => [
+              name,
+              peerDependencies[name],
+            ]),
+          ),
         },
       },
       null,
@@ -501,8 +777,14 @@ const templates = {
     `${JSON.stringify(
       {
         compilerOptions: {
-          target: "ES2022", module: "ESNext", moduleResolution: "Bundler", jsx: "react-jsx", lib: ["ES2023", "DOM"],
-          strict: true, noEmit: true, skipLibCheck: true,
+          target: "ES2022",
+          module: "ESNext",
+          moduleResolution: "Bundler",
+          jsx: "react-jsx",
+          lib: ["ES2023", "DOM"],
+          strict: true,
+          noEmit: true,
+          skipLibCheck: true,
         },
       },
       null,
@@ -521,7 +803,8 @@ export default defineExtension({
   },
 });
 `,
-  "src/App.tsx": () => `import { Button, Form, Host, Section, Text } from "@expo/ui/swift-ui";
+  "src/App.tsx":
+    () => `import { Button, Form, Host, Section, Text } from "@expo/ui/swift-ui";
 import { useState } from "react";
 import { actions } from "@swipt/api/swiplet";
 
@@ -545,7 +828,10 @@ export default function App() {
 `,
 };
 
-const quote = value => (/^[\w@%+=:,./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`);
+const quote = (value) =>
+  /^[\w@%+=:,./-]+$/.test(value)
+    ? value
+    : `'${value.replaceAll("'", "'\\''")}'`;
 
 export function createCommand(directory) {
   const root = path.resolve(directory);
@@ -557,5 +843,7 @@ export function createCommand(directory) {
     fs.writeFileSync(path.join(root, file), template(path.basename(root)));
   }
   const manager = process.env.npm_config_user_agent?.split("/")[0] ?? "npm";
-  console.log(`cd ${quote(directory)} && ${manager} install && ${manager} run build`);
+  console.log(
+    `cd ${quote(directory)} && ${manager} install && ${manager} run build`,
+  );
 }

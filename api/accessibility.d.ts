@@ -1,11 +1,35 @@
 import type { CallOptions, Point, Rect } from "./index";
 
-export type AccessibilityTrait = "button" | "link" | "image" | "playsSound" | "keyboardKey" | "staticText" | "summaryElement"
-  | "updatesFrequently" | "searchField" | "startsMediaSession" | "adjustable" | "allowsDirectInteraction"
-  | "causesPageTurn" | "tabBar" | "header" | "webContent" | "textEntry";
+export type AccessibilityTrait =
+  | "button"
+  | "link"
+  | "image"
+  | "playsSound"
+  | "keyboardKey"
+  | "staticText"
+  | "summaryElement"
+  | "updatesFrequently"
+  | "searchField"
+  | "startsMediaSession"
+  | "adjustable"
+  | "allowsDirectInteraction"
+  | "causesPageTurn"
+  | "tabBar"
+  | "header"
+  | "webContent"
+  | "textEntry";
 
-export type AccessibilityAction = "press" | "increment" | "decrement" | "escape" | "menu"
-  | "scrollUp" | "scrollDown" | "scrollLeft" | "scrollRight" | "scrollToVisible";
+export type AccessibilityAction =
+  | "press"
+  | "increment"
+  | "decrement"
+  | "escape"
+  | "menu"
+  | "scrollUp"
+  | "scrollDown"
+  | "scrollLeft"
+  | "scrollRight"
+  | "scrollToVisible";
 
 export interface AccessibilityElement {
   readonly role: string;
@@ -45,13 +69,38 @@ export interface AccessibilitySnapshot {
   findAll(selector: AccessibilitySelector): AccessibilityElement[];
 }
 
-type TextField = "role" | "class" | "label" | "value" | "identifier" | "placeholder" | "hint" | "url" | "app";
-type Flag = "disabled" | "focused" | "selected" | "expanded" | "secure" | "partial" | "offScreen" | "inert" | "remote";
+type TextField =
+  | "role"
+  | "class"
+  | "label"
+  | "value"
+  | "identifier"
+  | "placeholder"
+  | "hint"
+  | "url"
+  | "app";
+type Flag =
+  | "disabled"
+  | "focused"
+  | "selected"
+  | "expanded"
+  | "secure"
+  | "partial"
+  | "offScreen"
+  | "inert"
+  | "remote";
 
 export type AccessibilitySelector =
-  | ({ traits?: AccessibilityTrait[]; within?: AccessibilitySelector | AccessibilityElement; parent?: AccessibilitySelector | AccessibilityElement; has?: AccessibilitySelector | AccessibilityElement; not?: AccessibilitySelector | AccessibilityElement; index?: number }
-    & { [field in TextField]?: string | RegExp }
-    & { [field in Flag]?: boolean })
+  | ({
+      traits?: AccessibilityTrait[];
+      within?: AccessibilitySelector | AccessibilityElement;
+      parent?: AccessibilitySelector | AccessibilityElement;
+      has?: AccessibilitySelector | AccessibilityElement;
+      not?: AccessibilitySelector | AccessibilityElement;
+      index?: number;
+    } & { [field in TextField]?: string | RegExp } & {
+      [field in Flag]?: boolean;
+    })
   | ((element: AccessibilityElement) => boolean);
 
 export interface SnapshotOptions extends CallOptions {
@@ -67,13 +116,29 @@ export interface FindOptions extends CallOptions {
   readonly pollTimeoutMs?: number;
 }
 
-export declare function snapshot(options?: SnapshotOptions): Promise<AccessibilitySnapshot>;
-export declare function find(selector: AccessibilitySelector | readonly AccessibilitySelector[], options?: FindOptions): Promise<AccessibilityElement | null>;
+export declare function snapshot(
+  options?: SnapshotOptions,
+): Promise<AccessibilitySnapshot>;
+export declare function find(
+  selector: AccessibilitySelector | readonly AccessibilitySelector[],
+  options?: FindOptions,
+): Promise<AccessibilityElement | null>;
 export interface ElementOptions extends CallOptions {
   /** Omitted or 0 tries once; a positive number or Infinity keeps checking until a tap would reach the element, and fails at the limit. */
   readonly timeoutMs?: number;
 }
 
-export declare function tap(element: AccessibilityElement, options?: ElementOptions): Promise<void>;
-export declare function setText(element: AccessibilityElement, text: string, options?: ElementOptions): Promise<void>;
-export declare function perform(element: AccessibilityElement, action: AccessibilityAction | (string & {}), options?: CallOptions): Promise<void>;
+export declare function tap(
+  element: AccessibilityElement,
+  options?: ElementOptions,
+): Promise<void>;
+export declare function setText(
+  element: AccessibilityElement,
+  text: string,
+  options?: ElementOptions,
+): Promise<void>;
+export declare function perform(
+  element: AccessibilityElement,
+  action: AccessibilityAction | (string & {}),
+  options?: CallOptions,
+): Promise<void>;
