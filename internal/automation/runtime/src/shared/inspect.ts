@@ -59,6 +59,21 @@ const custom = (value: object): boolean => {
 
 const shownItems = 100;
 
+const breakLength = 80;
+
+const identifier = /^[A-Za-z_$][\w$]*$/;
+
+const group = (depth: number, prefix: string, open: string, close: string, items: string[]): string => {
+  if (items.length === 0) {
+    return `${prefix}${open}${close}`;
+  }
+  const line = `${prefix}${open} ${items.join(", ")} ${close}`;
+  if (depth * 2 + line.length <= breakLength && !line.includes("\n")) {
+    return line;
+  }
+  return `${prefix}${open}\n${items.map(item => `  ${item.replaceAll("\n", "\n  ")}`).join(",\n")}\n${close}`;
+};
+
 type Typed = ArrayLike<number | bigint> & { constructor: { name: string } };
 
 export const inspect = (value: unknown, ancestors: unknown[] = []): string => {
@@ -106,7 +121,7 @@ export const inspect = (value: unknown, ancestors: unknown[] = []): string => {
     if (typed.length > shownItems) {
       items.push(`... ${typed.length - shownItems} more`);
     }
-    return `${typed.constructor.name}(${typed.length}) [${items.join(",")}]`;
+    return group(ancestors.length, `${typed.constructor.name}(${typed.length}) `, "[", "]", items);
   }
   if (custom(value as object)) {
     return String(value);
@@ -116,20 +131,19 @@ export const inspect = (value: unknown, ancestors: unknown[] = []): string => {
     if (value.length > 0 && value.every(item => item !== null && typeof item === "object" && custom(item))) {
       return value.map(String).join("\n");
     }
-    return `[${Array.from(value, nested).join(",")}]`;
+    return group(ancestors.length, "", "[", "]", Array.from(value, nested));
   }
   if (value instanceof Map) {
-    return `Map(${value.size}) {${Array.from(value, ([key, item]) => `${nested(key)} => ${nested(item)}`).join(", ")}}`;
+    return group(ancestors.length, `Map(${value.size}) `, "{", "}", Array.from(value, ([key, item]) => `${nested(key)} => ${nested(item)}`));
   }
   if (value instanceof Set) {
-    return `Set(${value.size}) {${Array.from(value, nested).join(", ")}}`;
+    return group(ancestors.length, `Set(${value.size}) `, "{", "}", Array.from(value, nested));
   }
   const record = value as Record<string, unknown>;
   const prototype = Object.getPrototypeOf(value);
   const fields = fieldsOf(record);
   const own = fields === undefined || !views.has(prototype) ? Object.keys(record).filter(key => !fields?.some(([name]) => name === key)) : [];
   const entries = [...fields ?? [], ...own.map(key => [key, record[key]] as const)];
-  const body = `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${nested(item)}`).join(",")}}`;
   const name = prototype && prototype !== Object.prototype && prototype.constructor && prototype.constructor.name;
-  return name ? `${name} ${body}` : body;
+  return group(ancestors.length, name ? `${name} ` : "", "{", "}", entries.map(([key, item]) => `${identifier.test(key) ? key : JSON.stringify(key)}: ${nested(item)}`));
 };
