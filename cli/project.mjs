@@ -7,12 +7,14 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import vm from "node:vm";
 
+import { transformAsync } from "@babel/core";
 import { build } from "esbuild";
 
 import { loadEnvironment, metro } from "./metro.mjs";
 
 const { version } = JSON.parse(fs.readFileSync(new URL("package.json", import.meta.url), "utf8"));
-const { peerDependencies } = createRequire(import.meta.url)("@swipt/api/package.json");
+const require = createRequire(import.meta.url);
+const { peerDependencies } = require("@swipt/api/package.json");
 
 const appModules = [
   "react",
@@ -124,7 +126,10 @@ async function bundle(project) {
       logLevel: "silent",
       plugins: [...(project.extension ? [typeImport(project.extension)] : []), metro(project.root, { assets: out.assets })],
     });
-    out.app = result.outputFiles[0].text;
+    const scoped = await transformAsync(result.outputFiles[0].text, {
+      babelrc: false, configFile: false, sourceType: "script", compact: false, plugins: [require.resolve("@babel/plugin-transform-block-scoping")],
+    });
+    out.app = scoped.code;
   }
   if (out.app === "" && out.extension === "") {
     throw new Error('package.json names neither "swiplet.app" nor "swiplet.extension"');

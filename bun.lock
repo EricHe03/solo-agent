@@ -43,6 +43,7 @@
       },
       "dependencies": {
         "@babel/core": "^7.29.7",
+        "@babel/plugin-transform-block-scoping": "^7.29.12",
         "@babel/runtime": "^7.29.10",
         "@bufbuild/protobuf": "^2.16.0",
         "@expo/env": "^2.5.3",
