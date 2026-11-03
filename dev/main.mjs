@@ -8,6 +8,8 @@ import { fileURLToPath } from "node:url";
 
 import { attach, label, sameName } from "@swipt/cli/connection.mjs";
 
+import { buildExpoModulesCore } from "./expo-modules-core.mjs";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const runtime = path.join(root, "internal/automation/runtime");
 const derivedData = path.join(root, "build/DerivedData");
@@ -45,7 +47,12 @@ const proto = () => {
 
 const frameworks = () => {
   install();
-  run("node", ["node_modules/react-native/scripts/setup-apple-spm.js", "update", "--product-name", "Swipt", "--yes"]);
+  // ExpoModulesCore builds against the frameworks update links, and update links the ExpoModulesCore it finds.
+  const update = () => run("node", ["node_modules/react-native/scripts/setup-apple-spm.js", "update", "--product-name", "Swipt", "--yes"]);
+  update();
+  if (buildExpoModulesCore()) {
+    update();
+  }
 };
 
 function* walk(directory) {
@@ -251,7 +258,7 @@ const commands = [
   ["runtime", "Build the SDK runtime that libswipt embeds (internal/automation/runtime.js, its chunks and the declarations)"],
   ["lib", "Build the runtime, then libswipt into Frameworks/LibSwipt.xcframework"],
   ["ui", "Bundle the Swiplet UI runtime into build/runtime/main.jsbundle when its inputs changed"],
-  ["frameworks", "Install the React Native frameworks that the Xcode project links"],
+  ["frameworks", "Build ExpoModulesCore from its patched sources and install the React Native frameworks that the Xcode project links"],
   ["build [ios|macos]", "Build the Debug app into build/DerivedData; ios also runs ui (default: ios)"],
   ["archive", "Archive Release with the built lib and frameworks into build/Swipt.ipa; also runs ui"],
   ["ipa", "Build runtime, lib and frameworks, then archive"],
