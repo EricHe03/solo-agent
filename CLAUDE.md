@@ -6,12 +6,14 @@
 
 ## Commands
 
-`bun dev` prints every development command with its arguments; `swipt [COMMAND...] --help` does the same for the CLI.
+`bun dev` prints its commands with their arguments; `swipt [COMMAND...] --help` does the same for the CLI.
 
 * `bun dev install [-d NAME|UDID]` - Build Swipt, install it on the device, launch it, and check the installed build
-* `bun dev build [ios|macos]` - Build the Debug app into build/DerivedData
-* `bun dev lib` - Build the SDK runtime and libswipt
-* `bun dev ui` - Bundle the Swiplet UI runtime
-* `bun dev ipa` - Build Swipt.ipa
-* `bun dev proto` - Regenerate the gRPC code
+* `bun dev frameworks` - Build ExpoModulesCore and install the React Native frameworks
+* `make lib` - Build the SDK runtime and libswipt
+* `make build_ios` / `make build_macos` - Build the Debug app into build/DerivedData
+* `make runtime_bundle` - Bundle the Swiplet UI runtime
+* `make build_ios_ipa` - Build Swipt.ipa
+* `make proto` - Regenerate the gRPC code
 * `make fmt` - Format Go and string catalogs
+* `make lint` - Lint Go

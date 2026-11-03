@@ -128,7 +128,7 @@ jobs:
           key: swift-ios-${{ steps.xcode.outputs.build }}-${{ hashFiles('Swipt/**', 'Swipt.xcodeproj/**', 'bun.lock', 'internal/automation/runtime/patches/**', 'internal/automation/runtime/modules/**', 'Frameworks/LibSwipt.xcframework/ios-arm64/LibSwipt.framework/Versions/A/Headers/**', 'Frameworks/LibSwipt.xcframework/ios-arm64/LibSwipt.framework/Versions/A/Modules/**') }}
           restore-keys: swift-ios-${{ steps.xcode.outputs.build }}-
       - name: Build
-        run: bun dev archive && bun dev icon
+        run: make archive_ios_ipa altstore_icon
         env:
           XCODEBUILD_FLAGS: -clonedSourcePackagesDirPath ${{ runner.temp }}/SourcePackages CURRENT_PROJECT_VERSION=${{ needs.calculate_version.outputs.build_number }} COMPILATION_CACHE_ENABLE_CACHING=YES COMPILATION_CACHE_CAS_PATH=${{ runner.temp }}/CompilationCache COMPILATION_CACHE_LIMIT_SIZE=2G
       - name: Package dSYMs
