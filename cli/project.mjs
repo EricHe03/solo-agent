@@ -182,10 +182,11 @@ function describeExtension(source) {
   };
   const ignored = () => 0;
   const webGlobals = [
-    "ErrorEvent", "File", "FormData", "ReadableStream", "ReadableStreamDefaultReader", "ReadableStreamBYOBReader",
-    "ReadableStreamBYOBRequest", "ReadableStreamDefaultController", "ReadableByteStreamController", "WritableStream", "WritableStreamDefaultWriter",
-    "WritableStreamDefaultController", "TransformStream", "TransformStreamDefaultController", "ByteLengthQueuingStrategy", "CountQueuingStrategy",
-    "TextEncoderStream", "TextDecoderStream", "CompressionStream", "DecompressionStream",
+    "ErrorEvent", "File", "FormData", "ReadableStream", "ReadableStreamDefaultReader", "ReadableStreamBYOBReader", "ReadableStreamBYOBRequest",
+    "ReadableStreamDefaultController", "ReadableByteStreamController", "WritableStream", "WritableStreamDefaultWriter", "WritableStreamDefaultController",
+    "TransformStream", "TransformStreamDefaultController", "ByteLengthQueuingStrategy", "CountQueuingStrategy", "TextEncoderStream", "TextDecoderStream",
+    "CompressionStream", "DecompressionStream", "performance", "Performance", "PerformanceEntry", "PerformanceMark", "PerformanceMeasure",
+    "PerformanceObserver", "PerformanceObserverEntryList",
   ];
   const context = vm.createContext({
     console, URL, URLSearchParams, TextEncoder, TextDecoder, atob, btoa, structuredClone, queueMicrotask, crypto,

@@ -1,6 +1,59 @@
+type Fields = (value: object) => Iterable<readonly [string, unknown]>;
+
+const views = new Map<object, Fields>();
+
+const getterOf = (prototype: object, key: string): ((this: unknown) => unknown) | undefined => {
+  for (let current: object | null = prototype; current !== null; current = Object.getPrototypeOf(current)) {
+    const descriptor = Object.getOwnPropertyDescriptor(current, key);
+    if (descriptor !== undefined) {
+      return descriptor.get;
+    }
+  }
+  return undefined;
+};
+
+type Field<T> = (keyof T & string) | readonly [string, (value: T) => unknown];
+
+export function inspectAs<T extends object>(type: { prototype: T }, fields: readonly Field<T>[] | ((value: T) => Iterable<readonly [string, unknown]>)): void {
+  if (typeof fields === "function") {
+    views.set(type.prototype, fields as Fields);
+    return;
+  }
+  const readers = fields.map((field): readonly [string, (value: object) => unknown] => {
+    if (typeof field !== "string") {
+      return field as readonly [string, (value: object) => unknown];
+    }
+    const get = getterOf(type.prototype, field);
+    return [field, value => {
+      const read = get ?? Object.getOwnPropertyDescriptor(value, field)?.get;
+      return read === undefined ? undefined : Reflect.apply(read, value, []);
+    }];
+  });
+  views.set(type.prototype, value => readers.map(([key, read]) => [key, read(value)] as const));
+}
+
+const viewsOf = (value: object): Fields[] => {
+  const found: Fields[] = [];
+  for (let prototype = Object.getPrototypeOf(value); prototype !== null; prototype = Object.getPrototypeOf(prototype)) {
+    const view = views.get(prototype);
+    if (view !== undefined) {
+      found.unshift(view);
+    }
+  }
+  return found;
+};
+
+const fieldsOf = (value: object): (readonly [string, unknown])[] | undefined => {
+  try {
+    return viewsOf(value).flatMap(view => [...view(value)]);
+  } catch {
+    return undefined;
+  }
+};
+
 const custom = (value: object): boolean => {
   const prototype = Object.getPrototypeOf(value);
-  return prototype !== null && prototype !== Object.prototype && !Array.isArray(value)
+  return prototype !== null && prototype !== Object.prototype && !Array.isArray(value) && viewsOf(value).length === 0
     && typeof (value as { toString?: unknown }).toString === "function" && (value as { toString: unknown }).toString !== Object.prototype.toString;
 };
 
@@ -72,8 +125,11 @@ export const inspect = (value: unknown, ancestors: unknown[] = []): string => {
     return `Set(${value.size}) {${Array.from(value, nested).join(", ")}}`;
   }
   const record = value as Record<string, unknown>;
-  const body = `{${Object.keys(record).map(key => `${JSON.stringify(key)}:${nested(record[key])}`).join(",")}}`;
   const prototype = Object.getPrototypeOf(value);
+  const fields = fieldsOf(record);
+  const own = fields === undefined || !views.has(prototype) ? Object.keys(record).filter(key => !fields?.some(([name]) => name === key)) : [];
+  const entries = [...fields ?? [], ...own.map(key => [key, record[key]] as const)];
+  const body = `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${nested(item)}`).join(",")}}`;
   const name = prototype && prototype !== Object.prototype && prototype.constructor && prototype.constructor.name;
   return name ? `${name} ${body}` : body;
 };

@@ -87,6 +87,7 @@ type timer struct {
 	at        time.Time
 	delay     time.Duration
 	interval  bool
+	nesting   int
 	callback  jsc.Value
 	arguments []jsc.Value
 	exec      *execution
@@ -153,6 +154,7 @@ type engine struct {
 	ready         []completion
 	timers        []*timer
 	sequence      int
+	nesting       int
 	ops           map[string]*pendingOperation
 	results       map[string]completion
 	subscriptions map[string]*subscription
@@ -292,9 +294,11 @@ func (h *Host) newEngine(swiplet Swiplet, dialog Dialog, logger log.ContextLogge
 	defer install.Release()
 	native := e.context.NewObject()
 	defer native.Release()
+	origin := native.SetClock("now")
 	properties := map[string]string{
 		"swiplet": swiplet.ID, "dataDirectory": filepath.Join(swiplet.Directory, DataFolder), "languages": strings.Join(h.options.Languages, "\n"),
 		"assetsDirectory": filepath.Join(swiplet.Directory, AssetsFolder), "cacheDirectory": e.caches, "extensionHead": extensionHead,
+		"timeOrigin": strconv.FormatFloat(float64(origin.UnixMicro())/1000, 'f', -1, 64),
 	}
 	for name, text := range properties {
 		value := e.context.NewString(text)
@@ -324,11 +328,6 @@ func (h *Host) newEngine(swiplet Swiplet, dialog Dialog, logger log.ContextLogge
 		e.log(log.LevelError, "a promise was rejected with nothing to handle it: "+arguments[1].Describe())
 		return nil, nil
 	})
-	global := e.context.Global()
-	global.SetFunction("setTimeout", e.schedule(false))
-	global.SetFunction("setInterval", e.schedule(true))
-	global.SetFunction("clearTimeout", e.clear)
-	global.SetFunction("clearInterval", e.clear)
 	return e, nil
 }
 
@@ -405,10 +404,13 @@ func (e *engine) natives() map[string]jsc.Function {
 		"locate":                 e.locate,
 		"sqlite":                 e.sqlite,
 		"release":                e.release,
-		"pipe":                   e.pipe,
 		"compression":            e.compression,
+		"openFile":               e.openFile,
 		"encodeText":             e.encodeText,
 		"decodeText":             e.decodeText,
+		"setTimeout":             e.schedule(false),
+		"setInterval":            e.schedule(true),
+		"clearTimer":             e.clear,
 	}
 }
 
@@ -809,11 +811,16 @@ func (e *engine) schedule(interval bool) jsc.Function {
 		if len(arguments) == 0 || !arguments[0].IsFunction() {
 			return nil, E.New("the callback is not a function")
 		}
-		delay := time.Millisecond
+		// HTML's timer initialization steps: no clamp, except 4 ms once timers nest more than 5 deep
+		var delay time.Duration
 		if len(arguments) > 1 {
-			if ms := arguments[1].Number(); ms >= 1 && ms <= math.MaxInt32 {
+			if ms := arguments[1].Number(); ms > 0 && ms <= math.MaxInt32 {
 				delay = time.Duration(ms * float64(time.Millisecond))
 			}
+		}
+		nesting := e.nesting + 1
+		if nesting > 5 {
+			delay = max(delay, 4*time.Millisecond)
 		}
 		rest := arguments[min(len(arguments), 2):]
 		arguments[0].Protect()
@@ -821,7 +828,7 @@ func (e *engine) schedule(interval bool) jsc.Function {
 			argument.Protect()
 		}
 		e.sequence++
-		e.timers = append(e.timers, &timer{id: e.sequence, at: time.Now().Add(delay), delay: delay, interval: interval, callback: arguments[0], arguments: rest, exec: e.current})
+		e.timers = append(e.timers, &timer{id: e.sequence, at: time.Now().Add(delay), delay: delay, interval: interval, nesting: nesting, callback: arguments[0], arguments: rest, exec: e.current})
 		return e.sequence, nil
 	}
 }
@@ -840,12 +847,18 @@ func (e *engine) clear(arguments []jsc.Value) (any, error) {
 }
 
 func (e *engine) fire(next *timer) error {
+	nesting := next.nesting
 	if next.interval {
+		if next.nesting++; next.nesting > 5 {
+			next.delay = max(next.delay, 4*time.Millisecond)
+		}
 		next.at = time.Now().Add(next.delay)
 	} else {
 		e.timers = slices.DeleteFunc(e.timers, func(it *timer) bool { return it == next })
 		defer next.release()
 	}
+	e.nesting = nesting
+	defer func() { e.nesting = 0 }()
 	return e.enter(next.exec, func() error {
 		result, err := next.callback.Call(next.arguments...)
 		if err != nil {

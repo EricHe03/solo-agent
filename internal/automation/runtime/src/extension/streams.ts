@@ -1,9 +1,10 @@
 import {
   ByteLengthQueuingStrategy, CountQueuingStrategy, ReadableByteStreamController, ReadableStream, ReadableStreamBYOBReader, ReadableStreamBYOBRequest,
   ReadableStreamDefaultController, ReadableStreamDefaultReader, TransformStream, TransformStreamDefaultController, WritableStream,
-  WritableStreamDefaultController, WritableStreamDefaultWriter,
+  WritableStreamDefaultController, WritableStreamDefaultWriter, internalSlots,
 } from "web-streams-polyfill";
 
+import { allowSharedBufferSource, boolean, brand, defineInterface, dictionary, domString, enumeration, optional } from "../shared/webidl";
 import { invoke } from "./async";
 import { TextDecoder, TextEncoder } from "./encoding";
 import { failureOf } from "./errors";
@@ -12,22 +13,41 @@ import { native } from "./native";
 export {
   ByteLengthQueuingStrategy, CountQueuingStrategy, ReadableByteStreamController, ReadableStream, ReadableStreamBYOBReader, ReadableStreamBYOBRequest,
   ReadableStreamDefaultController, ReadableStreamDefaultReader, TransformStream, TransformStreamDefaultController, WritableStream,
-  WritableStreamDefaultController, WritableStreamDefaultWriter,
+  WritableStreamDefaultController, WritableStreamDefaultWriter, internalSlots,
 };
 
 interface NativeSource {
   id: string | null;
   started: boolean;
   controller?: ReadableByteStreamController;
-  done(): void;
 }
 
 type BufferSource = ArrayBuffer | ArrayBufferView;
 
-const sources = new WeakMap<ReadableStream, NativeSource>();
-const disturbed = new WeakSet<ReadableStream>();
+declare module "web-streams-polyfill" {
+  export function internalSlots(value: object): Record<string, unknown>;
+}
 
-export const isDisturbed = (stream: ReadableStream): boolean => stream.locked || disturbed.has(stream);
+// ReadableStream.from takes an async_sequence, which rejects primitives such as strings
+const readableFrom = ReadableStream.from;
+Object.defineProperty(ReadableStream, "from", {
+  ...Object.getOwnPropertyDescriptor(ReadableStream, "from"),
+  value: {
+    from(this: unknown, asyncIterable: unknown) {
+      if ((typeof asyncIterable !== "object" && typeof asyncIterable !== "function") || asyncIterable === null) {
+        throw new TypeError("ReadableStream.from needs an iterable or async iterable object");
+      }
+      return Reflect.apply(readableFrom, this, [asyncIterable]);
+    },
+  }.from,
+});
+
+const readableIteratorPrototype: object = Object.getPrototypeOf(new ReadableStream().values());
+Reflect.deleteProperty(readableIteratorPrototype, Symbol.asyncIterator);
+Object.setPrototypeOf(readableIteratorPrototype, Object.getPrototypeOf(Object.getPrototypeOf(async function* () {}.prototype)));
+Object.defineProperty(readableIteratorPrototype, Symbol.toStringTag, { value: "ReadableStream AsyncIterator", configurable: true });
+
+const sources = new WeakMap<ReadableStream, NativeSource>();
 
 export const chunkBytes = (chunk: unknown): Uint8Array => {
   if (chunk instanceof Uint8Array) {
@@ -42,12 +62,8 @@ export const chunkBytes = (chunk: unknown): Uint8Array => {
   throw new TypeError("the chunk is not an ArrayBuffer or a view of one");
 };
 
-export function nativeReadable(id: string, done: () => void = () => {}): ReadableStream<Uint8Array> {
-  const source: NativeSource = { id, started: false, done };
-  const finish = () => {
-    source.id = null;
-    source.done();
-  };
+export function nativeReadable(id: string): ReadableStream<Uint8Array> {
+  const source: NativeSource = { id, started: false };
   const stream = new ReadableStream({
     type: "bytes",
     start(controller) {
@@ -55,7 +71,6 @@ export function nativeReadable(id: string, done: () => void = () => {}): Readabl
     },
     async pull(controller) {
       source.started = true;
-      disturbed.add(stream);
       const current = source.id;
       if (current === null) {
         return;
@@ -65,7 +80,7 @@ export function nativeReadable(id: string, done: () => void = () => {}): Readabl
         chunk = await invoke<Uint8Array | null>("stream.read", [current]);
       } catch (error) {
         if (source.id === current) {
-          finish();
+          source.id = null;
           controller.error(error);
         }
         return;
@@ -74,7 +89,7 @@ export function nativeReadable(id: string, done: () => void = () => {}): Readabl
         return;
       }
       if (chunk === null) {
-        finish();
+        source.id = null;
         controller.close();
         controller.byobRequest?.respond(0);
         return;
@@ -82,13 +97,12 @@ export function nativeReadable(id: string, done: () => void = () => {}): Readabl
       controller.enqueue(chunk);
     },
     cancel(reason) {
-      disturbed.add(stream);
       if (source.id !== null) {
         native.release(source.id, failureOf(reason));
-        finish();
+        source.id = null;
       }
     },
-  }, { highWaterMark: 0 });
+  }, { __proto__: null, highWaterMark: 0 } as { highWaterMark: number });
   sources.set(stream, source);
   return stream as ReadableStream<Uint8Array>;
 }
@@ -100,7 +114,6 @@ export function errorNative(stream: ReadableStream, reason: unknown): void {
   }
   native.release(source.id, failureOf(reason));
   source.id = null;
-  source.done();
   source.controller?.error(reason);
 }
 
@@ -149,37 +162,8 @@ export function nativeWritable(id: string, accept: (chunk: unknown) => Uint8Arra
   });
 }
 
-export async function readAll(stream: ReadableStream): Promise<Uint8Array> {
-  const reader = stream.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-    if (!(value instanceof Uint8Array)) {
-      const error = new TypeError("the body stream produced a chunk that is not a Uint8Array");
-      await reader.cancel(error);
-      throw error;
-    }
-    chunks.push(value);
-    size += value.length;
-  }
-  if (chunks.length === 1) {
-    return chunks[0];
-  }
-  const out = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return out;
-}
-
 export function bytesStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
-  const stream: ReadableStream<Uint8Array> = new ReadableStream({
+  return new ReadableStream({
     type: "bytes",
     start(controller) {
       if (bytes.length > 0) {
@@ -187,24 +171,22 @@ export function bytesStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
       }
       controller.close();
     },
-    cancel() {
-      disturbed.add(stream);
-    },
   }) as ReadableStream<Uint8Array>;
-  return stream;
 }
 
-export class TextEncoderStream {
-  readonly encoding = "utf-8";
-  readonly readable: ReadableStream<Uint8Array>;
-  readonly writable: WritableStream<string>;
+export const TextEncoderStream = defineInterface(class TextEncoderStream {
+  readonly #stream: TransformStream<string, Uint8Array>;
+
+  static [brand](value: object) {
+    return #stream in value;
+  }
 
   constructor() {
     const encoder = new TextEncoder();
     let pending = "";
-    const stream = new TransformStream<string, Uint8Array>({
+    this.#stream = new TransformStream<string, Uint8Array>({
       transform(chunk, controller) {
-        let text = pending + String(chunk);
+        let text = pending + domString(chunk, "the TextEncoderStream chunk");
         pending = "";
         const last = text.charCodeAt(text.length - 1);
         if (last >= 0xd800 && last <= 0xdbff) {
@@ -221,26 +203,38 @@ export class TextEncoderStream {
         }
       },
     });
-    this.readable = stream.readable;
-    this.writable = stream.writable;
   }
-}
 
-export class TextDecoderStream {
-  readonly encoding: string;
-  readonly fatal: boolean;
-  readonly ignoreBOM: boolean;
-  readonly readable: ReadableStream<string>;
-  readonly writable: WritableStream<BufferSource>;
+  get encoding(): string {
+    return "utf-8";
+  }
 
-  constructor(label = "utf-8", options: { fatal?: boolean; ignoreBOM?: boolean } = {}) {
+  get readable(): ReadableStream<Uint8Array> {
+    return this.#stream.readable;
+  }
+
+  get writable(): WritableStream<string> {
+    return this.#stream.writable;
+  }
+}, { construct: [] });
+export type TextEncoderStream = InstanceType<typeof TextEncoderStream>;
+
+const decoderOptions = dictionary<{ fatal: boolean; ignoreBOM: boolean }>({ fatal: { convert: boolean, fallback: false }, ignoreBOM: { convert: boolean, fallback: false } });
+
+export const TextDecoderStream = defineInterface(class TextDecoderStream {
+  readonly #decoder: TextDecoder;
+  readonly #stream: TransformStream<BufferSource, string>;
+
+  static [brand](value: object) {
+    return #decoder in value;
+  }
+
+  constructor(label = "utf-8", options?: { fatal?: boolean; ignoreBOM?: boolean }) {
     const decoder = new TextDecoder(label, options);
-    this.encoding = decoder.encoding;
-    this.fatal = decoder.fatal;
-    this.ignoreBOM = decoder.ignoreBOM;
-    const stream = new TransformStream<BufferSource, string>({
+    this.#decoder = decoder;
+    this.#stream = new TransformStream<BufferSource, string>({
       transform(chunk, controller) {
-        const text = decoder.decode(chunkBytes(chunk), { stream: true });
+        const text = decoder.decode(allowSharedBufferSource(chunk, "the TextDecoderStream chunk"), { stream: true });
         if (text !== "") {
           controller.enqueue(text);
         }
@@ -252,36 +246,87 @@ export class TextDecoderStream {
         }
       },
     });
-    this.readable = stream.readable;
-    this.writable = stream.writable;
   }
-}
 
-const compressionFormats = ["gzip", "deflate", "deflate-raw"];
-
-const compressionPair = (format: unknown, mode: "compress" | "decompress") => {
-  const name = String(format);
-  if (!compressionFormats.includes(name)) {
-    throw new TypeError(`the compression format ${JSON.stringify(name)} is not one of ${compressionFormats.join(", ")}`);
+  get encoding(): string {
+    return this.#decoder.encoding;
   }
-  const [writer, reader] = native.compression(name, mode);
-  return { readable: nativeReadable(reader), writable: nativeWritable(writer) };
+
+  get fatal(): boolean {
+    return this.#decoder.fatal;
+  }
+
+  get ignoreBOM(): boolean {
+    return this.#decoder.ignoreBOM;
+  }
+
+  get readable(): ReadableStream<string> {
+    return this.#stream.readable;
+  }
+
+  get writable(): WritableStream<BufferSource> {
+    return this.#stream.writable;
+  }
+}, { construct: [optional(domString, "utf-8"), optional(decoderOptions)] });
+export type TextDecoderStream = InstanceType<typeof TextDecoderStream>;
+
+type CompressionFormat = "brotli" | "gzip" | "deflate" | "deflate-raw";
+
+const compressionFormat = enumeration<CompressionFormat>(["brotli", "deflate", "deflate-raw", "gzip"]);
+
+const compressionPair = (format: CompressionFormat, mode: "compress" | "decompress") => {
+  const [writer, reader] = native.compression(format, mode);
+  const readable = nativeReadable(reader);
+  // a chunk that is not a BufferSource errors both sides, as it would in a TransformStream
+  const accept = (chunk: unknown) => {
+    try {
+      return chunkBytes(chunk);
+    } catch (error) {
+      errorNative(readable, error);
+      throw error;
+    }
+  };
+  return { readable, writable: nativeWritable(writer, accept) };
 };
 
-export class CompressionStream {
-  readonly readable: ReadableStream<Uint8Array>;
-  readonly writable: WritableStream<BufferSource>;
+export const CompressionStream = defineInterface(class CompressionStream {
+  readonly #pair: { readable: ReadableStream<Uint8Array>; writable: WritableStream<BufferSource> };
 
-  constructor(format: "gzip" | "deflate" | "deflate-raw") {
-    ({ readable: this.readable, writable: this.writable } = compressionPair(format, "compress"));
+  static [brand](value: object) {
+    return #pair in value;
   }
-}
 
-export class DecompressionStream {
-  readonly readable: ReadableStream<Uint8Array>;
-  readonly writable: WritableStream<BufferSource>;
-
-  constructor(format: "gzip" | "deflate" | "deflate-raw") {
-    ({ readable: this.readable, writable: this.writable } = compressionPair(format, "decompress"));
+  constructor(format: CompressionFormat) {
+    this.#pair = compressionPair(format, "compress");
   }
-}
+
+  get readable(): ReadableStream<Uint8Array> {
+    return this.#pair.readable;
+  }
+
+  get writable(): WritableStream<BufferSource> {
+    return this.#pair.writable;
+  }
+}, { construct: [compressionFormat] });
+export type CompressionStream = InstanceType<typeof CompressionStream>;
+
+export const DecompressionStream = defineInterface(class DecompressionStream {
+  readonly #pair: { readable: ReadableStream<Uint8Array>; writable: WritableStream<BufferSource> };
+
+  static [brand](value: object) {
+    return #pair in value;
+  }
+
+  constructor(format: CompressionFormat) {
+    this.#pair = compressionPair(format, "decompress");
+  }
+
+  get readable(): ReadableStream<Uint8Array> {
+    return this.#pair.readable;
+  }
+
+  get writable(): WritableStream<BufferSource> {
+    return this.#pair.writable;
+  }
+}, { construct: [compressionFormat] });
+export type DecompressionStream = InstanceType<typeof DecompressionStream>;

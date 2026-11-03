@@ -1,5 +1,5 @@
 import { inspect } from "../shared/inspect";
-import { replHead } from "./head";
+import { hoist, replHead } from "./head";
 import { native } from "./native";
 
 export interface Position {
@@ -45,6 +45,9 @@ export const framesOf = (error: Error & { line?: number; column?: number; source
   const frames: Frame[] = [];
   for (const text of String(error.stack ?? "").split("\n")) {
     const match = /^(.*?)@(.+):(\d+):(\d+)$/.exec(text);
+    if (match?.[1] === hoist) {
+      return [];
+    }
     const found = match && frame(match[1], match[2], Number(match[3]), Number(match[4]));
     if (found) {
       frames.push(found);
@@ -64,12 +67,20 @@ const where = (frame: Frame): string => {
   return frame.function === "" ? position : `${frame.function} (${position})`;
 };
 
+export const stackOf = (error: Error): string => framesOf(error).map(item => `\n    at ${where(item)}`).join("");
+
 export const describe = (error: unknown): string => {
-  if (!(error instanceof Error)) {
-    return `Uncaught ${inspect(error)}`;
+  try {
+    if (!(error instanceof Error)) {
+      return `Uncaught ${inspect(error)}`;
+    }
+    return `${error.name}: ${error.message}${stackOf(error)}`;
+  } catch {
+    return "the thrown value could not be described";
   }
-  return `${error.name}: ${error.message}${framesOf(error).map(item => `\n    at ${where(item)}`).join("")}`;
 };
+
+export const reportException = (error: unknown): void => native.print("error", describe(error));
 
 export const format = (value: unknown): string => {
   if (typeof value === "string") {

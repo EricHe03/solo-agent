@@ -8,6 +8,8 @@ export interface Native {
   readonly assetsDirectory: string;
   readonly cacheDirectory: string;
   readonly extensionHead: string;
+  readonly timeOrigin: string;
+  now(): number;
   start(id: string, name: string, args: string): void;
   cancel(id: string): void;
   failure(id: string): string;
@@ -28,8 +30,12 @@ export interface Native {
   encodeText(text: string): Uint8Array;
   decodeText(data: Uint8Array, fatal: number): string | undefined;
   release(id: string, reason?: string): void;
-  pipe(): [reader: string, writer: string];
   compression(format: string, mode: "compress" | "decompress"): [writer: string, reader: string];
+  openFile(root: string, path: string): string;
+  publishObjectURL?(url: string, data: Uint8Array | null): void;
+  setTimeout(callback: (...args: unknown[]) => void, timeout: number, ...args: unknown[]): number;
+  setInterval(callback: (...args: unknown[]) => void, timeout: number, ...args: unknown[]): number;
+  clearTimer(id: number): void;
   readonly graphics?: GraphicsNative;
 }
 

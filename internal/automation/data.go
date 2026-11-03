@@ -146,6 +146,25 @@ func (r *fileRoot) list(name string) ([]FileInfo, error) {
 	return files, nil
 }
 
+func (r *fileRoot) open(name string) (*os.File, error) {
+	if r.root == nil {
+		return nil, FileNotFound(r.where, name)
+	}
+	file, err := r.root.Open(name)
+	if err != nil {
+		return nil, r.error(name, err)
+	}
+	info, err := file.Stat()
+	if err == nil && info.IsDir() {
+		err = &fs.PathError{Op: "open", Path: name, Err: syscall.EISDIR}
+	}
+	if err != nil {
+		_ = file.Close()
+		return nil, r.error(name, err)
+	}
+	return file, nil
+}
+
 func (r *fileRoot) read(name string) ([]byte, error) {
 	if r.root == nil {
 		return nil, FileNotFound(r.where, name)
@@ -157,39 +176,47 @@ func (r *fileRoot) read(name string) ([]byte, error) {
 	return data, nil
 }
 
-type fileWriter struct {
+type FileWriter struct {
 	*os.File
 	root      *fileRoot
+	directory *os.Root
 	name      string
 	temporary string
 }
 
-func (r *fileRoot) create(name string) (*fileWriter, error) {
+func (r *fileRoot) create(name string) (*FileWriter, error) {
 	if r.readOnly {
 		return nil, r.readOnlyError()
 	}
 	if err := r.notRoot(name); err != nil {
 		return nil, err
 	}
-	if err := r.root.MkdirAll(filepath.Dir(name), 0o755); err != nil {
-		return nil, r.error(filepath.Dir(name), err)
+	parent := filepath.Dir(name)
+	if err := r.root.MkdirAll(parent, 0o755); err != nil {
+		return nil, r.error(parent, err)
 	}
-	temporary := filepath.Join(filepath.Dir(name), ".write-"+rand.Text())
-	file, err := r.root.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	directory, err := r.root.OpenRoot(parent)
 	if err != nil {
+		return nil, r.error(parent, err)
+	}
+	temporary := ".write-" + rand.Text()
+	file, err := directory.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		_ = directory.Close()
 		return nil, r.error(name, err)
 	}
-	return &fileWriter{File: file, root: r, name: name, temporary: temporary}, nil
+	return &FileWriter{File: file, root: r, directory: directory, name: name, temporary: temporary}, nil
 }
 
-func (w *fileWriter) finish(abort error) error {
+func (w *FileWriter) Finish(abort error) error {
 	err := w.File.Close()
 	if abort == nil && err == nil {
-		err = w.root.root.Rename(w.temporary, w.name)
+		err = w.directory.Rename(w.temporary, filepath.Base(w.name))
 	}
 	if abort != nil || err != nil {
-		_ = w.root.root.Remove(w.temporary)
+		_ = w.directory.Remove(w.temporary)
 	}
+	_ = w.directory.Close()
 	if err != nil {
 		return w.root.error(w.name, err)
 	}
@@ -202,10 +229,10 @@ func (r *fileRoot) write(name string, data []byte) error {
 		return err
 	}
 	if _, err = file.Write(data); err != nil {
-		_ = file.finish(err)
+		_ = file.Finish(err)
 		return r.error(name, err)
 	}
-	return file.finish(nil)
+	return file.Finish(nil)
 }
 
 func (r *fileRoot) mkdir(name string) error {

@@ -1,30 +1,48 @@
+import {
+  brand, bufferSource, defineInterface, dictionary, domString, enumeration, implementsInterface, integer, isBufferSource, optional, sequence, usvString,
+} from "../shared/webidl";
 import { crypto } from "./crypto";
 import { bytesOf, TextDecoder, TextEncoder } from "./encoding";
-import { bytesStream, type ReadableStream } from "./streams";
+import { native } from "./native";
+import { bytesStream, type ReadableStream, TextDecoderStream } from "./streams";
 
 let blobBytes: (blob: Blob) => Uint8Array;
 
-const mediaType = (type: unknown): string => {
-  const text = String(type ?? "");
-  return /[^ -~]/.test(text) ? "" : text.toLowerCase();
+const mediaType = (text: string): string => (/[^ -~]/.test(text) ? "" : text.toLowerCase());
+
+type BlobPart = ArrayBuffer | ArrayBufferView | object | string;
+
+const blobPart = (value: unknown, context: string): BlobPart => {
+  if (isBufferSource(value)) {
+    return bufferSource(value, context);
+  }
+  return implementsInterface(Blob, value) ? value as object : usvString(value, context);
 };
 
-export class Blob {
+const blobPropertyBag = dictionary<{ endings: "transparent" | "native"; type: string }>({
+  endings: { convert: enumeration(["transparent", "native"]), fallback: "transparent" }, type: { convert: domString, fallback: "" },
+});
+
+export const Blob = defineInterface(class Blob {
   readonly #bytes: Uint8Array;
-  readonly #type: string;
+  #type: string;
+
+  static [brand](value: object) {
+    return #bytes in value;
+  }
 
   static {
     blobBytes = blob => blob.#bytes;
   }
 
-  constructor(parts: Iterable<unknown> = [], options: { type?: string; endings?: "transparent" | "native" } = {}) {
-    if (parts === null || typeof parts !== "object" || !(Symbol.iterator in parts)) {
-      throw new TypeError("the blob parts are not a sequence");
-    }
-    if (options?.endings !== undefined && options.endings !== "transparent" && options.endings !== "native") {
-      throw new TypeError(`the endings ${JSON.stringify(options.endings)} is not transparent or native`);
-    }
-    const chunks = Array.from(parts, part => part instanceof Blob ? part.#bytes : typeof part === "string" ? new TextEncoder().encode(part) : ArrayBuffer.isView(part) || part instanceof ArrayBuffer ? bytesOf(part) : new TextEncoder().encode(String(part)));
+  constructor(parts?: Iterable<unknown>, options?: { type?: string; endings?: "transparent" | "native" }) {
+    const nativeEndings = options!.endings === "native";
+    const chunks = Array.from((parts ?? []) as BlobPart[], part => {
+      if (typeof part === "string") {
+        return new TextEncoder().encode(nativeEndings ? part.replace(/\r\n?/g, "\n") : part);
+      }
+      return #bytes in part ? part.#bytes : bytesOf(part);
+    });
     const bytes = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.length, 0));
     let offset = 0;
     for (const chunk of chunks) {
@@ -32,7 +50,7 @@ export class Blob {
       offset += chunk.length;
     }
     this.#bytes = bytes;
-    this.#type = mediaType(options?.type);
+    this.#type = mediaType(options!.type!);
   }
 
   get size(): number {
@@ -44,11 +62,17 @@ export class Blob {
   }
 
   slice(start?: number, end?: number, type?: string): Blob {
-    return new Blob([this.#bytes.subarray(start, end)], { type: type ?? "" });
+    const blob = new Blob([this.#bytes.subarray(start, end)], { type: "", endings: "transparent" });
+    blob.#type = type === undefined ? "" : mediaType(type);
+    return blob;
   }
 
   stream(): ReadableStream<Uint8Array> {
     return bytesStream(this.#bytes);
+  }
+
+  textStream(): ReadableStream<string> {
+    return bytesStream(this.#bytes).pipeThrough(new TextDecoderStream());
   }
 
   async bytes(): Promise<Uint8Array> {
@@ -62,46 +86,57 @@ export class Blob {
   async text(): Promise<string> {
     return new TextDecoder().decode(this.#bytes);
   }
+}, {
+  construct: [optional(sequence(blobPart)), optional(blobPropertyBag)],
+  operations: {
+    slice: [optional(integer("long long", "Clamp")), optional(integer("long long", "Clamp")), optional(domString)], stream: [], textStream: [], bytes: [], arrayBuffer: [], text: [],
+  },
+});
+export type Blob = InstanceType<typeof Blob>;
 
-  get [Symbol.toStringTag](): string {
-    return "Blob";
+const filePropertyBag = dictionary<{ endings: "transparent" | "native"; type: string; lastModified?: number }>({ lastModified: integer("long long") }, blobPropertyBag);
+
+export const File = defineInterface(class File extends Blob {
+  readonly #name: string;
+  readonly #lastModified: number;
+
+  static [brand](value: object) {
+    return #name in value;
   }
-}
 
-export class File extends Blob {
-  readonly name: string;
-  readonly lastModified: number;
-  readonly webkitRelativePath = "";
-
-  constructor(bits: Iterable<unknown>, name: string, options: { type?: string; lastModified?: number } = {}) {
-    if (arguments.length < 2) {
-      throw new TypeError("File needs its bits and a name");
-    }
+  constructor(bits: Iterable<unknown>, name: string, options?: { type?: string; endings?: "transparent" | "native"; lastModified?: number }) {
     super(bits, options);
-    this.name = String(name);
-    this.lastModified = options?.lastModified === undefined ? Date.now() : Number(options.lastModified);
+    this.#name = name;
+    this.#lastModified = options!.lastModified ?? Date.now();
   }
 
-  get [Symbol.toStringTag](): string {
-    return "File";
+  get name(): string {
+    return this.#name;
   }
-}
 
-export { blobBytes };
+  get lastModified(): number {
+    return this.#lastModified;
+  }
 
-const objectURLs = new Map<string, Blob>();
+  get webkitRelativePath(): string {
+    return "";
+  }
+}, {
+  construct: [sequence(blobPart), usvString, optional(filePropertyBag)],
+});
+export type File = InstanceType<typeof File>;
+
+const objectURLs = new Set<string>();
 
 export function createObjectURL(blob: Blob): string {
-  if (!(blob instanceof Blob)) {
-    throw new TypeError("createObjectURL takes a Blob");
-  }
   const url = `blob:null/${crypto.randomUUID()}`;
-  objectURLs.set(url, blob);
+  objectURLs.add(url);
+  native.publishObjectURL?.(url, blobBytes(blob));
   return url;
 }
 
 export function revokeObjectURL(url: string): void {
-  objectURLs.delete(String(url));
+  if (objectURLs.delete(url)) {
+    native.publishObjectURL?.(url, null);
+  }
 }
-
-export const objectURL = (url: string): Blob | undefined => objectURLs.get(url.replace(/#.*$/s, ""));

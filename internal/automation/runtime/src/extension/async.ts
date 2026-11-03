@@ -1,4 +1,5 @@
 import { errorFrom } from "./errors";
+import { onAbort } from "./events";
 import { native } from "./native";
 
 interface Pending {
@@ -32,9 +33,8 @@ export function invoke<T>(name: string, args: unknown[], options: CallOptions = 
       return;
     }
     const id = nextID();
-    const abort = () => native.cancel(id);
-    signal?.addEventListener("abort", abort);
-    pending.set(id, { resolve: resolve as (value: unknown) => void, reject, signal, release: () => signal?.removeEventListener("abort", abort) });
+    const release = signal === undefined ? () => {} : onAbort(signal, () => native.cancel(id));
+    pending.set(id, { resolve: resolve as (value: unknown) => void, reject, signal, release });
     native.start(id, name, JSON.stringify(args));
   });
 }

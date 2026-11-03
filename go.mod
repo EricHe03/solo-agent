@@ -3,6 +3,7 @@ module github.com/swipt-automation/swipt
 go 1.26.8
 
 require (
+	github.com/andybalholm/brotli v1.2.3
 	github.com/coder/websocket v1.8.15
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.4+incompatible

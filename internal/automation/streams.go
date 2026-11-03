@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/andybalholm/brotli"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/jsc"
 )
@@ -92,23 +93,22 @@ func (e *engine) release(arguments []jsc.Value) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	abort := errReleased
+	reason := ""
 	if len(arguments) > 1 {
-		if reason, err := arguments[1].ToString(); err == nil && reason != "" {
-			abort = failureError(reason)
-		}
+		reason, _ = arguments[1].ToString()
 	}
-	it, err := e.takeResource(values[0])
-	if err != nil {
-		return nil, nil
-	}
-	go it.close(abort)
+	e.releaseResource(values[0], reason)
 	return nil, nil
 }
 
-func (e *engine) pipe(_ []jsc.Value) (any, error) {
-	reader, writer := pipeResources()
-	return []string{e.addResource(reader), e.addResource(writer)}, nil
+func (e *engine) releaseResource(id, reason string) {
+	abort := errReleased
+	if reason != "" {
+		abort = failureError(reason)
+	}
+	if it, err := e.takeResource(id); err == nil {
+		go it.close(abort)
+	}
 }
 
 func (e *engine) compression(arguments []jsc.Value) (any, error) {
@@ -116,16 +116,20 @@ func (e *engine) compression(arguments []jsc.Value) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	format, decompress := values[0], values[1] == "decompress"
+	return e.newCompression(values[0], values[1] == "decompress")
+}
+
+func (e *engine) newCompression(format string, decompress bool) ([]string, error) {
 	switch format {
-	case "gzip", "deflate", "deflate-raw":
+	case "brotli", "gzip", "deflate", "deflate-raw":
 	default:
-		return nil, E.Cause1(ErrInvalid, E.New("the compression format ", strconv.Quote(format), " is not one of gzip, deflate and deflate-raw"))
+		return nil, E.Cause1(ErrInvalid, E.New("the compression format ", strconv.Quote(format), " is not one of brotli, gzip, deflate and deflate-raw"))
 	}
 	inputReader, inputWriter := pipeResources()
-	outputReader, outputWriter := pipeResources()
 	input := inputReader.reader.(*io.PipeReader)
-	output := outputWriter.writer.(*io.PipeWriter)
+	inputPipe := inputWriter.writer.(*io.PipeWriter)
+	output := newCodecOutput()
+	done := make(chan error, 1)
 	go func() {
 		var err error
 		if decompress {
@@ -134,14 +138,121 @@ func (e *engine) compression(arguments []jsc.Value) (any, error) {
 			err = compressData(format, input, output)
 		}
 		_ = input.CloseWithError(err)
-		_ = output.CloseWithError(err)
+		output.closeWrite(err)
+		done <- err
 	}()
+	// closing the input reports the codec's result, as a TransformStream's flush does, without waiting for a reader
+	inputWriter.finish = func(abort error) error {
+		if abort != nil {
+			return inputPipe.CloseWithError(abort)
+		}
+		output.drain()
+		_ = inputPipe.Close()
+		return <-done
+	}
+	outputReader := &resource{reader: output, finish: func(abort error) error {
+		output.closeRead(abort)
+		return nil
+	}}
 	return []string{e.addResource(inputWriter), e.addResource(outputReader)}, nil
+}
+
+// codecOutput carries a codec's output to its readable side. It holds back the codec while a chunk waits to be read,
+// until the input closes; from then on it buffers, so the codec can finish and report its result.
+type codecOutput struct {
+	access   sync.Mutex
+	changed  *sync.Cond
+	chunks   [][]byte
+	size     int
+	draining bool
+	writeErr error
+	readErr  error
+}
+
+func newCodecOutput() *codecOutput {
+	o := &codecOutput{}
+	o.changed = sync.NewCond(&o.access)
+	return o
+}
+
+func (o *codecOutput) Write(data []byte) (int, error) {
+	o.access.Lock()
+	defer o.access.Unlock()
+	for !o.draining && o.size >= streamChunk && o.readErr == nil {
+		o.changed.Wait()
+	}
+	if o.readErr != nil {
+		return 0, o.readErr
+	}
+	if len(data) > 0 {
+		o.chunks = append(o.chunks, append([]byte(nil), data...))
+		o.size += len(data)
+		o.changed.Broadcast()
+	}
+	return len(data), nil
+}
+
+func (o *codecOutput) Read(buffer []byte) (int, error) {
+	o.access.Lock()
+	defer o.access.Unlock()
+	for len(o.chunks) == 0 && o.writeErr == nil && o.readErr == nil {
+		o.changed.Wait()
+	}
+	if o.readErr != nil {
+		return 0, io.ErrClosedPipe
+	}
+	if len(o.chunks) == 0 {
+		return 0, o.writeErr
+	}
+	n := copy(buffer, o.chunks[0])
+	if n == len(o.chunks[0]) {
+		o.chunks = o.chunks[1:]
+	} else {
+		o.chunks[0] = o.chunks[0][n:]
+	}
+	o.size -= n
+	o.changed.Broadcast()
+	return n, nil
+}
+
+func (o *codecOutput) drain() {
+	o.access.Lock()
+	defer o.access.Unlock()
+	o.draining = true
+	o.changed.Broadcast()
+}
+
+func (o *codecOutput) closeWrite(err error) {
+	o.access.Lock()
+	defer o.access.Unlock()
+	if o.writeErr == nil {
+		o.writeErr = err
+		if err == nil {
+			o.writeErr = io.EOF
+		}
+	}
+	o.changed.Broadcast()
+}
+
+func (o *codecOutput) closeRead(err error) {
+	o.access.Lock()
+	defer o.access.Unlock()
+	if o.readErr == nil {
+		o.readErr = err
+		if err == nil {
+			o.readErr = io.ErrClosedPipe
+		}
+		o.chunks = nil
+		o.size = 0
+	}
+	o.changed.Broadcast()
 }
 
 func compressData(format string, input io.Reader, output io.Writer) error {
 	var encoder io.WriteCloser
 	switch format {
+	case "brotli":
+		encoder = brotli.NewWriter(output)
 	case "gzip":
 		encoder = gzip.NewWriter(output)
 	case "deflate":
@@ -158,6 +269,8 @@ func decompressData(format string, input io.Reader, output io.Writer) error {
 	var decoder io.Reader
 	var err error
 	switch format {
+	case "brotli":
+		decoder = brotli.NewReader(buffered)
 	case "gzip":
 		var reader *gzip.Reader
 		if reader, err = gzip.NewReader(buffered); err == nil {

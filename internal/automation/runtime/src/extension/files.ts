@@ -3,9 +3,11 @@ import { invoke } from "./async";
 import { Blob } from "./blob";
 import { TextDecoder, TextEncoder } from "./encoding";
 import { native } from "./native";
-import { nativeWritable, ReadableStream, takeNative } from "./streams";
+import { chunkBytes, nativeReadable, nativeWritable, ReadableStream, takeNative } from "./streams";
 
 type Root = "data" | "assets" | "cache";
+
+type BufferSource = ArrayBuffer | ArrayBufferView;
 
 interface Location {
   readonly root: Root;
@@ -42,13 +44,13 @@ const bytesOf = async (data: unknown): Promise<Uint8Array> => {
   if (typeof data === "string") {
     return new TextEncoder().encode(data);
   }
-  if (data instanceof Uint8Array) {
-    return data;
-  }
   if (data instanceof Blob) {
     return data.bytes();
   }
-  throw new TypeError("the data must be a string, a Uint8Array, a Blob or a ReadableStream");
+  if (ArrayBuffer.isView(data) || data instanceof ArrayBuffer) {
+    return chunkBytes(data);
+  }
+  throw new TypeError("the data must be a string, an ArrayBuffer, an ArrayBufferView, a Blob or a ReadableStream");
 };
 
 const guard = (key: symbol) => {
@@ -136,7 +138,12 @@ export class FileHandle {
     return new TextDecoder().decode(await this.bytes());
   }
 
-  async write(data: string | Uint8Array | Blob | ReadableStream<Uint8Array>): Promise<void> {
+  stream(): ReadableStream<Uint8Array> {
+    const { root, path } = at(this);
+    return nativeReadable(native.openFile(root, path));
+  }
+
+  async write(data: string | BufferSource | Blob | ReadableStream<BufferSource>): Promise<void> {
     const { root, path } = at(this);
     if (!(data instanceof ReadableStream)) {
       await call("write", root, path, native.put(await bytesOf(data)));

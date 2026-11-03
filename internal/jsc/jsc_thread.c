@@ -3,6 +3,7 @@
 #include "jsc_thread.h"
 
 #include <dlfcn.h>
+#include <mach/mach_time.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdlib.h>
@@ -146,7 +147,34 @@ static void jsc_finalize_host(JSObjectRef function) {
 	pthread_mutex_unlock(&rt->mutex);
 }
 
+static mach_timebase_info_data_t jsc_timebase;
+static pthread_once_t jsc_timebase_once = PTHREAD_ONCE_INIT;
+
+static void jsc_load_timebase(void) {
+	mach_timebase_info(&jsc_timebase);
+}
+
+// The same reading and integer conversion as runtime.nanotime (Go 1.26,
+// src/runtime/sys_darwin.go:304; src/runtime/sys_darwin_arm64.s:145).
+static int64_t jsc_nanotime(void) {
+	pthread_once(&jsc_timebase_once, jsc_load_timebase);
+	int64_t t = (int64_t)mach_absolute_time();
+	if (jsc_timebase.numer != 1) {
+		t *= (int64_t)jsc_timebase.numer;
+	}
+	if (jsc_timebase.denom != 1) {
+		t /= (int64_t)jsc_timebase.denom;
+	}
+	return t;
+}
+
+static JSValueRef jsc_call_clock(JSContextRef ctx, JSObjectRef function, JSObjectRef this_object, size_t count, const JSValueRef arguments[], JSValueRef *exception) {
+	int64_t origin = (int64_t)(intptr_t)JSObjectGetPrivate(function);
+	return JSValueMakeNumber(ctx, (double)(jsc_nanotime() - origin) / 1e6);
+}
+
 static JSClassRef jsc_class;
+static JSClassRef jsc_clock_class;
 static pthread_once_t jsc_class_once = PTHREAD_ONCE_INIT;
 
 static void jsc_create_class(void) {
@@ -155,6 +183,10 @@ static void jsc_create_class(void) {
 	definition.callAsFunction = jsc_call_host;
 	definition.finalize = jsc_finalize_host;
 	jsc_class = JSClassCreate(&definition);
+	JSClassDefinition clock = kJSClassDefinitionEmpty;
+	clock.className = "Function";
+	clock.callAsFunction = jsc_call_clock;
+	jsc_clock_class = JSClassCreate(&clock);
 }
 
 static JSObjectRef jsc_make_host(jsc_runtime *rt, uintptr_t handle) {
@@ -312,6 +344,14 @@ static void jsc_execute(jsc_runtime *rt, jsc_command *cmd) {
 	case JSC_NATIVE:
 		((jsc_native)cmd->native)(rt->context, cmd->native_command, cmd->value, cmd->native_argument);
 		break;
+	case JSC_SET_CLOCK: {
+		pthread_once(&jsc_class_once, jsc_create_class);
+		JSStringRef name = jsc_take_string(&cmd->name);
+		JSObjectRef clock = JSObjectMake(ctx, jsc_clock_class, (void *)(intptr_t)cmd->native_argument);
+		JSObjectSetProperty(ctx, (JSObjectRef)cmd->object, name, clock, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete, NULL);
+		JSStringRelease(name);
+		break;
+	}
 	}
 }
 

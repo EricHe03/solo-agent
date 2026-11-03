@@ -19,7 +19,6 @@
   "devDependencies": {
     "@standard-schema/spec": "^1.1.0",
     "@types/react": "~19.3.0",
-    "@ungap/structured-clone": "^1.4.0",
     "esbuild": "^0.28.2",
     "meriyah": "^7.4.1",
     "typescript": "^7.0.2",

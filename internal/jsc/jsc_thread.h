@@ -30,6 +30,7 @@ typedef enum {
 	JSC_PROTECT,
 	JSC_UNPROTECT,
 	JSC_NATIVE,
+	JSC_SET_CLOCK,
 } jsc_kind;
 
 typedef struct {

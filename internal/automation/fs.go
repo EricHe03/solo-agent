@@ -5,9 +5,9 @@ package automation
 import (
 	"context"
 	"os"
+	"sync"
 
 	"github.com/sagernet/sing/common"
-	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/jsc"
 )
 
@@ -26,12 +26,12 @@ type fileLocation struct {
 	name string
 }
 
-func (c *operation) fileLocation(kind, name string) (*fileLocation, error) {
+func (e *engine) fileLocation(kind, name string) (*fileLocation, error) {
 	cleaned, err := cleanName(name)
 	if err != nil {
 		return nil, err
 	}
-	root, err := c.engine.fileRoot(kind)
+	root, err := e.fileRoot(kind)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (c *operation) oneFileLocation() (*fileLocation, error) {
 	if err := c.decode(2, &kind, &name); err != nil {
 		return nil, err
 	}
-	return c.fileLocation(kind, name)
+	return c.engine.fileLocation(kind, name)
 }
 
 type fileStat struct {
@@ -105,7 +105,7 @@ func fsWrite(_ context.Context, call *operation) (any, error) {
 	if err := call.decode(3, &kind, &name, &key); err != nil {
 		return nil, err
 	}
-	at, err := call.fileLocation(kind, name)
+	at, err := call.engine.fileLocation(kind, name)
 	if err != nil {
 		return nil, err
 	}
@@ -122,14 +122,73 @@ func fsWriter(_ context.Context, call *operation) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer at.root.Close()
 	file, err := at.root.create(at.name)
 	if err != nil {
-		_ = at.root.Close()
 		return nil, err
 	}
-	return call.engine.addResource(&resource{writer: file, finish: func(abort error) error {
-		return E.Errors(file.finish(abort), at.root.Close())
-	}}), nil
+	return call.engine.addResource(&resource{writer: file, finish: file.Finish}), nil
+}
+
+type fileSource struct {
+	access sync.Mutex
+	open   func() (*os.File, error)
+	file   *os.File
+	closed bool
+}
+
+func (s *fileSource) opened() (*os.File, error) {
+	s.access.Lock()
+	defer s.access.Unlock()
+	if s.closed {
+		return nil, os.ErrClosed
+	}
+	if s.file == nil {
+		file, err := s.open()
+		if err != nil {
+			return nil, err
+		}
+		s.file = file
+	}
+	return s.file, nil
+}
+
+func (s *fileSource) Read(buffer []byte) (int, error) {
+	file, err := s.opened()
+	if err != nil {
+		return 0, err
+	}
+	return file.Read(buffer)
+}
+
+func (s *fileSource) Close() error {
+	s.access.Lock()
+	defer s.access.Unlock()
+	s.closed = true
+	if s.file == nil {
+		return nil
+	}
+	return s.file.Close()
+}
+
+func (e *engine) openFile(arguments []jsc.Value) (any, error) {
+	values, err := texts(arguments, 2)
+	if err != nil {
+		return nil, err
+	}
+	return e.newFileSource(values[0], values[1]), nil
+}
+
+func (e *engine) newFileSource(kind, name string) string {
+	source := &fileSource{open: func() (*os.File, error) {
+		at, err := e.fileLocation(kind, name)
+		if err != nil {
+			return nil, err
+		}
+		defer at.root.Close()
+		return at.root.open(at.name)
+	}}
+	return e.addResource(&resource{reader: source, finish: func(error) error { return source.Close() }})
 }
 
 func fsMkdir(_ context.Context, call *operation) (any, error) {
@@ -156,12 +215,12 @@ func fsTransfer(move bool) operationFunc {
 		if err := call.decode(4, &fromKind, &fromName, &toKind, &toName); err != nil {
 			return nil, err
 		}
-		from, err := call.fileLocation(fromKind, fromName)
+		from, err := call.engine.fileLocation(fromKind, fromName)
 		if err != nil {
 			return nil, err
 		}
 		defer from.root.Close()
-		to, err := call.fileLocation(toKind, toName)
+		to, err := call.engine.fileLocation(toKind, toName)
 		if err != nil {
 			return nil, err
 		}

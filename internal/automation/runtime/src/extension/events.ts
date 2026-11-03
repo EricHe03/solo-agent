@@ -1,46 +1,90 @@
+import {
+  any, boolean, brand, callbackInterface, defineInterface, dictionary, dictionaryLike, domString, implementsInterface, instance, integer, isObject, nullable, optional,
+  sequence, setEventHandlerHooks, unsignedLong, usvString, type Converter,
+} from "../shared/webidl";
 import { DOMException } from "./errors";
+import { reportException } from "./format";
+import { native } from "./native";
 
 type Listener = ((event: Event) => void) | { handleEvent(event: Event): void };
-type Handler = ((event: Event) => unknown) | null;
+type ListenerArgument = ((event: never) => unknown) | { handleEvent(event: never): unknown };
 
 interface Registration {
   listener: Listener;
+  capture: boolean;
+  passive: boolean;
   once: boolean;
   removed: boolean;
   remove?: () => void;
 }
 
-let trust: (event: Event) => Event;
+export interface EventInit {
+  bubbles?: boolean;
+  cancelable?: boolean;
+  composed?: boolean;
+}
+
+const flag = { convert: boolean, fallback: false };
+const eventInit = dictionary<Required<EventInit>>({ bubbles: flag, cancelable: flag, composed: flag });
+
+let setTrusted: (event: Event, trusted: boolean) => void;
+let setPassive: (event: Event, passive: boolean) => void;
+let initialize: (event: Event, type: string, bubbles: boolean, cancelable: boolean) => boolean;
 let beginDispatch: (event: Event, target: EventTarget) => void;
 let endDispatch: (event: Event) => void;
+let propagationStopped: (event: Event) => boolean;
 let immediatelyStopped: (event: Event) => boolean;
+let typeOf: (event: Event) => string;
+let canceled: (event: Event) => boolean;
+let cancel: (event: Event) => void;
 
-export class Event {
-  static readonly NONE = 0;
-  static readonly CAPTURING_PHASE = 1;
-  static readonly AT_TARGET = 2;
-  static readonly BUBBLING_PHASE = 3;
-  readonly NONE = 0;
-  readonly CAPTURING_PHASE = 1;
-  readonly AT_TARGET = 2;
-  readonly BUBBLING_PHASE = 3;
+export const Event = defineInterface(class Event {
+  declare static readonly NONE: 0;
+  declare static readonly CAPTURING_PHASE: 1;
+  declare static readonly AT_TARGET: 2;
+  declare static readonly BUBBLING_PHASE: 3;
+  declare readonly NONE: 0;
+  declare readonly CAPTURING_PHASE: 1;
+  declare readonly AT_TARGET: 2;
+  declare readonly BUBBLING_PHASE: 3;
 
-  readonly type: string;
-  readonly bubbles: boolean;
-  readonly cancelable: boolean;
-  readonly composed: boolean;
-  readonly timeStamp = Date.now();
+  #type: string;
+  #bubbles: boolean;
+  #cancelable: boolean;
+  #composed: boolean;
+  #timeStamp = native.now();
   #trusted = false;
   #target: EventTarget | null = null;
   #dispatching = false;
   #canceled = false;
+  #inPassiveListener = false;
   #propagationStopped = false;
   #immediateStopped = false;
 
+  static [brand](value: object) {
+    return #type in value;
+  }
+
   static {
-    trust = event => {
-      event.#trusted = true;
-      return event;
+    setTrusted = (event, trusted) => {
+      event.#trusted = trusted;
+    };
+    setPassive = (event, passive) => {
+      event.#inPassiveListener = passive;
+    };
+    initialize = (event, type, bubbles, cancelable) => {
+      if (event.#dispatching) {
+        return false;
+      }
+      event.#type = type;
+      event.#bubbles = bubbles;
+      event.#cancelable = cancelable;
+      event.#trusted = false;
+      event.#target = null;
+      event.#canceled = false;
+      event.#propagationStopped = false;
+      event.#immediateStopped = false;
+      return true;
     };
     beginDispatch = (event, target) => {
       if (event.#dispatching) {
@@ -54,17 +98,39 @@ export class Event {
       event.#propagationStopped = false;
       event.#immediateStopped = false;
     };
+    propagationStopped = event => event.#propagationStopped;
     immediatelyStopped = event => event.#immediateStopped;
+    typeOf = event => event.#type;
+    canceled = event => event.#canceled;
+    cancel = event => event.#cancel();
   }
 
-  constructor(type: string, init: { bubbles?: boolean; cancelable?: boolean; composed?: boolean } = {}) {
-    if (arguments.length === 0) {
-      throw new TypeError("Event needs a type");
-    }
-    this.type = String(type);
-    this.bubbles = Boolean(init?.bubbles);
-    this.cancelable = Boolean(init?.cancelable);
-    this.composed = Boolean(init?.composed);
+  constructor(type: string, init?: EventInit) {
+    const { bubbles, cancelable, composed } = init as Required<EventInit>;
+    this.#type = type;
+    this.#bubbles = bubbles;
+    this.#cancelable = cancelable;
+    this.#composed = composed;
+  }
+
+  get type(): string {
+    return this.#type;
+  }
+
+  get bubbles(): boolean {
+    return this.#bubbles;
+  }
+
+  get cancelable(): boolean {
+    return this.#cancelable;
+  }
+
+  get composed(): boolean {
+    return this.#composed;
+  }
+
+  get timeStamp(): number {
+    return this.#timeStamp;
   }
 
   get isTrusted(): boolean {
@@ -84,7 +150,7 @@ export class Event {
   }
 
   get eventPhase(): number {
-    return this.#dispatching ? Event.AT_TARGET : Event.NONE;
+    return this.#dispatching ? 2 : 0;
   }
 
   get defaultPrevented(): boolean {
@@ -97,7 +163,7 @@ export class Event {
 
   set returnValue(value: boolean) {
     if (!value) {
-      this.preventDefault();
+      this.#cancel();
     }
   }
 
@@ -115,10 +181,14 @@ export class Event {
     return this.#dispatching && this.#target !== null ? [this.#target] : [];
   }
 
-  preventDefault(): void {
-    if (this.cancelable) {
+  #cancel(): void {
+    if (this.#cancelable && !this.#inPassiveListener) {
       this.#canceled = true;
     }
+  }
+
+  preventDefault(): void {
+    this.#cancel();
   }
 
   stopPropagation(): void {
@@ -130,108 +200,180 @@ export class Event {
     this.#immediateStopped = true;
   }
 
-  get [Symbol.toStringTag](): string {
-    return "Event";
+  initEvent(type: string, bubbles = false, cancelable = false): void {
+    initialize(this, type, bubbles, cancelable);
   }
+}, {
+  construct: [domString, optional(eventInit)],
+  operations: {
+    composedPath: [], preventDefault: [], stopPropagation: [], stopImmediatePropagation: [],
+    initEvent: [domString, optional(boolean, false), optional(boolean, false)],
+  },
+  setters: { returnValue: boolean, cancelBubble: boolean },
+  constants: { NONE: 0, CAPTURING_PHASE: 1, AT_TARGET: 2, BUBBLING_PHASE: 3 },
+  unforgeable: ["isTrusted"],
+});
+export type Event = InstanceType<typeof Event>;
+
+export interface CustomEventInit<T = unknown> extends EventInit {
+  detail?: T;
 }
 
-export { trust };
+export const CustomEvent = defineInterface(class CustomEvent<T = unknown> extends Event {
+  #detail: T | null;
 
-export class CustomEvent<T = unknown> extends Event {
-  readonly detail: T | null;
+  static [brand](value: object) {
+    return #detail in value;
+  }
 
-  constructor(type: string, init: { bubbles?: boolean; cancelable?: boolean; composed?: boolean; detail?: T } = {}) {
+  constructor(type: string, init?: CustomEventInit<T>) {
     super(type, init);
-    this.detail = init?.detail ?? null;
+    this.#detail = (init as { detail: T | null }).detail;
   }
+
+  get detail(): T | null {
+    return this.#detail;
+  }
+
+  initCustomEvent(type: string, bubbles = false, cancelable = false, detail: T | null = null): void {
+    if (initialize(this, type, bubbles, cancelable)) {
+      this.#detail = detail;
+    }
+  }
+}, {
+  construct: [domString, optional(dictionary({ detail: { convert: any, fallback: null } }, eventInit))],
+  operations: { initCustomEvent: [domString, optional(boolean, false), optional(boolean, false), optional(any, null)] },
+});
+export type CustomEvent = InstanceType<typeof CustomEvent>;
+
+export interface ErrorEventInit extends EventInit {
+  colno?: number;
+  error?: unknown;
+  filename?: string;
+  lineno?: number;
+  message?: string;
 }
 
-interface EventInit {
-  bubbles?: boolean;
-  cancelable?: boolean;
-  composed?: boolean;
-}
+export const ErrorEvent = defineInterface(class ErrorEvent extends Event {
+  #message: string;
+  #filename: string;
+  #lineno: number;
+  #colno: number;
+  #error: unknown;
 
-export class MessageEvent<T = unknown> extends Event {
-  readonly data: T;
-  readonly origin: string;
-  readonly lastEventId: string;
-  readonly source = null;
-  readonly ports: readonly never[] = Object.freeze([]);
+  static [brand](value: object) {
+    return #message in value;
+  }
 
-  constructor(type: string, init: EventInit & { data?: T; origin?: string; lastEventId?: string } = {}) {
+  constructor(type: string, init?: ErrorEventInit) {
     super(type, init);
-    this.data = init.data as T;
-    this.origin = String(init.origin ?? "");
-    this.lastEventId = String(init.lastEventId ?? "");
+    ({ colno: this.#colno, error: this.#error, filename: this.#filename, lineno: this.#lineno, message: this.#message } = init as Required<ErrorEventInit>);
   }
+
+  get message(): string {
+    return this.#message;
+  }
+
+  get filename(): string {
+    return this.#filename;
+  }
+
+  get lineno(): number {
+    return this.#lineno;
+  }
+
+  get colno(): number {
+    return this.#colno;
+  }
+
+  get error(): unknown {
+    return this.#error;
+  }
+}, {
+  construct: [domString, optional(dictionary({
+    colno: { convert: unsignedLong, fallback: 0 }, error: any, filename: { convert: usvString, fallback: "" }, lineno: { convert: unsignedLong, fallback: 0 },
+    message: { convert: domString, fallback: "" },
+  }, eventInit))],
+});
+export type ErrorEvent = InstanceType<typeof ErrorEvent>;
+
+let abortedOf: (signal: AbortSignal) => boolean;
+let addAbortAlgorithm: (signal: AbortSignal, algorithm: () => void) => () => void;
+let retain: (signal: EventTarget) => void;
+let listening: (target: EventTarget, type: string) => boolean;
+
+interface ListenerOptions {
+  capture: boolean;
+  once: boolean;
+  passive?: boolean;
+  signal?: object;
 }
 
-export class CloseEvent extends Event {
-  readonly code: number;
-  readonly reason: string;
-  readonly wasClean: boolean;
+const listenerOptions = dictionary<{ capture: boolean }>({ capture: flag });
+const addListenerOptions = dictionary<ListenerOptions>({ once: flag, passive: boolean, signal: (value, context): unknown => instance(AbortSignal)(value, context) }, listenerOptions);
+const addOptions: Converter = dictionaryLike((value, context) => (value === undefined || value === null || isObject(value) ? addListenerOptions(value, context) : { capture: !!value, once: false }));
+const removeOptions: Converter = dictionaryLike((value, context) => (value === undefined || value === null || isObject(value) ? listenerOptions(value, context) : { capture: !!value }));
 
-  constructor(type: string, init: EventInit & { code?: number; reason?: string; wasClean?: boolean } = {}) {
-    super(type, init);
-    this.code = Number(init.code ?? 0);
-    this.reason = String(init.reason ?? "");
-    this.wasClean = Boolean(init.wasClean);
-  }
-}
+let dispatch: (target: EventTarget, event: Event, trusted: boolean) => boolean;
 
-export class ErrorEvent extends Event {
-  readonly message: string;
-  readonly error: unknown;
-  readonly filename = "";
-  readonly lineno = 0;
-  readonly colno = 0;
-
-  constructor(type: string, init: EventInit & { message?: string; error?: unknown } = {}) {
-    super(type, init);
-    this.message = String(init.message ?? "");
-    this.error = init.error;
-  }
-}
-
-let handlerOf: (target: EventTarget, type: string) => Handler;
-let setHandler: (target: EventTarget, type: string, value: unknown) => void;
-
-export class EventTarget {
+export const EventTarget = defineInterface(class EventTarget {
   #listeners = new Map<string, Registration[]>();
-  #handlers = new Map<string, { value: Handler; listener: Listener }>();
+  #handlers = new Map<string, { value: unknown; listener: Listener }>();
+
+  static [brand](value: object) {
+    return #listeners in value;
+  }
 
   static {
-    handlerOf = (target, type) => target.#handlers.get(type)?.value ?? null;
-    setHandler = (target, type, value) => {
-      const handler = typeof value === "function" ? value as Handler : null;
-      const slot = target.#handlers.get(type);
-      if (slot !== undefined && handler !== null) {
-        slot.value = handler;
-        return;
+    listening = (target, type) => (target.#listeners.get(type)?.length ?? 0) > 0;
+    dispatch = (target, event, trusted) => {
+      beginDispatch(event, target);
+      setTrusted(event, trusted);
+      try {
+        target.#invoke(event, true);
+        target.#invoke(event, false);
+      } finally {
+        endDispatch(event);
       }
-      if (slot !== undefined) {
-        target.#handlers.delete(type);
-        target.#remove(type, registration => registration.listener === slot.listener);
-        return;
-      }
-      if (handler !== null) {
-        const created: { value: Handler; listener: Listener } = {
-          value: handler,
-          listener(this: EventTarget, event: Event) {
-            created.value?.call(this, event);
-          },
-        };
-        target.#handlers.set(type, created);
-        target.#add(type, { listener: created.listener, once: false, removed: false });
-      }
+      return !canceled(event);
     };
+    setEventHandlerHooks({
+      get: (target, type) => (target as EventTarget).#handlers.get(type)?.value ?? null,
+      set: (object, type, value) => {
+        const target = object as EventTarget;
+        const slot = target.#handlers.get(type);
+        if (slot !== undefined && value !== null) {
+          slot.value = value;
+          return;
+        }
+        if (slot !== undefined) {
+          target.#handlers.delete(type);
+          target.#remove(type, registration => registration.listener === slot.listener);
+          return;
+        }
+        if (value !== null) {
+          const created: { value: unknown; listener: Listener } = {
+            value,
+            listener(this: EventTarget, event: Event) {
+              if (typeof created.value === "function" && Reflect.apply(created.value, this, [event]) === false) {
+                cancel(event);
+              }
+            },
+          };
+          target.#handlers.set(type, created);
+          target.#add(type, { listener: created.listener, capture: false, passive: false, once: false, removed: false });
+        }
+      },
+    });
   }
 
   #add(type: string, registration: Registration): void {
     const registrations = this.#listeners.get(type) ?? [];
     registrations.push(registration);
     this.#listeners.set(type, registrations);
+    if (type === "abort") {
+      retain(this);
+    }
   }
 
   #remove(type: string, match: (registration: Registration) => boolean): void {
@@ -241,94 +383,196 @@ export class EventTarget {
       const [registration] = registrations.splice(index, 1);
       registration.removed = true;
       registration.remove?.();
+      if (type === "abort") {
+        retain(this);
+      }
     }
   }
 
-  addEventListener(type: string, listener: Listener | null, options?: boolean | { once?: boolean; signal?: AbortSignal; capture?: boolean; passive?: boolean }): void {
-    if (listener === null || listener === undefined) {
+  #invoke(event: Event, capture: boolean): void {
+    if (propagationStopped(event)) {
       return;
     }
-    const { once = false, signal } = typeof options === "object" && options !== null ? options : {};
-    if (signal?.aborted) {
+    const type = typeOf(event);
+    for (const registration of [...(this.#listeners.get(type) ?? [])]) {
+      if (registration.removed || registration.capture !== capture) {
+        continue;
+      }
+      if (registration.once) {
+        this.#remove(type, item => item === registration);
+      }
+      setPassive(event, registration.passive);
+      try {
+        const { listener } = registration;
+        if (typeof listener === "function") {
+          Reflect.apply(listener, this, [event]);
+        } else {
+          const handleEvent: unknown = listener.handleEvent;
+          if (typeof handleEvent !== "function") {
+            throw new TypeError("the event listener has no handleEvent method");
+          }
+          Reflect.apply(handleEvent, listener, [event]);
+        }
+      } catch (error) {
+        reportException(error);
+      }
+      setPassive(event, false);
+      if (immediatelyStopped(event)) {
+        break;
+      }
+    }
+  }
+
+  addEventListener(type: string, callback: ListenerArgument | null, options?: boolean | Web.AddEventListenerOptions): void {
+    const { capture, once, passive = false } = options as ListenerOptions;
+    const signal = (options as ListenerOptions).signal as AbortSignal | undefined;
+    const listener = callback as Listener | null;
+    if ((signal !== undefined && abortedOf(signal)) || listener === null) {
       return;
     }
-    if (this.#listeners.get(type)?.some(item => item.listener === listener)) {
+    if (this.#listeners.get(type)?.some(item => item.listener === listener && item.capture === capture)) {
       return;
     }
-    const registration: Registration = { listener, once: Boolean(once), removed: false };
-    if (signal) {
-      const remove = () => this.removeEventListener(type, listener);
-      signal.addEventListener("abort", remove, { once: true });
-      registration.remove = () => signal.removeEventListener("abort", remove);
+    const registration: Registration = { listener, capture, passive, once, removed: false };
+    if (signal !== undefined) {
+      registration.remove = addAbortAlgorithm(signal, () => this.#remove(type, item => item === registration));
     }
     this.#add(type, registration);
   }
 
-  removeEventListener(type: string, listener: Listener | null): void {
-    this.#remove(type, registration => registration.listener === listener);
+  removeEventListener(type: string, callback: ListenerArgument | null, options?: boolean | Web.EventListenerOptions): void {
+    const { capture } = options as { capture: boolean };
+    if (callback !== null) {
+      this.#remove(type, item => item.listener === callback && item.capture === capture);
+    }
   }
 
   dispatchEvent(event: Event): boolean {
-    if (!(event instanceof Event)) {
-      throw new TypeError("dispatchEvent takes an Event");
-    }
-    beginDispatch(event, this);
-    try {
-      for (const registration of [...(this.#listeners.get(event.type) ?? [])]) {
-        if (registration.removed) {
-          continue;
-        }
-        if (registration.once) {
-          this.#remove(event.type, item => item === registration);
-        }
-        try {
-          const { listener } = registration;
-          if (typeof listener === "function") {
-            listener.call(this, event);
-          } else {
-            listener.handleEvent(event);
-          }
-        } catch (error) {
-          queueMicrotask(() => {
-            throw error;
-          });
-        }
-        if (immediatelyStopped(event)) {
-          break;
-        }
-      }
-    } finally {
-      endDispatch(event);
-    }
-    return !event.defaultPrevented;
+    return dispatch(this, event, false);
   }
-}
+}, {
+  construct: [],
+  operations: {
+    addEventListener: [domString, nullable(callbackInterface), optional(addOptions)],
+    removeEventListener: [domString, nullable(callbackInterface), optional(removeOptions)],
+    dispatchEvent: [instance(Event)],
+  },
+});
+export type EventTarget = InstanceType<typeof EventTarget>;
 
-export function eventHandlers(target: { prototype: EventTarget }, types: string[]): void {
-  for (const type of types) {
-    Object.defineProperty(target.prototype, `on${type}`, {
-      get(this: EventTarget) {
-        return handlerOf(this, type);
-      },
-      set(this: EventTarget, value: unknown) {
-        setHandler(this, type, value);
-      },
-      enumerable: true,
-      configurable: true,
-    });
-  }
-}
+const fire = (target: EventTarget, event: Event): boolean => dispatch(target, event, true);
 
 const constructing = Symbol("AbortSignal");
-let abortSignal: (signal: AbortSignal, reason: unknown) => void;
+let signalAbort: (signal: AbortSignal, reason: unknown) => void;
+let createDependent: (signals: readonly AbortSignal[]) => AbortSignal;
+let createSignal: () => AbortSignal;
+const timeoutMilliseconds = integer("unsigned long long", "EnforceRange");
+const longestTimer = 2 ** 31 - 1;
 
-export class AbortSignal extends EventTarget {
+const after = (milliseconds: number, steps: () => void) => {
+  setTimeout(milliseconds > longestTimer ? () => after(milliseconds - longestTimer, steps) : steps, Math.min(milliseconds, longestTimer));
+};
+
+export const AbortSignal = defineInterface(class AbortSignal extends EventTarget {
   #aborted = false;
   #reason: unknown = undefined;
-  declare onabort: ((event: Event) => void) | null;
+  #algorithms = new Set<() => void>();
+  #dependent = false;
+  #sources: WeakRef<AbortSignal>[] = [];
+  #dependents = new Set<WeakRef<AbortSignal>>();
+  #pruned = 0;
+  #retained = new Set<AbortSignal>();
+  #self = new WeakRef(this);
+  declare onabort: ((event: globalThis.Event) => unknown) | null;
+
+  static [brand](value: object) {
+    return #aborted in value;
+  }
 
   static {
-    abortSignal = (signal, reason) => signal.#abort(reason);
+    createSignal = () => new AbortSignal(constructing);
+    abortedOf = signal => signal.#aborted;
+    addAbortAlgorithm = (signal, algorithm) => {
+      if (signal.#aborted) {
+        return () => {};
+      }
+      signal.#algorithms.add(algorithm);
+      retain(signal);
+      return () => {
+        if (signal.#algorithms.delete(algorithm)) {
+          retain(signal);
+        }
+      };
+    };
+    retain = target => {
+      const signal = target as AbortSignal;
+      if (!(#aborted in signal) || !signal.#dependent) {
+        return;
+      }
+      const interested = !signal.#aborted && (signal.#algorithms.size > 0 || listening(signal, "abort"));
+      for (const reference of signal.#sources) {
+        const source = reference.deref();
+        if (source !== undefined && interested) {
+          source.#retained.add(signal);
+        } else if (source !== undefined) {
+          source.#retained.delete(signal);
+        }
+      }
+    };
+    signalAbort = (signal, reason) => {
+      if (signal.#aborted) {
+        return;
+      }
+      signal.#settle(reason === undefined ? new DOMException("the operation was aborted", "AbortError") : reason);
+      const dependents: AbortSignal[] = [];
+      for (const reference of signal.#dependents) {
+        const dependent = reference.deref();
+        if (dependent !== undefined && !dependent.#aborted) {
+          dependent.#settle(signal.#reason);
+          dependents.push(dependent);
+        }
+      }
+      signal.#steps();
+      for (const dependent of dependents) {
+        dependent.#steps();
+      }
+    };
+    createDependent = signals => {
+      const result = new AbortSignal(constructing);
+      const aborted = signals.find(signal => signal.#aborted);
+      if (aborted !== undefined) {
+        result.#aborted = true;
+        result.#reason = aborted.#reason;
+        return result;
+      }
+      result.#dependent = true;
+      const sources = new Set<AbortSignal>();
+      for (const signal of signals) {
+        if (!signal.#dependent) {
+          sources.add(signal);
+          continue;
+        }
+        for (const reference of signal.#sources) {
+          const source = reference.deref();
+          if (source !== undefined) {
+            sources.add(source);
+          }
+        }
+      }
+      for (const source of sources) {
+        result.#sources.push(source.#self);
+        source.#dependents.add(result.#self);
+        if (source.#dependents.size > 2 * source.#pruned + 16) {
+          for (const reference of source.#dependents) {
+            if (reference.deref() === undefined) {
+              source.#dependents.delete(reference);
+            }
+          }
+          source.#pruned = source.#dependents.size;
+        }
+      }
+      return result;
+    };
   }
 
   constructor(key?: unknown) {
@@ -338,30 +582,45 @@ export class AbortSignal extends EventTarget {
     super();
   }
 
+  #settle(reason: unknown): void {
+    this.#aborted = true;
+    this.#reason = reason;
+    for (const reference of this.#sources) {
+      const source = reference.deref();
+      if (source !== undefined) {
+        source.#retained.delete(this);
+        source.#dependents.delete(this.#self);
+      }
+    }
+    this.#sources = [];
+  }
+
+  #steps(): void {
+    const algorithms = [...this.#algorithms];
+    this.#algorithms.clear();
+    for (const algorithm of algorithms) {
+      algorithm();
+    }
+    fire(this, new Event("abort"));
+    this.#dependents.clear();
+    this.#retained.clear();
+  }
+
   static abort(reason?: unknown): AbortSignal {
-    const controller = new AbortController();
-    controller.abort(reason);
-    return controller.signal;
+    const signal = new AbortSignal(constructing);
+    signal.#aborted = true;
+    signal.#reason = reason === undefined ? new DOMException("the operation was aborted", "AbortError") : reason;
+    return signal;
   }
 
-  static timeout(ms: number): AbortSignal {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(new DOMException("the operation timed out", "TimeoutError")), ms);
-    return controller.signal;
+  static timeout(milliseconds: number): AbortSignal {
+    const signal = new AbortSignal(constructing);
+    after(milliseconds, () => signalAbort(signal, new DOMException("the operation timed out", "TimeoutError")));
+    return signal;
   }
 
-  static any(signals: Iterable<AbortSignal>): AbortSignal {
-    const controller = new AbortController();
-    const list = [...signals];
-    const done = list.find(signal => signal.aborted);
-    if (done) {
-      controller.abort(done.reason);
-      return controller.signal;
-    }
-    for (const signal of list) {
-      signal.addEventListener("abort", () => controller.abort(signal.reason), { once: true, signal: controller.signal });
-    }
-    return controller.signal;
+  static any(signals: Iterable<globalThis.AbortSignal>): AbortSignal {
+    return createDependent(signals as AbortSignal[]);
   }
 
   get aborted(): boolean {
@@ -377,23 +636,44 @@ export class AbortSignal extends EventTarget {
       throw this.#reason;
     }
   }
+}, {
+  operations: { throwIfAborted: [] },
+  statics: {
+    abort: [optional(any)],
+    timeout: [timeoutMilliseconds],
+    any: [sequence((value, context): unknown => instance(AbortSignal)(value, context))],
+  },
+  events: ["abort"],
+});
+export type AbortSignal = InstanceType<typeof AbortSignal>;
 
-  #abort(reason: unknown): void {
-    if (this.#aborted) {
-      return;
-    }
-    this.#aborted = true;
-    this.#reason = reason === undefined ? new DOMException("the operation was aborted", "AbortError") : reason;
-    this.dispatchEvent(trust(new Event("abort")));
+export const isAbortSignal = (value: unknown): value is AbortSignal => implementsInterface(AbortSignal, value);
+
+
+export const onAbort = (signal: globalThis.AbortSignal, algorithm: () => void): (() => void) => {
+  if (isAbortSignal(signal)) {
+    return addAbortAlgorithm(signal, algorithm);
   }
-}
+  signal.addEventListener("abort", algorithm, { once: true });
+  return () => signal.removeEventListener("abort", algorithm);
+};
 
-eventHandlers(AbortSignal, ["abort"]);
+export const AbortController = defineInterface(class AbortController {
+  readonly #signal = createSignal();
 
-export class AbortController {
-  readonly signal = new AbortSignal(constructing);
+  static [brand](value: object) {
+    return #signal in value;
+  }
+
+  get signal(): AbortSignal {
+    return this.#signal;
+  }
 
   abort(reason?: unknown): void {
-    abortSignal(this.signal, reason);
+    signalAbort(this.#signal, reason);
   }
-}
+}, {
+  construct: [],
+  operations: { abort: [optional(any)] },
+});
+export type AbortController = InstanceType<typeof AbortController>;

@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"runtime/cgo"
 	"strings"
+	"time"
 	"unicode/utf16"
 	"unicode/utf8"
 	"unsafe"
@@ -212,6 +213,20 @@ func (v Value) SetFunction(name string, function Function) {
 	cmd.name = cString(name)
 	cmd.handle = C.uintptr_t(cgo.NewHandle(function))
 	v.context.submit(cmd)
+}
+
+//go:linkname nanotime runtime.nanotime
+func nanotime() int64
+
+func (v Value) SetClock(name string) time.Time {
+	cmd := command(C.JSC_SET_CLOCK)
+	defer C.free(unsafe.Pointer(cmd))
+	cmd.object = v.ref
+	cmd.name = cString(name)
+	cmd.native_argument = C.uint64_t(nanotime())
+	origin := time.Now()
+	v.context.submit(cmd)
+	return origin
 }
 
 func (v Value) Describe() string {

@@ -1,21 +1,7 @@
-declare function setTimeout(callback: (...args: any[]) => void, ms?: number, ...args: any[]): number;
-declare function clearTimeout(id: number | undefined): void;
-declare function setInterval(callback: (...args: any[]) => void, ms?: number, ...args: any[]): number;
-declare function clearInterval(id: number | undefined): void;
-declare function queueMicrotask(callback: () => void): void;
-declare const console: {
-  log(...values: unknown[]): void;
-  info(...values: unknown[]): void;
-  warn(...values: unknown[]): void;
-  error(...values: unknown[]): void;
-  debug(...values: unknown[]): void;
-};
-declare function structuredClone<T>(value: T): T;
-declare type URLSearchParams = import("whatwg-url-minimum").URLSearchParams;
-declare const URLSearchParams: typeof import("whatwg-url-minimum").URLSearchParams;
-declare type URL = import("whatwg-url-minimum").URL;
-declare const URL: typeof import("whatwg-url-minimum").URL;
-declare type AbortSignal = import("./events").AbortSignal;
-declare const AbortSignal: typeof import("./events").AbortSignal;
-declare type AbortController = import("./events").AbortController;
-declare const AbortController: typeof import("./events").AbortController;
+declare module "swipt:modules" {
+  export const modules: Readonly<Record<string, object>>;
+}
+
+interface String {
+  toWellFormed(): string;
+}
