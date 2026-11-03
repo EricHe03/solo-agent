@@ -29,6 +29,8 @@ const appModules = [
   "@swipt/api/swiplet",
   "@swipt/api/file-system",
   "expo-sqlite",
+  "expo-sqlite/kv-store",
+  "expo-sqlite/localStorage/install",
 ];
 const extensionModules = [
   "@swipt/api",
@@ -41,6 +43,8 @@ const extensionModules = [
   "@swipt/api/image",
   "expo-localization",
   "expo-sqlite",
+  "expo-sqlite/kv-store",
+  "expo-sqlite/localStorage/install",
 ];
 
 const idPattern = /^[a-z0-9][a-z0-9._-]{0,127}$/;
@@ -177,12 +181,49 @@ function describeExtension(source) {
     "@swipt/api/image": loading("image"),
     "expo-localization": { getLocales: () => [{ languageTag: "en", languageCode: "en" }], getCalendars: () => [] },
     "expo-sqlite": {
+      SQLiteDatabase: loading("SQLiteDatabase"),
+      SQLiteStatement: loading("SQLiteStatement"),
+      SQLiteTaggedQuery: loading("SQLiteTaggedQuery"),
+      SQLiteSession: loading("SQLiteSession"),
       openDatabaseSync: () => loading("the database"),
       openDatabaseAsync: () => Promise.resolve(loading("the database")),
+      deserializeDatabaseSync: () => loading("the database"),
+      deserializeDatabaseAsync: () => Promise.resolve(loading("the database")),
       deleteDatabaseSync: () => {},
       deleteDatabaseAsync: () => Promise.resolve(),
+      backupDatabaseSync: () => {},
+      backupDatabaseAsync: () => Promise.resolve(),
+      importDatabaseFromAssetAsync: () => Promise.resolve(),
       addDatabaseChangeListener: () => ({ remove: () => {} }),
       defaultDatabaseDirectory: "",
+      bundledExtensions: {},
+      configureWeb: () => {},
+      deepEqual: function deepEqual(a, b) {
+        if (a === b) {
+          return true;
+        }
+        if (a === null || b === null || typeof a !== "object" || typeof b !== "object") {
+          return false;
+        }
+        const keys = Object.keys(a);
+        return keys.length === Object.keys(b).length && keys.every(key => deepEqual(a[key], b[key]));
+      },
+      SQLiteProvider: () => {
+        throw new Error("SQLiteProvider renders React, so it works only in the swiplet interface");
+      },
+      useSQLiteContext: () => {
+        throw new Error("useSQLiteContext renders React, so it works only in the swiplet interface");
+      },
+    },
+    "expo-sqlite/kv-store": {
+      SQLiteStorage: loading("SQLiteStorage"),
+      AsyncStorage: loading("the storage"),
+      Storage: loading("the storage"),
+      default: loading("the storage"),
+    },
+    get "expo-sqlite/localStorage/install"() {
+      context.localStorage = loading("localStorage");
+      return {};
     },
   };
   const ignored = () => 0;

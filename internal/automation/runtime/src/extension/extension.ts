@@ -7,7 +7,7 @@ import { AbortController } from "./events";
 import { assets, cacheDirectory, dataDirectory } from "./files";
 import { getCalendars, getLocales, preferredLocalizations } from "./localization";
 import { native } from "./native";
-import { sqlite } from "./sqlite";
+import { installLocalStorage, sqlite, sqliteStore } from "./sqlite";
 
 type Caller = swiplet.ActionCaller;
 const exposable: readonly Caller[] = ["shortcuts"];
@@ -113,6 +113,8 @@ interface Modules {
   "@swipt/api/image": typeof import("@swipt/api/image");
   "expo-localization": typeof import("./types/expo-localization");
   "expo-sqlite": typeof import("./types/expo-sqlite");
+  "expo-sqlite/kv-store": typeof import("./types/expo-sqlite/kv-store");
+  "expo-sqlite/localStorage/install": typeof import("./types/expo-sqlite/localStorage/install");
 }
 
 const interfaceOnly = (name: string) => (): never => {
@@ -144,6 +146,8 @@ const moduleTable = {
   "@swipt/api/image": () => ({ __esModule: true, ...chunk("api").image }),
   "expo-localization": () => ({ __esModule: true, getLocales, getCalendars }),
   "expo-sqlite": sqlite,
+  "expo-sqlite/kv-store": sqliteStore,
+  "expo-sqlite/localStorage/install": installLocalStorage,
 } satisfies { [Specifier in keyof Modules]: () => Modules[Specifier] };
 
 type Declared<Undeclared extends never> = Undeclared;

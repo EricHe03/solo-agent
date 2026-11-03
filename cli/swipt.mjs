@@ -170,7 +170,7 @@ const commands = [
           'Top-level await is available, and top-level bindings persist across runs until "swipt repl reset".',
           "An image given to show(), or as the completion value of CODE, is saved as a PNG file and printed as its path.",
           'The globals are accessibility, input, device, screen, image, dialog, dataDirectory, show and sleep; import declarations and import() load the modules that swiplets get from Swipt; "swipt repl api" declares both.',
-          'dataDirectory is the directory that "swipt repl data" manages.',
+          'dataDirectory, which also holds the expo-sqlite databases, is the directory that "swipt repl data" manages.',
         ],
         args: [0, Infinity],
         passthrough: device.isProgram,

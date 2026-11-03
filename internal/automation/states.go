@@ -53,9 +53,7 @@ func (e *engine) watch(ctx context.Context, kind string, args []json.RawMessage,
 		if err := call.decode(0); err != nil {
 			return err
 		}
-		go e.host.WatchDatabases(ctx, e.swiplet.ID, func(change DatabaseChange) {
-			publish(map[string]any{"databaseName": change.Database, "databaseFilePath": change.Path, "tableName": change.Table, "rowId": change.RowID}, nil)
-		})
+		go e.host.watchDatabaseChanges(ctx, e.dataOwner(), publish)
 		return nil
 	case "device.applicationEvents":
 		if err := call.decode(0); err != nil {

@@ -3,6 +3,7 @@ import { Component, useEffect, useMemo, useSyncExternalStore, useState, type Com
 
 import { inspect } from "../shared/inspect";
 import { createSQLite, type DatabaseChangeEvent, type SQLiteBridge } from "../shared/sqlite";
+import { sqliteHooks } from "./sqlite";
 
 type ServiceStatus = "starting" | "running" | "stopped" | "failed";
 
@@ -41,6 +42,7 @@ interface SwiptHost {
   fail(surface: string, message: string): void;
   report(message: string): void;
   sqlite(request: string): string;
+  sqliteAsync(request: string): Promise<string>;
   addListener(event: "service", listener: (event: ServiceEvent) => void): EventSubscription;
   addListener(event: "sqlite", listener: (event: DatabaseChangeEvent) => void): EventSubscription;
 }
@@ -172,6 +174,7 @@ const modules: Record<string, () => unknown> = {
 
 const sqliteBridge = (props: Props): SQLiteBridge => ({
   request: call => JSON.parse(host.sqlite(JSON.stringify(call))),
+  requestAsync: async call => JSON.parse(await host.sqliteAsync(JSON.stringify(call))),
   defaultDirectory: web.pathOfURI(props.dataDirectory),
   subscribe(listener) {
     const subscription = host.addListener("sqlite", listener);
@@ -179,13 +182,24 @@ const sqliteBridge = (props: Props): SQLiteBridge => ({
   },
 });
 
+let storage: ReturnType<typeof createSQLite> | undefined;
+
+const installLocalStorage = (props: Props) => {
+  storage ??= createSQLite(sqliteBridge(props));
+  Object.defineProperty(globalThis, "localStorage", { value: storage.localStorage, configurable: true, enumerable: true, writable: true });
+  return { __esModule: true };
+};
+
 function load(props: Props): { Swiplet: ComponentType; close(): void } {
   const sqlite = createSQLite(sqliteBridge(props));
+  let sqliteModule: object | undefined;
   const own: Record<string, () => unknown> = {
     "@swipt/api": () => exportsOf("@swipt/api", {}),
     "@swipt/api/swiplet": () => interfaceModule(props),
     "@swipt/api/file-system": () => exportsOf("@swipt/api/file-system", web.fileSystem(props.dataDirectory, props.assetsDirectory, props.cacheDirectory)),
-    "expo-sqlite": () => sqlite.exports,
+    "expo-sqlite": () => (sqliteModule ??= Object.freeze({ ...sqlite.exports, ...sqliteHooks(sqlite.exports) })),
+    "expo-sqlite/kv-store": () => sqlite.kvStore,
+    "expo-sqlite/localStorage/install": () => installLocalStorage(props),
   };
   const required = new Map<string, unknown>();
   const resolve = (specifier: string) => {

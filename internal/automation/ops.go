@@ -78,6 +78,7 @@ func init() {
 		"crypto.generate":               cryptoGenerate,
 		"crypto.import":                 cryptoImport,
 		"crypto.export":                 cryptoExport,
+		"sqlite":                        sqliteOperation,
 	}
 }
 

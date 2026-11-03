@@ -3,6 +3,7 @@ import { native } from "./native";
 
 export interface Chunks {
   "encoding-tables": typeof import("../shared/encoding-tables");
+  sqlite: typeof import("../shared/sqlite");
   subtle: typeof import("./subtle");
   api: typeof import("./api");
   url: typeof import("./whatwg-url");

@@ -31,6 +31,7 @@ declare const require: (id: string) => never;
 
 const chunks: { [Name in keyof Chunks]: () => Chunks[Name] } = {
   "encoding-tables": () => require("../shared/encoding-tables"),
+  sqlite: () => require("../shared/sqlite"),
   subtle: () => require("../extension/subtle"),
   url: () => require("../extension/whatwg-url"),
   api: () => {

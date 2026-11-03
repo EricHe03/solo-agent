@@ -13,7 +13,7 @@ const cliDirectory = path.dirname(fileURLToPath(import.meta.url));
 const sourceExtensions = ["js", "jsx", "json", "ts", "tsx", "cjs", "mjs"];
 const assetExtensions = [
   "bmp", "gif", "jpg", "jpeg", "png", "psd", "svg", "webp", "xml", "m4v", "mov", "mp4", "mpeg", "mpg", "webm", "aac", "aiff", "caf",
-  "m4a", "mp3", "wav", "html", "pdf", "yaml", "yml", "otf", "ttf", "zip",
+  "m4a", "mp3", "wav", "html", "pdf", "yaml", "yml", "otf", "ttf", "zip", "db", "sqlite", "sqlite3",
 ];
 const imageExtensions = new Set(["png", "jpg", "jpeg", "bmp", "gif", "webp", "psd", "svg", "tiff", "ktx"]);
 const babelConfigNames = [

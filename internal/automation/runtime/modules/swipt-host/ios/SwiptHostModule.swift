@@ -37,6 +37,7 @@ public final class SwiptHostModule: Module {
   nonisolated(unsafe) public static var database: (@Sendable (_ client: String, _ swiplet: String, _ request: String) throws -> String)?
   nonisolated(unsafe) public static var closeDatabases: (@Sendable (_ client: String) -> Void)?
   nonisolated(unsafe) public static var openWeb: (@Sendable (_ swiplet: String) throws -> any SwiptHostWeb)?
+  private static let databaseQueue = DispatchQueue(label: "swipt.sqlite", qos: .userInitiated, attributes: .concurrent)
 
   private static let lock = NSLock()
   private static let modules = NSHashTable<SwiptHostModule>.weakObjects()
@@ -236,6 +237,11 @@ public final class SwiptHostModule: Module {
     Function("sqlite") { (request: String) throws -> String in
       try self.database(request)
     }
+
+    AsyncFunction("sqliteAsync") { (request: String) throws -> String in
+      try self.database(request)
+    }
+    .runOnQueue(Self.databaseQueue)
 
     Function("preferredLocalizations") { (localizations: [String]) -> [String] in
       Bundle.preferredLocalizations(from: localizations, forPreferences: Locale.preferredLanguages)
