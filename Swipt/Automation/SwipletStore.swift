@@ -15,6 +15,7 @@ final class SwipletStore {
     static let shared = SwipletStore()
     nonisolated static let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("Swiplets", isDirectory: true)
+    nonisolated static let caches = AppDirectory.caches.appendingPathComponent("Swiplets", isDirectory: true)
 
     private(set) var ids: [String] = []
     private(set) var directories: [String: URL] = [:]
@@ -103,6 +104,10 @@ final class SwipletStore {
 
     func assetsDirectory(of id: String) -> URL? {
         directories[id]?.appendingPathComponent(LibSwiptSwipletAssetsFolder, isDirectory: true)
+    }
+
+    nonisolated static func cacheDirectory(of id: String) -> URL {
+        caches.appendingPathComponent(id, isDirectory: true)
     }
 
     func clearData(of id: String) async throws {

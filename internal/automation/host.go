@@ -89,7 +89,7 @@ func New(options Options) *Host {
 		logFactory = log.NewFactory(log.Options{})
 	}
 	if options.Caches == "" {
-		options.Caches = os.TempDir()
+		options.Caches = filepath.Join(os.TempDir(), "Swiplets")
 	}
 	h := &Host{
 		options: options, logFactory: logFactory, logger: logFactory.Logger(),
@@ -312,6 +312,25 @@ func swap(directory, staging string) error {
 	return nil
 }
 
+func (h *Host) cacheDirectory(owner string) string {
+	return filepath.Join(h.options.Caches, owner)
+}
+
+func (h *Host) clearCaches(id string) error {
+	directory := h.cacheDirectory(id)
+	entries, err := os.ReadDir(directory)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	var errs []error
+	for _, entry := range entries {
+		errs = append(errs, os.RemoveAll(filepath.Join(directory, entry.Name())))
+	}
+	return E.Errors(errs...)
+}
+
 func (h *Host) ClearData(id string) error {
 	h.installAccess.Lock()
 	defer h.installAccess.Unlock()
@@ -332,7 +351,7 @@ func (h *Host) ClearData(id string) error {
 	}
 	h.CloseDatabases(nil, id)
 	data := filepath.Join(swiplet.Directory, DataFolder)
-	err = E.Errors(os.RemoveAll(data), os.Mkdir(data, 0o755))
+	err = E.Errors(os.RemoveAll(data), os.Mkdir(data, 0o755), h.clearCaches(id))
 	_, markerErr := os.Stat(filepath.Join(swiplet.Directory, serviceFile))
 	r.access.Lock()
 	defer r.access.Unlock()
@@ -376,7 +395,7 @@ func (h *Host) remove(id string) error {
 	}
 	h.releaseLocation(id)
 	h.CloseDatabases(nil, id)
-	if err = os.RemoveAll(swiplet.Directory); err != nil {
+	if err = E.Errors(os.RemoveAll(h.cacheDirectory(id)), os.RemoveAll(swiplet.Directory)); err != nil {
 		return err
 	}
 	if swiplet.Manifest.Service {

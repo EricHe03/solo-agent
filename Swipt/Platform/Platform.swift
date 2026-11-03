@@ -71,7 +71,7 @@ final class Platform {
         LibSwiptLog.installed
         let options = LibSwiptPlatformOptions()
         options.swipletDirectory = SwipletStore.directory.path
-        options.cacheDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].path
+        options.swipletCacheDirectory = SwipletStore.caches.path
         options.languages = Locale.preferredLanguages.joined(separator: "\n")
         options.appBundleID = Bundle.main.bundleIdentifier ?? ""
         options.appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""

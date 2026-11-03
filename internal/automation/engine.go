@@ -128,6 +128,7 @@ type launch struct {
 type engine struct {
 	host      *Host
 	swiplet   Swiplet
+	caches    string
 	dialog    Dialog
 	logger    log.ContextLogger
 	context   *jsc.Context
@@ -268,6 +269,7 @@ func (h *Host) newEngine(swiplet Swiplet, dialog Dialog, logger log.ContextLogge
 			return consumer
 		}),
 	}
+	e.caches = h.cacheDirectory(e.dataOwner())
 	e.ctx, e.cancel = context.WithCancelCause(context.Background())
 	e.main = &execution{ctx: e.ctx, logs: logs}
 	e.current = e.main
@@ -292,7 +294,7 @@ func (h *Host) newEngine(swiplet Swiplet, dialog Dialog, logger log.ContextLogge
 	defer native.Release()
 	properties := map[string]string{
 		"swiplet": swiplet.ID, "dataDirectory": filepath.Join(swiplet.Directory, DataFolder), "languages": strings.Join(h.options.Languages, "\n"),
-		"assetsDirectory": filepath.Join(swiplet.Directory, AssetsFolder), "cacheDirectory": h.options.Caches, "extensionHead": extensionHead,
+		"assetsDirectory": filepath.Join(swiplet.Directory, AssetsFolder), "cacheDirectory": e.caches, "extensionHead": extensionHead,
 	}
 	for name, text := range properties {
 		value := e.context.NewString(text)

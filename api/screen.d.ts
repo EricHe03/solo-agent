@@ -40,6 +40,7 @@ export interface ScreenRecording {
   diff(from: number, to: number, options?: CallOptions & { readonly threshold?: number }): Promise<ImageDifference>;
   find(target: ScreenTarget | readonly ScreenTarget[], options?: Omit<ScreenFindOptions, "timeoutMs"> & { readonly from?: number; readonly to?: number }): Promise<(ScreenMatch & { readonly time: number }) | null>;
   export(options?: CallOptions & {
+    /** Omitted, the export goes to a new file in cacheDirectory. */
     readonly file?: FileHandle | string;
     readonly from?: number;
     readonly to?: number;
@@ -85,5 +86,8 @@ export declare const frames: ObservableState<RasterImage>;
 export declare function waitFor(predicate: (frame: RasterImage) => boolean | Promise<boolean>, options?: CallOptions & { readonly timeoutMs?: number }): Promise<RasterImage>;
 export declare function waitForChange(options?: WaitOptions & { readonly from?: RasterImage }): Promise<RasterImage>;
 export declare function waitForStable(options?: WaitOptions & { readonly durationMs?: number }): Promise<RasterImage>;
-export declare function record(options?: CallOptions & { readonly file?: FileHandle | string }): Promise<RecordingSession>;
+export declare function record(options?: CallOptions & {
+  /** Omitted, the recording goes to a new file in cacheDirectory. */
+  readonly file?: FileHandle | string;
+}): Promise<RecordingSession>;
 export declare function openRecording(file: FileHandle | string, options?: CallOptions): Promise<ScreenRecording>;

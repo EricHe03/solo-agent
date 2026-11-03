@@ -2,7 +2,7 @@ import { accessibility, device, image, input, screen } from "./api";
 import { createDialog, type Dialog } from "./dialog";
 import { DOMException, failureOf } from "./errors";
 import { AbortController } from "./events";
-import { assets, dataDirectory } from "./files";
+import { assets, cacheDirectory, dataDirectory } from "./files";
 import { getCalendars, getLocales, preferredLocalizations } from "./localization";
 import { native } from "./native";
 import { sqlite } from "./sqlite";
@@ -93,6 +93,9 @@ const modules: Record<string, () => object> = {
     __esModule: true,
     get dataDirectory() {
       return dataDirectory();
+    },
+    get cacheDirectory() {
+      return cacheDirectory();
     },
     get assets() {
       return assets();

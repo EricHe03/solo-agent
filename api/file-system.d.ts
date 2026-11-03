@@ -1,4 +1,9 @@
 export declare const dataDirectory: DirectoryHandle;
+/**
+ * Holds the files Swipt keeps for the Swiplet by default: screen recordings and their exports, and application icons.
+ * The system may delete its contents when storage runs low; clearing the Swiplet's data or deleting the Swiplet removes it.
+ */
+export declare const cacheDirectory: DirectoryHandle;
 export declare const assets: DirectoryHandle;
 
 export interface FileStat {

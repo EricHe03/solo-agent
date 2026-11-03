@@ -26,12 +26,12 @@ const (
 )
 
 type PlatformOptions struct {
-	SwipletDirectory string
-	CacheDirectory   string
-	Languages        string
-	AppBundleID      string
-	AppVersion       string
-	AppBuild         string
+	SwipletDirectory      string
+	SwipletCacheDirectory string
+	Languages             string
+	AppBundleID           string
+	AppVersion            string
+	AppBuild              string
 }
 
 type PlatformHandler interface {
@@ -74,7 +74,7 @@ func NewPlatform(options *PlatformOptions, handler PlatformHandler, deviceOption
 	p.host = automation.New(automation.Options{
 		Device:            p.device.connection.Phone(),
 		Directory:         options.SwipletDirectory,
-		Caches:            options.CacheDirectory,
+		Caches:            options.SwipletCacheDirectory,
 		Languages:         strings.Fields(options.Languages),
 		LogFactory:        p.logFactory,
 		Dialog:            p.dialog,

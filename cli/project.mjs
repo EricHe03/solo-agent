@@ -158,6 +158,9 @@ function describeExtension(source) {
       get dataDirectory() {
         throw new Error("dataDirectory is used while extension.js loads; use it inside run or an action");
       },
+      get cacheDirectory() {
+        throw new Error("cacheDirectory is used while extension.js loads; use it inside run or an action");
+      },
       get assets() {
         throw new Error("assets is used while extension.js loads; use it inside run or an action");
       },

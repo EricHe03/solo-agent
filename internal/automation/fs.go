@@ -4,6 +4,7 @@ package automation
 
 import (
 	"context"
+	"os"
 
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
@@ -11,8 +12,11 @@ import (
 )
 
 func (e *engine) fileRoot(kind string) (*fileRoot, error) {
-	if kind == "cache" {
-		return openFileRoot(e.host.options.Caches, "the cache directory")
+	if kind == "cache" && e.caches != "" {
+		if err := os.MkdirAll(e.caches, 0o755); err != nil {
+			return nil, err
+		}
+		return openFileRoot(e.caches, "the cache directory")
 	}
 	return swipletRoot(e.swiplet, kind)
 }

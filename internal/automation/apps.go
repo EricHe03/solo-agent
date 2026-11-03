@@ -71,7 +71,7 @@ func deviceAppIcon(ctx context.Context, call *operation) (any, error) {
 			return nil, E.Cause1(ErrNotFound, E.New("there is no app ", strconv.Quote(bundleID)))
 		}
 	}
-	directory := filepath.Join(host.options.Caches, "AppIcons")
+	directory := filepath.Join(call.engine.caches, "AppIcons")
 	path := filepath.Join(directory, strings.NewReplacer("/", "_", ":", "_").Replace(bundleID+"@"+version.(string)+".png"))
 	if _, err = os.Stat(path); err == nil {
 		return fileURL(path), nil

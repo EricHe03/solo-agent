@@ -1,7 +1,7 @@
 import { stream } from "./async";
 import { DOMException } from "./errors";
 import { AbortController } from "./events";
-import { cacheFile, FileHandle, fileOf, handleOfPath, pathOf } from "./files";
+import { cacheDirectory, FileHandle, fileOf, handleOfPath, pathOf } from "./files";
 import { adopt, adoptOptional, finite, freeze, graphicsNative, handleOf, imageResult, RasterImage, rectOf, run, timeoutOf, type ImageHandle, type Rect } from "./image";
 import { check, optionsOf, signalOf, type Options } from "./options";
 
@@ -76,7 +76,7 @@ const timelineEntry = (event: TimelineEvent): { text: string; detail?: string } 
 };
 
 const defaultFile = (folder: string, extension: string): FileHandle =>
-  cacheFile(`${folder}/${new Date().toISOString().replace(/[:.]/g, "-")}.${extension}`);
+  cacheDirectory().file(`${folder}/${new Date().toISOString().replace(/[:.]/g, "-")}.${extension}`);
 
 const thresholdOf = (value: unknown): number | undefined => {
   if (value === undefined) {

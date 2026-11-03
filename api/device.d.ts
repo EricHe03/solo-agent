@@ -39,6 +39,7 @@ export declare function unlock(options?: CallOptions): Promise<void>;
 
 export declare function applicationEvents(options?: CallOptions): AsyncIterable<ApplicationStateEvent>;
 export declare function installedApplications(options?: CallOptions): Promise<InstalledApplication[]>;
+/** Answers a PNG file in cacheDirectory. */
 export declare function applicationIcon(bundleId: string, options?: CallOptions): Promise<FileHandle>;
 export declare function launchApplication(bundleId: string, options?: CallOptions & { url?: string; restart?: boolean }): Promise<void>;
 

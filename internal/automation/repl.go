@@ -136,6 +136,13 @@ const (
 
 var replSequence atomic.Uint64
 
+func (e *engine) dataOwner() string {
+	if strings.HasPrefix(e.swiplet.ID, replPrefix) {
+		return REPLDirectory
+	}
+	return e.swiplet.ID
+}
+
 func (h *Host) NewREPL(dialog Dialog) *REPL {
 	return &REPL{host: h, id: replPrefix + strconv.FormatUint(replSequence.Add(1), 10), dialog: dialog}
 }

@@ -53,7 +53,7 @@ const bytesOf = async (data: unknown): Promise<Uint8Array> => {
 
 const guard = (key: symbol) => {
   if (key !== token) {
-    throw new TypeError("file handles come from dataDirectory, assets or from Swipt");
+    throw new TypeError("file handles come from dataDirectory, cacheDirectory, assets or from Swipt");
   }
 };
 
@@ -185,12 +185,13 @@ const handleOf = (value: unknown, name: string): FileHandle => {
 
 let data: DirectoryHandle | undefined;
 let assetsRoot: DirectoryHandle | undefined;
+let cache: DirectoryHandle | undefined;
 
 export const dataDirectory = (): DirectoryHandle => data ??= new DirectoryHandle(token, { root: "data", path: "" });
 
 export const assets = (): DirectoryHandle => assetsRoot ??= new DirectoryHandle(token, { root: "assets", path: "" });
 
-export const cacheFile = (path: string): FileHandle => new FileHandle(token, { root: "cache", path: joinRelative("", path) });
+export const cacheDirectory = (): DirectoryHandle => cache ??= new DirectoryHandle(token, { root: "cache", path: "" });
 
 export const fileOf = (value: unknown, name: string): FileHandle => {
   if (value instanceof FileHandle) {
