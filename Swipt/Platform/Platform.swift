@@ -62,6 +62,7 @@ final class Platform {
     @PerceptionIgnored private var dialogs: [Int64: Task<Void, Never>] = [:]
     @PerceptionIgnored private var reportedServices: Set<String> = []
     @PerceptionIgnored private var wasActive = false
+    @PerceptionIgnored private var keepingAwake: Set<ObjectIdentifier> = []
     nonisolated private let isAppActive: LockedState<Bool>
 
     private var background: BackgroundSettings { .shared }
@@ -359,8 +360,17 @@ final class Platform {
         device.setBrowsing(active)
     }
 
+    func keepAwake(_ holder: ObjectIdentifier, _ awake: Bool) {
+        if awake {
+            keepingAwake.insert(holder)
+        } else {
+            keepingAwake.remove(holder)
+        }
+        updateIdleTimer()
+    }
+
     private func updateIdleTimer() {
-        UIApplication.shared.isIdleTimerDisabled = isActive && !location.isUpdating && !audio.isPlaying
+        UIApplication.shared.isIdleTimerDisabled = !keepingAwake.isEmpty || isActive && !location.isUpdating && !audio.isPlaying
     }
 
     private func apiFailed(_ message: String) {

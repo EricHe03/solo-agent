@@ -1,0 +1,61 @@
+diff --git a/apple/worklets/apple/WorkletsModule.mm b/apple/worklets/apple/WorkletsModule.mm
+index 3d14e10e3194829056959ee60209ad9c8c184aa2..c4d528bd9debcb0266b1b57086be50f36e53bd8b 100644
+--- a/apple/worklets/apple/WorkletsModule.mm
++++ b/apple/worklets/apple/WorkletsModule.mm
+@@ -17,6 +17,7 @@
+ #import <React/RCTBridge+Private.h>
+ #import <React/RCTCallInvoker.h>
+ 
++#import <atomic>
+ #import <memory>
+ #import <string>
+ 
+@@ -44,6 +45,7 @@ BundleModeConfig makeBundleModeConfig(NSURL *bundleURL)
+   std::shared_ptr<RNRuntimeStatus> rnRuntimeStatus_;
+   std::shared_ptr<WorkletsModuleProxyInitializer> initializer_;
+   std::shared_ptr<WorkletsModuleProxy> workletsModuleProxy_;
++  std::atomic_bool proxyRequested_;
+ #ifndef NDEBUG
+   SingleInstanceChecker<WorkletsModule> singleInstanceChecker_;
+ #endif // NDEBUG
+@@ -65,7 +67,13 @@ RCT_EXPORT_MODULE(WorkletsModule);
+ {
+   [self createPlatformObjects];
+   [self createInitializer];
++}
+ 
++- (void)requestProxy
++{
++  if (proxyRequested_.exchange(true)) {
++    return;
++  }
+   const auto initializer = initializer_;
+   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{ initializer->prepareProxy(); });
+ }
+@@ -74,6 +82,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(prepareBundleMode)
+ {
+   AssertJavaScriptQueue();
+ 
++  [self requestProxy];
+   initializer_->beginBundleModeAOT();
+ 
+   const auto initializer = initializer_;
+@@ -92,6 +101,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(installTurboModule : (BOOL)bundleModeEnab
+   AssertJavaScriptQueue();
+ 
+   jsi::Runtime &rnRuntime = *reinterpret_cast<facebook::jsi::Runtime *>(self.bridge.runtime);
++  [self requestProxy];
+   workletsModuleProxy_ =
+       initializer_->finalize(rnRuntime, static_cast<bool>(bundleModeEnabled), [self makeBundleModeConfigLoader]);
+   return @YES;
+@@ -119,7 +129,9 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(toggleSlowAnimationsOnUIRuntime)
+     rnRuntimeStatus_->setDead();
+   }
+   if (initializer_) {
+-    initializer_->invalidate();
++    if (proxyRequested_.exchange(true)) {
++      initializer_->invalidate();
++    }
+     initializer_.reset();
+   }
+   workletsModuleProxy_.reset();

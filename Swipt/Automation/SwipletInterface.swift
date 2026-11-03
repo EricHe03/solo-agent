@@ -1,6 +1,8 @@
 internal import Expo
+internal import ExpoObjC
 import LibSwipt
 import Perception
+import RCTBlob
 import React
 import ReactAppDependencyProvider
 import SwiftUI
@@ -95,17 +97,102 @@ private final class SwipletViewController: UIViewController {
 }
 
 @available(iOS 27, *)
-final class SwipletSurface {
+private final class SwipletRuntime: SwiptHostDelegate {
+    nonisolated let swiplet: String
     let entry: SwipletEntry
+    // The factory holds its delegate weakly.
+    private let delegate: ExpoReactNativeFactoryDelegate
+    let factory: ExpoReactNativeFactory
+    let surfaces = NSMapTable<NSString, SwipletSurface>.strongToWeakObjects()
+    nonisolated(unsafe) private var modules: RCTModuleRegistry?
+    var attached = 0
+    var broken = false
+    private var terminated = false
+
+    init(swiplet: String, entry: SwipletEntry, delegate: ExpoReactNativeFactoryDelegate) {
+        self.swiplet = swiplet
+        self.entry = entry
+        self.delegate = delegate
+        factory = ExpoReactNativeFactory(delegate: delegate)
+        factory.appContextHandler = { [weak self] appContext in
+            SwipletSandbox.replaceModules(in: appContext)
+            guard let self else { return }
+            SwiptHostModule.bind(appContext, to: self)
+        }
+        factory.rootViewFactory.initializeReactHost(
+            launchOptions: nil, bundleConfiguration: factory.bundleConfiguration, devMenuConfiguration: .default())
+        modules = factory.rootViewFactory.reactHost?.value(forKey: "moduleRegistry") as? RCTModuleRegistry
+    }
+
+    func terminate() {
+        guard !terminated else { return }
+        terminated = true
+        SwiptHostModule.unbind(self)
+        factory.terminateJavaScript()
+        factory.rootViewFactory.reactHost = nil
+    }
+
+    func call(action: String, input: String) async throws -> String {
+        try await Platform.shared.callAction(swiplet, action: action, input: input, caller: LibSwiptCallerApp, dialogs: .app)
+    }
+
+    func setServiceEnabled(_ enabled: Bool) async throws {
+        try await SwipletStore.shared.setServiceEnabled(swiplet, enabled)
+    }
+
+    func exit() {
+        SwipletHost.shared.exit(swiplet: swiplet)
+    }
+
+    func log(level: String, message: String) {
+        let level = switch level {
+        case "error": LibSwiptLogLevelError
+        case "warn": LibSwiptLogLevelWarn
+        case "debug": LibSwiptLogLevelDebug
+        default: LibSwiptLogLevelInfo
+        }
+        Platform.shared.logSwiplet(swiplet, level: level, message: message)
+    }
+
+    func report(message: String) {
+        let title = String(localized: "“\(SwipletStore.shared.titles[swiplet] ?? swiplet)” Error")
+        ErrorAlert.shared.report(AlertState(title, errorMessage: message), swiplet: swiplet)
+    }
+
+    nonisolated func storeBlob(_ data: Data, id: String) {
+        (modules?.module(for: RCTBlobManager.self) as? RCTBlobManager)?.store(data, withId: id)
+    }
+
+    nonisolated func removeBlob(_ id: String) {
+        (modules?.module(for: RCTBlobManager.self) as? RCTBlobManager)?.remove(id)
+    }
+
+    func surfaceDidMount(_ surface: String) {
+        surfaces.object(forKey: surface as NSString)?.didMount()
+    }
+
+    func fail(surface: String, message: String) {
+        surfaces.object(forKey: surface as NSString)?.fail(message)
+    }
+}
+
+@available(iOS 27, *)
+final class SwipletSurface {
     let view: RCTSurfaceHostingProxyRootView
+    fileprivate let runtime: SwipletRuntime
+    private var stopped = false
     private var mounted = false
     private var pending: [() -> Void] = []
     private var failure: String?
     private var onFailure: ((String) -> Void)?
 
-    fileprivate init(entry: SwipletEntry, view: RCTSurfaceHostingProxyRootView) {
-        self.entry = entry
+    fileprivate init(view: RCTSurfaceHostingProxyRootView, runtime: SwipletRuntime) {
         self.view = view
+        self.runtime = runtime
+    }
+
+    var entry: SwipletEntry {
+        runtime.entry
     }
 
     func whenMounted(_ action: @escaping () -> Void) {
@@ -132,52 +219,91 @@ final class SwipletSurface {
     }
 
     fileprivate func fail(_ message: String) {
+        runtime.broken = true
         guard failure == nil else { return }
         failure = message
         onFailure?(message)
     }
 
     func stop() {
+        guard !stopped else { return }
+        stopped = true
         view.surface.stop()
+        SwipletHost.shared.detach(runtime)
     }
 }
 
 @available(iOS 27, *)
-final class SwipletHost: SwiptHostDelegate {
+final class SwipletHost {
     static let shared = SwipletHost()
 
     private final class FactoryDelegate: ExpoReactNativeFactoryDelegate {
+        private let files: SwipletFiles
+
+        init(files: SwipletFiles) {
+            self.files = files
+            super.init()
+            dependencyProvider = RCTAppDependencyProvider()
+        }
+
         override func bundleURL() -> URL? {
             Bundle.main.url(forResource: "main", withExtension: "jsbundle")
         }
+
+        // RCTTurboModuleManagerDelegate, which Swift doesn't see; nil makes the default instance.
+        @objc(getModuleInstanceFromClass:)
+        nonisolated func moduleInstance(from moduleClass: AnyClass) -> AnyObject? {
+            switch ObjectIdentifier(moduleClass) {
+            case ObjectIdentifier(RCTNetworking.self): SwipletNetworking.make(files: files)
+            case ObjectIdentifier(RCTActionSheetManager.self): SwipletActionSheetManager(files: files)
+            default: nil
+            }
+        }
     }
 
-    private let delegate = FactoryDelegate()
-    private let factory: ExpoReactNativeFactory
+    private static let preparedLimit = 2
+
+    private var runtimes: [String: SwipletRuntime] = [:]
+    private var interfaces: [String: SwipletEntry] = [:]
+    private var recent: [String] = []
     private var prepared: [String: SwipletSurface] = [:]
     private var presented: [(name: String, exit: () -> Void)] = []
-    private let surfaces = NSMapTable<NSString, SwipletSurface>.strongToWeakObjects()
 
     private init() {
-        delegate.dependencyProvider = RCTAppDependencyProvider()
-        factory = ExpoReactNativeFactory(delegate: delegate)
-        SwiptHostModule.delegate = self
-        factory.rootViewFactory.initializeReactHost(
-            launchOptions: nil, bundleConfiguration: factory.bundleConfiguration, devMenuConfiguration: .default())
+        SwipletSandbox.ignoreReloads()
+        NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated {
+                SwipletHost.shared.releasePrepared()
+            }
+        }
     }
 
     func prepare(_ interfaces: [String: SwipletEntry]) {
-        for (name, surface) in prepared where interfaces[name] == nil {
+        self.interfaces = interfaces
+        let wanted = recent.filter { interfaces[$0] != nil && !isPresented($0) }.suffix(Self.preparedLimit)
+        for (name, surface) in prepared where !wanted.contains(name) && !isPresented(name) || surface.entry != interfaces[name] {
             surface.stop()
             prepared[name] = nil
         }
-        for (name, entry) in interfaces {
-            if prepared[name]?.entry == entry {
-                continue
-            }
-            prepared[name]?.stop()
-            prepared[name] = makeSurface(name, entry: entry)
+        for name in wanted where prepared[name] == nil {
+            prepared[name] = makeSurface(name, entry: interfaces[name]!)
         }
+    }
+
+    private func releasePrepared() {
+        for surface in prepared.values {
+            surface.stop()
+        }
+        prepared = [:]
+    }
+
+    fileprivate func detach(_ runtime: SwipletRuntime) {
+        runtime.attached -= 1
+        guard runtime.attached == 0 else { return }
+        if runtimes[runtime.swiplet] === runtime {
+            runtimes[runtime.swiplet] = nil
+        }
+        runtime.terminate()
     }
 
     func take(_ name: String, entry: SwipletEntry) -> SwipletSurface {
@@ -190,10 +316,23 @@ final class SwipletHost: SwiptHostDelegate {
         return makeSurface(name, entry: entry)
     }
 
+    private func runtime(_ name: String, entry: SwipletEntry) -> SwipletRuntime {
+        if let runtime = runtimes[name], runtime.entry == entry, !runtime.broken {
+            return runtime
+        }
+        let files = SwipletFiles(
+            roots: [SwipletStore.shared.dataDirectory(of: name), SwipletStore.shared.assetsDirectory(of: name), SwipletStore.cacheDirectory(of: name)].compactMap(\.self))
+        let runtime = SwipletRuntime(swiplet: name, entry: entry, delegate: FactoryDelegate(files: files))
+        runtimes[name] = runtime
+        return runtime
+    }
+
     func makeSurface(_ name: String, entry: SwipletEntry) -> SwipletSurface {
         let service = SwipletStore.shared.service(of: name)
         let id = UUID().uuidString
-        let view = factory.rootViewFactory.view(
+        let runtime = runtime(name, entry: entry)
+        runtime.attached += 1
+        let view = runtime.factory.rootViewFactory.view(
             withModuleName: "main",
             initialProperties: [
                 "surface": id,
@@ -202,6 +341,7 @@ final class SwipletHost: SwiptHostDelegate {
                 "source": (try? String(contentsOf: entry.url, encoding: .utf8)) ?? "",
                 "dataDirectory": SwipletStore.shared.dataDirectory(of: name)?.absoluteString ?? "",
                 "assetsDirectory": SwipletStore.shared.assetsDirectory(of: name)?.absoluteString ?? "",
+                "cacheDirectory": SwipletStore.cacheDirectory(of: name).absoluteString,
                 "service": [
                     "enabled": service.enabled, "status": service.status.rawValue, "error": service.error,
                     "since": service.since.map { $0.timeIntervalSince1970 * 1000 } ?? 0,
@@ -211,90 +351,29 @@ final class SwipletHost: SwiptHostDelegate {
         let windowBounds = UIApplication.shared.connectedScenes.lazy.compactMap { ($0 as? UIWindowScene)?.keyWindow?.bounds }.first
         view.frame = windowBounds ?? .zero
         view.layoutIfNeeded()
-        let surface = SwipletSurface(entry: entry, view: view)
-        surfaces.setObject(surface, forKey: id as NSString)
+        let surface = SwipletSurface(view: view, runtime: runtime)
+        runtime.surfaces.setObject(surface, forKey: id as NSString)
         return surface
-    }
-
-    func call(swiplet: String, action: String, input: String) async throws -> String {
-        try await Platform.shared.callAction(swiplet, action: action, input: input, caller: LibSwiptCallerApp, dialogs: .app)
-    }
-
-    func setServiceEnabled(swiplet: String, enabled: Bool) async throws {
-        try await SwipletStore.shared.setServiceEnabled(swiplet, enabled)
-    }
-
-    func statFile(swiplet: String, root: String, path: String) async throws -> SwiptHostFileInfo {
-        let info = try await Platform.shared.statSwipletFile(swiplet, root: root, path: path)
-        return SwiptHostFileInfo(exists: info.exists, directory: info.directory, size: info.size, modified: info.modified)
-    }
-
-    func listFiles(swiplet: String, root: String, path: String) async throws -> [SwiptHostFileEntry] {
-        try await Platform.shared.listSwipletFiles(swiplet, root: root, path: path).map { SwiptHostFileEntry(name: $0.name, directory: $0.directory) }
-    }
-
-    func readFile(swiplet: String, root: String, path: String) async throws -> Data {
-        try await Platform.shared.readSwipletFile(swiplet, root: root, path: path)
-    }
-
-    func writeFile(swiplet: String, root: String, path: String, data: Data) async throws {
-        try await Platform.shared.writeSwipletFile(swiplet, root: root, path: path, data: data)
-    }
-
-    func makeDirectory(swiplet: String, root: String, path: String) async throws {
-        try await Platform.shared.makeSwipletDirectory(swiplet, root: root, path: path)
-    }
-
-    func removeFile(swiplet: String, root: String, path: String) async throws {
-        try await Platform.shared.removeSwipletFile(swiplet, root: root, path: path)
-    }
-
-    func copyFile(swiplet: String, root: String, from: String, toRoot: String, to: String) async throws {
-        try await Platform.shared.copySwipletFile(swiplet, root: root, from: from, toRoot: toRoot, to: to)
-    }
-
-    func moveFile(swiplet: String, root: String, from: String, toRoot: String, to: String) async throws {
-        try await Platform.shared.moveSwipletFile(swiplet, root: root, from: from, toRoot: toRoot, to: to)
     }
 
     func didPresent(_ name: String, exit: @escaping () -> Void) {
         presented.removeAll { $0.name == name }
         presented.append((name, exit))
+        recent.removeAll { $0 == name }
+        recent.append(name)
+        prepare(interfaces)
     }
 
     func didDismiss(_ name: String) {
         presented.removeAll { $0.name == name }
+        prepare(interfaces)
     }
 
     func exit(swiplet: String) {
         presented.last { $0.name == swiplet }?.exit()
     }
 
-    func log(swiplet: String, level: String, message: String) {
-        let level = switch level {
-        case "error": LibSwiptLogLevelError
-        case "warn": LibSwiptLogLevelWarn
-        case "debug": LibSwiptLogLevelDebug
-        default: LibSwiptLogLevelInfo
-        }
-        Platform.shared.logSwiplet(swiplet.isEmpty ? presented.last?.name ?? "" : swiplet, level: level, message: message)
-    }
-
-    func fail(surface: String, message: String) {
-        surfaces.object(forKey: surface as NSString)?.fail(message)
-    }
-
-    func report(swiplet: String, message: String) {
-        let name = swiplet.isEmpty ? presented.last?.name : swiplet
-        let title = name.map { String(localized: "“\(SwipletStore.shared.titles[$0] ?? $0)” Error") } ?? String(localized: "Swiplet Error")
-        ErrorAlert.shared.report(AlertState(title, errorMessage: message), swiplet: name)
-    }
-
     func isPresented(_ name: String) -> Bool {
         presented.contains { $0.name == name }
-    }
-
-    func surfaceDidMount(_ surface: String) {
-        surfaces.object(forKey: surface as NSString)?.didMount()
     }
 }

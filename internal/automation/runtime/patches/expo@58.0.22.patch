@@ -1,0 +1,178 @@
+diff --git a/ios/Expo/ExpoReactNativeFactory.swift b/ios/Expo/ExpoReactNativeFactory.swift
+index 158c9c9b43861fa942a2b9dbf582cb6101f9dc71..ca20f082bbc70cada27a0964feb3c56787a324e7 100644
+--- a/ios/Expo/ExpoReactNativeFactory.swift
++++ b/ios/Expo/ExpoReactNativeFactory.swift
+@@ -14,7 +14,7 @@ public class ExpoReactNativeFactory: ExpoReactNativeFactoryObjC, ExpoReactNative
+   private lazy var reactDelegate: ExpoReactDelegate = {
+     ExpoReactDelegate(
+       handlers: ExpoAppDelegateSubscriberRepository.reactDelegateHandlers,
+-      reactNativeFactory: self
++      reactNativeFactory: WeakReactNativeFactory(self)
+     )
+   }()
+ 
+@@ -173,3 +173,24 @@ public class ExpoReactNativeFactory: ExpoReactNativeFactoryObjC, ExpoReactNative
+     return rootView
+   }
+ }
++
++// `ExpoReactDelegate` holds its factory strongly, and the factory holds the delegate.
++private final class WeakReactNativeFactory: ExpoReactNativeFactoryProtocol {
++  private weak var factory: ExpoReactNativeFactory?
++
++  init(_ factory: ExpoReactNativeFactory) {
++    self.factory = factory
++  }
++
++  func recreateRootView(
++    withBundleURL: URL?,
++    moduleName: String?,
++    initialProps: [AnyHashable: Any]?,
++    launchOptions: [AnyHashable: Any]?
++  ) -> UIView {
++    guard let factory else {
++      fatalError("recreateRootView: The ExpoReactNativeFactory was deallocated")
++    }
++    return factory.recreateRootView(withBundleURL: withBundleURL, moduleName: moduleName, initialProps: initialProps, launchOptions: launchOptions)
++  }
++}
+diff --git a/ios/ExpoObjC/AppDelegates/ExpoReactNativeFactory.mm b/ios/ExpoObjC/AppDelegates/ExpoReactNativeFactory.mm
+index 18364a87c7a821204f728f6ef760197271d7d98a..4bef4592f57e39aeb64bb6391ab64936e1534f10 100644
+--- a/ios/ExpoObjC/AppDelegates/ExpoReactNativeFactory.mm
++++ b/ios/ExpoObjC/AppDelegates/ExpoReactNativeFactory.mm
+@@ -21,9 +21,67 @@
+ #import <ReactCommon/RCTHost.h>
+ #import <react/renderer/runtimescheduler/RuntimeSchedulerBinding.h>
+ #import <ExpoModulesCore/EXReactSchedulerDispatch.h>
++#import <jsi/hermes-interfaces.h>
++#import <jsi/jsi.h>
++
++#import <memory>
++#import <mutex>
++
++// `RCTInstance` destroys its runtime on the JS thread, which never gets to it while JavaScript keeps
++// running. A Hermes timeout interrupts a single execution, and only code with async break checks,
++// which eval code has, so it is requested again until the runtime is gone.
++namespace {
++
++struct EXRuntimeAccess {
++  std::mutex mutex;
++  facebook::hermes::IHermes *hermes = nullptr;
++};
++
++struct EXRuntimeAccessOwner {
++  std::shared_ptr<EXRuntimeAccess> access;
++
++  explicit EXRuntimeAccessOwner(std::shared_ptr<EXRuntimeAccess> access) : access(std::move(access)) {}
++
++  ~EXRuntimeAccessOwner()
++  {
++    std::lock_guard<std::mutex> lock(access->mutex);
++    access->hermes = nullptr;
++  }
++};
++
++constexpr facebook::jsi::UUID runtimeAccessKey{0x2cb2ce3f, 0xa633, 0x41aa, 0xb595, 0xc4f00cf48af5};
++
++void terminate(std::shared_ptr<EXRuntimeAccess> access)
++{
++  {
++    std::lock_guard<std::mutex> lock(access->mutex);
++    if (access->hermes == nullptr) {
++      return;
++    }
++    access->hermes->asyncTriggerTimeout();
++  }
++  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 100 * NSEC_PER_MSEC), dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
++    terminate(access);
++  });
++}
++
++} // namespace
+ 
+ @implementation EXReactNativeFactory {
+-  EXAppContext *_appContext;
++  std::mutex _runtimeMutex;
++  std::shared_ptr<EXRuntimeAccess> _runtimeAccess;
++}
++
++- (void)terminateJavaScript
++{
++  std::shared_ptr<EXRuntimeAccess> access;
++  {
++    std::lock_guard<std::mutex> lock(_runtimeMutex);
++    access = _runtimeAccess;
++  }
++  if (access != nullptr) {
++    terminate(access);
++  }
+ }
+ 
+ #pragma mark - RCTHostDelegate
+@@ -39,15 +97,11 @@ - (void)hostDidStart:(nonnull RCTHost *)host
+ // [JS thread]
+ - (void)host:(nonnull RCTHost *)host didInitializeRuntime:(facebook::jsi::Runtime &)runtime
+ {
+-  // Bind this callback to the context it creates. The factory is created once in
+-  // `application:didFinishLaunchingWithOptions:` and outlives any single `RCTHost`,
+-  // so a reload can run this callback for the incoming host while the outgoing
+-  // host's callback is still in flight on its own JS thread. Reading the shared ivar
+-  // back after that point can hand this callback the other callback's context, and
+-  // decorating objects created for one Hermes runtime against another runtime's
+-  // `AppContext.runtime` faults inside JSI.
+   EXAppContext *appContext = [[EXAppContext alloc] init];
+-  _appContext = appContext;
++  // React Native never forgets a registered component name and builds a descriptor for every one
++  // of them in each new host, so native views are named after an identifier that is reused once
++  // its app context is gone.
++  NSString *viewIdentifier = [appContext useReusableViewIdentifier];
+ 
+   // Resolve the React runtime scheduler so ExpoModulesJSI can dispatch work onto
+   // the JS thread. Doing it here (rather than inside the xcframework) keeps
+@@ -72,6 +126,24 @@ - (void)host:(nonnull RCTHost *)host didInitializeRuntime:(facebook::jsi::Runtim
+                 dispatch:schedulerHandle ? reinterpret_cast<const void *>(&expo::dispatchOnReactScheduler) : nullptr];
+   [appContext setHostWrapper:[[EXHostWrapper alloc] initWithHost:host]];
+ 
++  facebook::jsi::Value expo = runtime.global().getProperty(runtime, "expo");
++  if (expo.isObject()) {
++    expo.asObject(runtime).setProperty(
++        runtime, "__expo_view_identifier__", facebook::jsi::String::createFromUtf8(runtime, viewIdentifier.UTF8String));
++  }
++
++  auto access = std::make_shared<EXRuntimeAccess>();
++  access->hermes = facebook::jsi::castInterface<facebook::hermes::IHermes>(&runtime);
++  runtime.setRuntimeData(runtimeAccessKey, std::make_shared<EXRuntimeAccessOwner>(access));
++  {
++    std::lock_guard<std::mutex> lock(_runtimeMutex);
++    _runtimeAccess = access;
++  }
++
++  if (_appContextHandler != nil) {
++    _appContextHandler(appContext);
++  }
++
+   [appContext registerNativeModules];
+ }
+ 
+diff --git a/ios/ExpoObjC/include/Expo/ExpoReactNativeFactory.h b/ios/ExpoObjC/include/Expo/ExpoReactNativeFactory.h
+index 3bac5bccddf0b2c69c893b700fe5f16b2ddea753..e2834b7eb3f4a870461befc763c207759fa57850 100644
+--- a/ios/ExpoObjC/include/Expo/ExpoReactNativeFactory.h
++++ b/ios/ExpoObjC/include/Expo/ExpoReactNativeFactory.h
+@@ -3,6 +3,7 @@
+ #import <ExpoModulesCore/ExpoModulesCore.h>
+ #import <Expo/RCTAppDelegateUmbrella.h>
+ 
++@class EXAppContext;
+ @protocol RCTHostDelegate;
+ @protocol RCTHostRuntimeDelegate;
+ 
+@@ -14,4 +15,9 @@ NS_SWIFT_NAME(ExpoReactNativeFactoryObjC)
+ @interface EXReactNativeFactory : RCTReactNativeFactory <RCTHostDelegate, RCTHostRuntimeDelegate>
+ #endif
+ 
++// [JS thread] Called before the app context registers its native modules.
++@property (nonatomic, copy, nullable) void (NS_SWIFT_SENDABLE ^appContextHandler)(EXAppContext *_Nonnull appContext);
++
++- (void)terminateJavaScript;
++
+ @end

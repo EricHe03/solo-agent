@@ -18,6 +18,8 @@
     "@expo/ui@58.0.26": "internal/automation/runtime/patches/@expo%2Fui@58.0.26.patch",
     "expo-modules-autolinking@58.0.16": "internal/automation/runtime/patches/expo-modules-autolinking@58.0.16.patch",
     "web-streams-polyfill@4.3.0": "internal/automation/runtime/patches/web-streams-polyfill@4.3.0.patch",
+    "expo@58.0.22": "internal/automation/runtime/patches/expo@58.0.22.patch",
+    "react-native-worklets@0.13.0": "internal/automation/runtime/patches/react-native-worklets@0.13.0.patch",
     "whatwg-url-minimum@0.2.0": "internal/automation/runtime/patches/whatwg-url-minimum@0.2.0.patch"
   },
   "expo": {
