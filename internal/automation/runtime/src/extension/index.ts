@@ -7,9 +7,7 @@ import { atob, btoa, TextDecoder, TextEncoder } from "./encoding";
 import { DOMException } from "./errors";
 import { Blob, createObjectURL, File, revokeObjectURL } from "./blob";
 import { AbortController, AbortSignal, CloseEvent, CustomEvent, ErrorEvent, Event, EventTarget, MessageEvent } from "./events";
-import { EventSource } from "./eventsource";
 import { hooks } from "./extension";
-import { fetch, Headers, Request, Response } from "./fetch";
 import { FormData } from "./form";
 import { describe, formatAll } from "./format";
 import { bind, native, type Native } from "./native";
@@ -19,7 +17,6 @@ import {
   ReadableStreamBYOBReader, ReadableStreamBYOBRequest, ReadableStreamDefaultController, ReadableStreamDefaultReader, TextDecoderStream,
   TextEncoderStream, TransformStream, TransformStreamDefaultController, WritableStream, WritableStreamDefaultController, WritableStreamDefaultWriter,
 } from "./streams";
-import { WebSocket } from "./websocket";
 
 const define = (values: Record<string, unknown>) => {
   for (const [name, value] of Object.entries(values)) {
@@ -37,8 +34,8 @@ export function install(binding: Native) {
   });
   define({
     AbortController, AbortSignal, Event, EventTarget, CustomEvent, MessageEvent, CloseEvent, ErrorEvent, DOMException, TextEncoder, TextDecoder,
-    atob, btoa, structuredClone: (value: unknown) => structuredClone(value), URL, URLSearchParams, crypto, fetch, Headers, Request, Response,
-    Blob, File, FormData, WebSocket, EventSource, ReadableStream, ReadableStreamDefaultReader, ReadableStreamBYOBReader, ReadableStreamBYOBRequest,
+    atob, btoa, structuredClone: (value: unknown) => structuredClone(value), URL, URLSearchParams, crypto,
+    Blob, File, FormData, ReadableStream, ReadableStreamDefaultReader, ReadableStreamBYOBReader, ReadableStreamBYOBRequest,
     ReadableStreamDefaultController, ReadableByteStreamController, WritableStream, WritableStreamDefaultWriter, WritableStreamDefaultController,
     TransformStream, TransformStreamDefaultController, ByteLengthQueuingStrategy, CountQueuingStrategy, TextEncoderStream, TextDecoderStream,
     CompressionStream, DecompressionStream, sleep,

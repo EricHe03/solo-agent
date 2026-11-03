@@ -168,28 +168,6 @@ export function stream<T>(kind: string, args: unknown[] | (() => unknown[]), sig
   };
 }
 
-export function listen(kind: string, args: unknown[], push: (value: unknown) => void, fail: (error: Error) => void): () => void {
-  const id = nextID();
-  subscriptions.set(id, {
-    push,
-    fail: error => {
-      subscriptions.delete(id);
-      fail(error);
-    },
-  });
-  try {
-    native.subscribe(id, kind, JSON.stringify(args));
-  } catch (error) {
-    subscriptions.delete(id);
-    throw error;
-  }
-  return () => {
-    if (subscriptions.delete(id)) {
-      native.unsubscribe(id);
-    }
-  };
-}
-
 export function deliver(id: string, json: string): void {
   subscriptions.get(id)?.push(JSON.parse(json));
 }

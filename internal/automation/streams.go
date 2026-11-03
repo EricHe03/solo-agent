@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/coder/websocket"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/jsc"
 )
@@ -27,7 +26,6 @@ var (
 type resource struct {
 	reader io.Reader
 	writer io.Writer
-	socket *websocket.Conn
 	finish func(abort error) error
 	once   sync.Once
 	err    error
@@ -227,31 +225,6 @@ func streamRead(ctx context.Context, call *operation) (any, error) {
 		}
 		return nil, err
 	}
-}
-
-func streamReadAll(ctx context.Context, call *operation) (any, error) {
-	var id string
-	if err := call.decode(1, &id); err != nil {
-		return nil, err
-	}
-	it, err := call.engine.takeResource(id)
-	if err != nil {
-		return nil, err
-	}
-	defer context.AfterFunc(ctx, func() { _ = it.close(context.Cause(ctx)) })()
-	if it.reader == nil {
-		_ = it.close(errReleased)
-		return nil, E.Cause1(ErrInvalid, E.New("the stream ", strconv.Quote(id), " is not readable"))
-	}
-	data, err := io.ReadAll(it.reader)
-	if err != nil {
-		_ = it.close(err)
-		return nil, err
-	}
-	if err = it.close(nil); err != nil {
-		return nil, err
-	}
-	return jsc.Bytes(data), nil
 }
 
 func streamWrite(_ context.Context, call *operation) (any, error) {

@@ -554,7 +554,7 @@ func (e *engine) subscribe(arguments []jsc.Value) (any, error) {
 		return nil, E.Cause(err, "decode the arguments of ", kind)
 	}
 	ctx, cancel := context.WithCancel(e.current.ctx)
-	it := &subscription{cancel: cancel, exec: e.current, queue: kind == "device.applicationEvents" || kind == "sqlite.changes" || kind == "websocket"}
+	it := &subscription{cancel: cancel, exec: e.current, queue: kind == "device.applicationEvents" || kind == "sqlite.changes"}
 	e.subscriptions[id] = it
 	publish := func(value any, failure error) {
 		it.access.Lock()
