@@ -219,7 +219,8 @@ static void jsc_execute(jsc_runtime *rt, jsc_command *cmd) {
 		cmd->result = JSContextGetGlobalObject(ctx);
 		break;
 	case JSC_NEW_OBJECT: {
-		JSValueRef value = JSObjectMake(ctx, NULL, NULL);
+		JSObjectRef value = JSObjectMake(ctx, NULL, NULL);
+		JSObjectSetPrototype(ctx, value, JSValueMakeNull(ctx));
 		JSValueProtect(ctx, value);
 		cmd->result = value;
 		break;

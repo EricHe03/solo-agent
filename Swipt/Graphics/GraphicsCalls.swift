@@ -19,7 +19,7 @@ nonisolated enum GraphicsCalls {
         case "screen.find":
             return try screenFind(call, engine, context, token)
         case "decode":
-            return try decode(call, engine)
+            return try decode(call, engine, context)
         case "encode":
             let node = try image(call, 0)
             let data = try node.raster(token).encode(arguments.string("format") ?? "png", quality: arguments.double("quality"), scale: node.scale)
@@ -27,7 +27,7 @@ nonisolated enum GraphicsCalls {
         case "save":
             let node = try image(call, 0)
             let data = try node.raster(token).encode(arguments.string("format") ?? "png", quality: arguments.double("quality"), scale: node.scale)
-            let url = URL(fileURLWithPath: arguments.string("path") ?? "")
+            let url = try authorized(arguments.string("path"), write: true, context)
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try data.write(to: url, options: .atomic)
             return [String: Any]()
@@ -67,14 +67,14 @@ nonisolated enum GraphicsCalls {
         case "barcodes":
             return try Recognition.barcodes(image(call, 0), token: token)
         case "record":
-            let url = URL(fileURLWithPath: arguments.string("path") ?? "")
+            let url = try authorized(arguments.string("path"), write: true, context)
             let session = try RecordingSession.start(url: url, timeline: context.watchTimeline(), token: token)
             return ["recording": engine.register(session)]
         case "recording.stop":
             guard let session = call.objects.first as? RecordingSession else { throw GraphicsError.type("stop needs a Recording") }
             return try ["video": engine.register(session.stop(token: token))]
         case "video.open":
-            let url = URL(fileURLWithPath: arguments.string("path") ?? "")
+            let url = try authorized(arguments.string("path"), write: false, context)
             guard FileManager.default.fileExists(atPath: url.path) else {
                 throw GraphicsError("NotFoundError", "there is no file at \(url.path)")
             }
@@ -91,7 +91,9 @@ nonisolated enum GraphicsCalls {
         case "video.find":
             return try recordingFind(call, engine, context, token)
         case "video.export":
-            return try ["path": video(call).export(arguments, token: token)]
+            let model = try video(call)
+            let target = try authorized(arguments.string("path") ?? model.url.deletingPathExtension().path + "-export.mp4", write: true, context)
+            return try ["path": model.export(arguments, to: target, token: token)]
         default:
             throw GraphicsError.type("graphics: there is no call \(call.method)")
         }
@@ -121,6 +123,17 @@ nonisolated enum GraphicsCalls {
             previous = id
             publish(String(id))
         }
+    }
+
+    private static func authorized(_ path: String?, write: Bool, _ context: LibSwiptGraphicsContext) throws -> URL {
+        guard let path else {
+            throw GraphicsError.type("graphics: the call needs a path")
+        }
+        let failure = context.authorize(path, write: write)
+        if !failure.isEmpty {
+            throw GraphicsError(failure: failure)
+        }
+        return URL(fileURLWithPath: path)
     }
 
     private static func image(_ call: PreparedCall, _ index: Int) throws -> ImageNode {
@@ -486,14 +499,14 @@ nonisolated enum GraphicsCalls {
         return result ?? NSNull()
     }
 
-    private static func decode(_ call: PreparedCall, _ engine: GraphicsEngine) throws -> Any {
+    private static func decode(_ call: PreparedCall, _ engine: GraphicsEngine, _ context: LibSwiptGraphicsContext) throws -> Any {
         let arguments = call.arguments
         var scale = arguments.double("scale")
         let data: Data
         if let bytes = call.objects.first as? Data {
             data = bytes
         } else if let path = arguments.string("path") {
-            let url = URL(fileURLWithPath: path)
+            let url = try authorized(path, write: false, context)
             guard FileManager.default.fileExists(atPath: path) else {
                 throw GraphicsError("NotFoundError", "there is no file at \(path)")
             }

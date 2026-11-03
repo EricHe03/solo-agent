@@ -5,7 +5,12 @@ package automation
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"slices"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -69,6 +74,43 @@ func (c *GraphicsCall) Trace(at time.Time, name, detail string, duration time.Du
 
 func (c *GraphicsCall) WatchTimeline() *TimelineWatch {
 	return c.call.engine.host.watchTimeline()
+}
+
+func (c *GraphicsCall) Authorize(name string, write bool) error {
+	e := c.call.engine
+	roots, where := []string{filepath.Join(e.swiplet.Directory, DataFolder), e.caches}, "the data or cache directory"
+	if !write {
+		roots, where = append(roots, filepath.Join(e.swiplet.Directory, AssetsFolder)), "the data, cache or assets directory"
+	}
+	if resolved, err := resolvePath(filepath.Clean(name)); err == nil && filepath.IsAbs(name) {
+		for _, root := range common.FilterNotDefault(roots) {
+			base, err := resolvePath(root)
+			if err != nil {
+				continue
+			}
+			if relative, err := filepath.Rel(base, resolved); err == nil && relative != "." && filepath.IsLocal(relative) {
+				return nil
+			}
+		}
+	}
+	return E.Cause1(ErrNotAllowed, E.New("graphics: ", strconv.Quote(name), " is outside ", where))
+}
+
+func resolvePath(name string) (string, error) {
+	var missing []string
+	for {
+		resolved, err := filepath.EvalSymlinks(name)
+		if err == nil {
+			slices.Reverse(missing)
+			return filepath.Join(append([]string{resolved}, missing...)...), nil
+		}
+		parent := filepath.Dir(name)
+		if _, statErr := os.Lstat(name); statErr == nil || !errors.Is(err, fs.ErrNotExist) || parent == name {
+			return "", err
+		}
+		missing = append(missing, filepath.Base(name))
+		name = parent
+	}
 }
 
 func (e *engine) installGraphics(native jsc.Value) {

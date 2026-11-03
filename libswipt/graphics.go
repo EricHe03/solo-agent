@@ -61,6 +61,13 @@ func (c *GraphicsContext) Trace(name string, detail string, startedMs float64, d
 	c.call.Trace(time.UnixMilli(int64(startedMs)), name, detail, time.Duration(durationMs*float64(time.Millisecond)))
 }
 
+func (c *GraphicsContext) Authorize(path string, write bool) string {
+	if err := c.call.Authorize(path, write); err != nil {
+		return automation.FailureOf(err)
+	}
+	return ""
+}
+
 func (c *GraphicsContext) Cancelled() bool {
 	return c.call.Context().Err() != nil
 }

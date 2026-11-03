@@ -145,7 +145,7 @@ nonisolated final class VideoModel: @unchecked Sendable {
         let screen = metadata["screen"] as? [String: Any] ?? [:]
         self.screen = ScreenGeometry(width: (screen["width"] as? NSNumber)?.intValue ?? 0, height: (screen["height"] as? NSNumber)?.intValue ?? 0, scale: scale)
         segments = (metadata["segments"] as? [[String: Any]] ?? []).compactMap { segment in
-            guard let file = segment["file"] as? String else { return nil }
+            guard let file = segment["file"] as? String, !file.isEmpty, file != ".", file != "..", !file.contains("/") else { return nil }
             return Segment(
                 url: directory.appendingPathComponent(file), start: (segment["start"] as? NSNumber)?.doubleValue ?? 0,
                 duration: (segment["duration"] as? NSNumber)?.doubleValue ?? 0, turns: (segment["turns"] as? NSNumber)?.intValue ?? 0)
@@ -356,9 +356,7 @@ nonisolated final class VideoModel: @unchecked Sendable {
         return stride(from: 0.0, to: count, by: 1).map { duration * $0 / count }
     }
 
-    func export(_ arguments: Arguments, token: CancelToken) throws -> String {
-        let path = arguments.string("path") ?? url.deletingPathExtension().path + "-export.mp4"
-        let target = URL(fileURLWithPath: path)
+    func export(_ arguments: Arguments, to target: URL, token: CancelToken) throws -> String {
         try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? FileManager.default.removeItem(at: target)
         let format = arguments.string("format") ?? "mp4"
