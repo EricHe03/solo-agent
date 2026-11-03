@@ -5,6 +5,7 @@ import (
 
 	"github.com/swipt-automation/swipt/internal/log"
 	"github.com/swipt-automation/swipt/internal/proto"
+
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

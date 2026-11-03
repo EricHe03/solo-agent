@@ -16,12 +16,13 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/google/uuid"
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice"
 	"github.com/swipt-automation/swipt/internal/coredevice/xpc"
+
+	"github.com/google/uuid"
 	"howett.net/plist"
 )
 

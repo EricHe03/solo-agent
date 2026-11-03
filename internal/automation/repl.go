@@ -81,7 +81,7 @@ func ScriptFailure(err error) (*Failure, bool) {
 			failure.Name, failure.Message = match[2], match[1]+text[len(match[0]):]
 		}
 		if trace != "" {
-			for _, line := range strings.Split("    at "+trace, "\n") {
+			for line := range strings.SplitSeq("    at "+trace, "\n") {
 				match := exceptionFrame.FindStringSubmatch(line)
 				if match == nil {
 					continue

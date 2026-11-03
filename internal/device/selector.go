@@ -170,18 +170,18 @@ func parseText(name string, value json.RawMessage) (*textMatch, error) {
 
 func compileScript(source, flags string) (*regexp.Regexp, error) {
 	var out strings.Builder
-	var modes string
+	var modes strings.Builder
 	for _, flag := range flags {
 		switch flag {
 		case 'i', 'm', 's':
-			modes += string(flag)
+			modes.WriteRune(flag)
 		case 'g', 'y', 'd', 'u', 'v':
 		default:
 			return nil, E.New("unknown flag ", string(flag))
 		}
 	}
-	if modes != "" {
-		out.WriteString("(?" + modes + ")")
+	if modes.Len() > 0 {
+		out.WriteString("(?" + modes.String() + ")")
 	}
 	runes := []rune(source)
 	for index := 0; index < len(runes); index++ {

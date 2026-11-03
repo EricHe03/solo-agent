@@ -5,6 +5,7 @@ import (
 
 	"github.com/swipt-automation/swipt/internal/device"
 	"github.com/swipt-automation/swipt/internal/proto"
+
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 

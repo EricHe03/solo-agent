@@ -10,11 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	cloudflared "github.com/sagernet/sing-cloudflared"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
 	M "github.com/sagernet/sing/common/metadata"
+
+	"github.com/google/uuid"
 )
 
 type Mode int32

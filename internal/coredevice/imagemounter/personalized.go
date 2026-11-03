@@ -203,8 +203,7 @@ func (m *mounterConn) personalizationManifest(digest []byte) ([]byte, error) {
 		"ImageType":             personalizedDDIType,
 		"ImageSignature":        digest,
 	})
-	var deviceError *DeviceError
-	if errors.As(err, &deviceError) {
+	if _, isDeviceError := errors.AsType[*DeviceError](err); isDeviceError {
 		return nil, nil
 	}
 	if err != nil {

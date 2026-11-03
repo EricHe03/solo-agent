@@ -14,9 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
 	F "github.com/sagernet/sing/common/format"
+
+	"github.com/google/uuid"
 )
 
 const (

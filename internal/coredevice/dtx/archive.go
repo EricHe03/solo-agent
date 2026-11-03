@@ -8,6 +8,7 @@ import (
 
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
+
 	"howett.net/plist"
 )
 
@@ -306,11 +307,14 @@ func (d *archiveDecoder) object(object map[string]any) (any, error) {
 		}
 		return result, nil
 	case "NSString", "NSMutableString", "NSData", "NSMutableData", "NSNumber":
-		fields := []string{"NS.string"}
-		if name == "NSData" || name == "NSMutableData" {
+		var fields []string
+		switch name {
+		case "NSData", "NSMutableData":
 			fields = []string{"NS.data"}
-		} else if name == "NSNumber" {
+		case "NSNumber":
 			fields = []string{"NS.boolval", "NS.intval", "NS.floatval", "NS.doubleval"}
+		default:
+			fields = []string{"NS.string"}
 		}
 		for _, field := range fields {
 			if value, ok := object[field]; ok {

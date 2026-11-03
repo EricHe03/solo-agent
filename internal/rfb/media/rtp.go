@@ -14,7 +14,6 @@ type rtpPacket struct {
 	ssrc             uint32
 	extensionProfile uint16
 	payloadOffset    int
-	payload          []byte
 }
 
 func isRTCP(datagram []byte) bool {

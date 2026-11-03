@@ -55,17 +55,19 @@ func decodeUTF8(data []byte, fatal bool) (text string, restored int, ok bool) {
 				needed, point = 1, rune(b&0x1f)
 			case b >= 0xe0 && b <= 0xef:
 				lower, upper = 0x80, 0xbf
-				if b == 0xe0 {
+				switch b {
+				case 0xe0:
 					lower = 0xa0
-				} else if b == 0xed {
+				case 0xed:
 					upper = 0x9f
 				}
 				needed, point = 2, rune(b&0x0f)
 			case b >= 0xf0 && b <= 0xf4:
 				lower, upper = 0x80, 0xbf
-				if b == 0xf0 {
+				switch b {
+				case 0xf0:
 					lower = 0x90
-				} else if b == 0xf4 {
+				case 0xf4:
 					upper = 0x8f
 				}
 				needed, point = 3, rune(b&0x07)

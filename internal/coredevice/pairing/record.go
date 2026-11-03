@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 
 	E "github.com/sagernet/sing/common/exceptions"
+
 	"howett.net/plist"
 )
 

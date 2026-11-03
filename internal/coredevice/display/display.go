@@ -10,11 +10,12 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
 	N "github.com/sagernet/sing/common/network"
 	"github.com/swipt-automation/swipt/internal/coredevice"
+
+	"github.com/google/uuid"
 )
 
 const (

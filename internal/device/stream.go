@@ -10,15 +10,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
 	N "github.com/sagernet/sing/common/network"
-
 	"github.com/swipt-automation/swipt/internal/coredevice"
 	"github.com/swipt-automation/swipt/internal/coredevice/display"
 	"github.com/swipt-automation/swipt/internal/coredevice/hid"
 	"github.com/swipt-automation/swipt/internal/rfb/media"
+
+	"github.com/google/uuid"
 )
 
 const (

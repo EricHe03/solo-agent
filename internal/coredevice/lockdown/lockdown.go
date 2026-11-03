@@ -12,6 +12,7 @@ import (
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice/rsd"
+
 	"howett.net/plist"
 )
 

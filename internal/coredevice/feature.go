@@ -7,9 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/coredevice/xpc"
+
+	"github.com/google/uuid"
 )
 
 type FeatureError struct {

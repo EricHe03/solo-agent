@@ -12,9 +12,10 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/andybalholm/brotli"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/jsc"
+
+	"github.com/andybalholm/brotli"
 )
 
 const streamChunk = 64 << 10

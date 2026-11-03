@@ -23,12 +23,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-sourcemap/sourcemap"
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/device"
 	"github.com/swipt-automation/swipt/internal/jsc"
 	"github.com/swipt-automation/swipt/internal/log"
+
+	"github.com/go-sourcemap/sourcemap"
 )
 
 //go:embed runtime.js

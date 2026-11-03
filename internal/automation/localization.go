@@ -58,7 +58,7 @@ func preferredLocalizations(localizations []string, preferences []string) []stri
 	defer C.CFRelease(C.CFTypeRef(matched))
 	count := C.CFArrayGetCount(matched)
 	out := make([]string, 0, count)
-	for index := C.CFIndex(0); index < count; index++ {
+	for index := range count {
 		out = append(out, goString(C.string_at(matched, index)))
 	}
 	return out

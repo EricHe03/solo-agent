@@ -2,6 +2,7 @@ package device
 
 import (
 	"context"
+	"maps"
 	"slices"
 
 	E "github.com/sagernet/sing/common/exceptions"
@@ -77,7 +78,7 @@ var keyCodeUsages = func() map[uint16]uint8 {
 	for index, keyCode := range keypadDigits {
 		table[keyCode] = uint8(0x59 + index)
 	}
-	for keyCode, usage := range map[uint16]uint8{
+	maps.Copy(table, map[uint16]uint8{
 		36: usageReturn, 53: usageEscape, 51: usageBackspace, 48: usageTab, 49: usageSpace,
 		27: 0x2d, 24: 0x2e, 33: 0x2f, 30: 0x30, 42: usageBackslash, 41: 0x33, 39: 0x34,
 		43: 0x36, 47: 0x37, 44: 0x38, keyCodeCapsLock: usageCapsLock,
@@ -88,9 +89,7 @@ var keyCodeUsages = func() map[uint16]uint8 {
 		95: 0x85, 93: 0x89, 94: 0x87, 102: 0x91, 104: 0x90,
 		59: usageLeftControl, 56: usageLeftShift, 58: usageLeftAlt, 55: usageLeftGUI,
 		62: usageRightControl, 60: usageRightShift, 61: usageRightAlt, 54: usageRightGUI,
-	} {
-		table[keyCode] = usage
-	}
+	})
 	return table
 }()
 

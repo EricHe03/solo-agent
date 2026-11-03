@@ -12,13 +12,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nekohasekai/go-sdk/mcp"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/automation"
 	"github.com/swipt-automation/swipt/internal/device"
 	"github.com/swipt-automation/swipt/internal/log"
 	"github.com/swipt-automation/swipt/internal/proto"
+
+	"github.com/nekohasekai/go-sdk/mcp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"

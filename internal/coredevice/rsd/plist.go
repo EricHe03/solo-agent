@@ -8,6 +8,7 @@ import (
 	"net"
 
 	E "github.com/sagernet/sing/common/exceptions"
+
 	"howett.net/plist"
 )
 

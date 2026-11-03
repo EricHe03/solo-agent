@@ -5,13 +5,14 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice/lockdown"
 	"github.com/swipt-automation/swipt/internal/coredevice/pairing"
 	"github.com/swipt-automation/swipt/internal/coredevice/tlspsk"
 	"github.com/swipt-automation/swipt/internal/coredevice/tunnel"
+
+	"github.com/google/uuid"
 )
 
 type RemotePairingOptions struct {

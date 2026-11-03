@@ -9,11 +9,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
-
 	"github.com/swipt-automation/swipt/internal/coredevice/display"
 	"github.com/swipt-automation/swipt/internal/rfb/media"
+
+	"github.com/google/uuid"
 )
 
 const (

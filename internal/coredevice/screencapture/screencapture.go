@@ -3,9 +3,10 @@ package screencapture
 import (
 	"context"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/coredevice"
+
+	"github.com/google/uuid"
 )
 
 const (

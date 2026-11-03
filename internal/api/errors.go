@@ -7,6 +7,7 @@ import (
 
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/automation"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

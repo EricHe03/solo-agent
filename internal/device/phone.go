@@ -12,7 +12,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
 	"github.com/swipt-automation/swipt/internal/coredevice/accessibility"
@@ -48,24 +47,6 @@ func (r Rect) Intersect(other Rect) Rect {
 
 func (r Rect) Empty() bool {
 	return r.Width <= 0 || r.Height <= 0
-}
-
-func (r Rect) area() float64 {
-	return r.Width * r.Height
-}
-
-func (r Rect) subtract(cut Rect) []Rect {
-	overlap := r.Intersect(cut)
-	if overlap.Empty() {
-		return []Rect{r}
-	}
-	parts := []Rect{
-		{r.X, r.Y, r.Width, overlap.Y - r.Y},
-		{r.X, overlap.Y + overlap.Height, r.Width, r.Y + r.Height - overlap.Y - overlap.Height},
-		{r.X, overlap.Y, overlap.X - r.X, overlap.Height},
-		{overlap.X + overlap.Width, overlap.Y, r.X + r.Width - overlap.X - overlap.Width, overlap.Height},
-	}
-	return common.Filter(parts, func(part Rect) bool { return part.Width >= 1 && part.Height >= 1 })
 }
 
 type PhoneScreen struct {
@@ -474,27 +455,6 @@ func (p *Phone) Snapshot(ctx context.Context, options SnapshotOptions) (*View, e
 	}
 	p.connection.trace(started, "snapshot.read", strconv.Itoa(len(model.nodes))+" nodes of "+model.BundleID, time.Since(started))
 	return NewView(model, options.Raw), nil
-}
-
-func transient(err error) bool {
-	return E.IsMulti(err, accessibility.ErrNoAnswer, accessibility.ErrNoApplication)
-}
-
-func hitTest(ctx context.Context, client *accessibility.RemoteClient, geometry phoneGeometry, at Point) (accessibility.Element, error) {
-	batch := &accessibility.Batch{}
-	found := batch.HitTest(geometry.digitizer(at))
-	if err := client.Run(ctx, batch); err != nil {
-		return accessibility.Element{}, err
-	}
-	if err := found.Err("hit-test the screen"); err != nil {
-		return accessibility.Element{}, err
-	}
-	read := &accessibility.Batch{}
-	attributes := read.Attributes(found.Value)
-	if err := client.Run(ctx, read); err != nil {
-		return accessibility.Element{}, err
-	}
-	return attributes.Value, attributes.Err("read the hit element")
 }
 
 type PhoneInfo struct {

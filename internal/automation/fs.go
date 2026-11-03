@@ -38,12 +38,12 @@ func (e *engine) fileLocation(kind, name string) (*fileLocation, error) {
 	return &fileLocation{root: root, name: cleaned}, nil
 }
 
-func (c *operation) oneFileLocation() (*fileLocation, error) {
+func (o *operation) oneFileLocation() (*fileLocation, error) {
 	var kind, name string
-	if err := c.decode(2, &kind, &name); err != nil {
+	if err := o.decode(2, &kind, &name); err != nil {
 		return nil, err
 	}
-	return c.engine.fileLocation(kind, name)
+	return o.engine.fileLocation(kind, name)
 }
 
 type fileStat struct {

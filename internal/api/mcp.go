@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nekohasekai/go-sdk/mcp"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/automation"
 	"github.com/swipt-automation/swipt/internal/automation/declarations"
+
+	"github.com/nekohasekai/go-sdk/mcp"
 	"golang.org/x/image/draw"
 )
 

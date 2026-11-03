@@ -7,6 +7,7 @@ import (
 	"github.com/swipt-automation/swipt/internal/automation"
 	"github.com/swipt-automation/swipt/internal/automation/declarations"
 	"github.com/swipt-automation/swipt/internal/proto"
+
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )

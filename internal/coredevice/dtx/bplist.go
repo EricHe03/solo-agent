@@ -8,6 +8,7 @@ import (
 	"unicode/utf16"
 
 	E "github.com/sagernet/sing/common/exceptions"
+
 	"howett.net/plist"
 )
 

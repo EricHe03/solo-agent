@@ -17,8 +17,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
+
+	"github.com/google/uuid"
 	"howett.net/plist"
 )
 

@@ -36,7 +36,7 @@ func (r *bitReader) bit() uint {
 
 func (r *bitReader) bits(count int) uint {
 	var value uint
-	for i := 0; i < count; i++ {
+	for range count {
 		value = value<<1 | r.bit()
 	}
 	return value
@@ -89,7 +89,7 @@ func skipHEVCProfileTierLevel(r *bitReader, maxSubLayersMinus1 int) {
 	r.bits(8)
 	profilePresent := make([]bool, maxSubLayersMinus1)
 	levelPresent := make([]bool, maxSubLayersMinus1)
-	for i := 0; i < maxSubLayersMinus1; i++ {
+	for i := range maxSubLayersMinus1 {
 		profilePresent[i] = r.flag()
 		levelPresent[i] = r.flag()
 	}
@@ -98,7 +98,7 @@ func skipHEVCProfileTierLevel(r *bitReader, maxSubLayersMinus1 int) {
 			r.bits(2)
 		}
 	}
-	for i := 0; i < maxSubLayersMinus1; i++ {
+	for i := range maxSubLayersMinus1 {
 		if profilePresent[i] {
 			r.bits(88)
 		}

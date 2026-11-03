@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/coredevice/xpc"
+
+	"github.com/google/uuid"
 )
 
 // pymobiledevice3 and go-ios use 58783 as the default RSD port

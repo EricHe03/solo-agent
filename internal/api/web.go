@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coder/websocket"
 	E "github.com/sagernet/sing/common/exceptions"
+
+	"github.com/coder/websocket"
 	"golang.org/x/net/http/httpguts"
-	"golang.org/x/net/http2"
 )
 
 // The gRPC-Web translation and the "grpc-websockets" subprotocol are wire
@@ -116,7 +116,7 @@ func (w *webResponseWriter) Flush() {
 func (w *webResponseWriter) prepareHeaders() {
 	rawHeader := w.rawWriter.Header()
 	for key, values := range w.header {
-		canonicalKey := http.CanonicalHeaderKey(strings.TrimPrefix(key, http2.TrailerPrefix))
+		canonicalKey := http.CanonicalHeaderKey(strings.TrimPrefix(key, http.TrailerPrefix))
 		if canonicalKey == "Trailer" {
 			continue
 		}
@@ -147,7 +147,7 @@ func (w *webResponseWriter) writeTrailerFrame() {
 	}
 	trailerHeader := make(http.Header)
 	for key, values := range w.header {
-		lowerKey := strings.ToLower(strings.TrimPrefix(key, http2.TrailerPrefix))
+		lowerKey := strings.ToLower(strings.TrimPrefix(key, http.TrailerPrefix))
 		if lowerKey == "trailer" || flushedKeys[lowerKey] {
 			continue
 		}
@@ -340,7 +340,7 @@ func (w *webSocketResponseWriter) writeTrailerFrame() {
 	w.wroteTrailers = true
 	trailerHeader := make(http.Header)
 	for key, values := range w.header {
-		lowerKey := strings.ToLower(strings.TrimPrefix(key, http2.TrailerPrefix))
+		lowerKey := strings.ToLower(strings.TrimPrefix(key, http.TrailerPrefix))
 		if lowerKey == "trailer" {
 			continue
 		}

@@ -21,6 +21,7 @@ import (
 	"github.com/swipt-automation/swipt/internal/device"
 	"github.com/swipt-automation/swipt/internal/log"
 	"github.com/swipt-automation/swipt/internal/proto"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

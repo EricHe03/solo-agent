@@ -300,18 +300,6 @@ func (f *foreground) bundleOf(pid uint64) string {
 	return f.bundles[f.paths[pid]]
 }
 
-func (f *foreground) knownBundle(pid uint64) string {
-	if bundleID := f.bundleOf(pid); bundleID != "" {
-		return bundleID
-	}
-	f.access.Lock()
-	defer f.access.Unlock()
-	if f.current.pid == pid {
-		return f.current.bundleID
-	}
-	return ""
-}
-
 func (f *foreground) saw(front frontApplication) frontApplication {
 	f.access.Lock()
 	defer f.access.Unlock()

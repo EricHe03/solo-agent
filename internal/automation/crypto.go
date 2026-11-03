@@ -30,10 +30,11 @@ import (
 	"slices"
 	"strings"
 
-	"filippo.io/bigmod"
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/jsc"
+
+	"filippo.io/bigmod"
 )
 
 type cryptoParams struct {

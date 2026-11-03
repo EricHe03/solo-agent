@@ -13,8 +13,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
+
+	"github.com/google/uuid"
 )
 
 var appleEpoch = time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC)

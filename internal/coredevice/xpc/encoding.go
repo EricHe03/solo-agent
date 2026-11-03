@@ -14,8 +14,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
+
+	"github.com/google/uuid"
 )
 
 const (

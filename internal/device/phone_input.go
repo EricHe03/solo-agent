@@ -3,7 +3,6 @@ package device
 import (
 	"context"
 	"maps"
-	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -89,7 +88,8 @@ func DragPath(from, to Point, duration, press time.Duration) ([][]TouchSample, e
 	path = append(path, TouchSample{from.X, from.Y, 0})
 	for step := range easeSteps + 1 {
 		progress := float64(step) / easeSteps
-		eased := 1 - math.Pow(1-progress, 3)
+		remaining := 1 - progress
+		eased := 1 - remaining*remaining*remaining
 		path = append(path, TouchSample{from.X + (to.X-from.X)*eased, from.Y + (to.Y-from.Y)*eased, press + time.Duration(progress*float64(duration))})
 	}
 	return [][]TouchSample{append(path, TouchSample{to.X, to.Y, press + duration})}, nil

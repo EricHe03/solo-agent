@@ -7,7 +7,6 @@ import (
 	"net/netip"
 	"sync"
 
-	"github.com/google/uuid"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
 	M "github.com/sagernet/sing/common/metadata"
@@ -16,6 +15,8 @@ import (
 	"github.com/swipt-automation/swipt/internal/coredevice/rsd"
 	"github.com/swipt-automation/swipt/internal/coredevice/tunnel"
 	"github.com/swipt-automation/swipt/internal/coredevice/xpc"
+
+	"github.com/google/uuid"
 )
 
 const checkinLabel = "swipt"
