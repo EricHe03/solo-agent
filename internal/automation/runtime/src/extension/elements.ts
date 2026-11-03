@@ -1,14 +1,16 @@
+import type { Point, Rect } from "@swipt/api";
+import type {
+  AccessibilityElement as AccessibilityElementInterface, AccessibilitySnapshot as AccessibilitySnapshotInterface, AccessibilityTrait,
+} from "@swipt/api/accessibility";
+
 import { errorFrom } from "./errors";
 import { native } from "./native";
-
-export type Point = [x: number, y: number];
-export type Rect = [x: number, y: number, width: number, height: number];
 
 export interface Raw {
   ref: string;
   role: string;
   children?: Raw[];
-  traits?: string[];
+  traits?: AccessibilityTrait[];
   [field: string]: unknown;
 }
 
@@ -30,10 +32,10 @@ export const refOf = (element: AccessibilityElement): string => refs.get(element
 const clip = (text: string, limit: number) => text.length > limit ? `${text.slice(0, limit - limit / 3)}…${text.slice(-limit / 3)}` : text;
 const flags = ["selected", "focused", "disabled", "secure", "partial", "offScreen", "inert", "remote"] as const;
 
-export class AccessibilityElement {
+export class AccessibilityElement implements AccessibilityElementInterface {
   declare readonly role: string;
   declare readonly class?: string;
-  declare readonly traits: readonly string[];
+  declare readonly traits: readonly AccessibilityTrait[];
   declare readonly label?: string;
   declare readonly value?: string;
   declare readonly identifier?: string;
@@ -42,7 +44,16 @@ export class AccessibilityElement {
   declare readonly url?: string;
   declare readonly frame?: Rect;
   declare readonly point?: Point;
+  declare readonly partial?: true;
+  declare readonly offScreen?: true;
+  declare readonly inert?: true;
+  declare readonly remote?: true;
+  declare readonly disabled?: true;
+  declare readonly focused?: true;
+  declare readonly selected?: true;
   declare readonly expanded?: boolean;
+  declare readonly secure?: true;
+  declare readonly selection?: [location: number, length: number];
   declare readonly actions?: readonly string[];
   declare readonly children: readonly AccessibilityElement[];
   declare readonly parent?: AccessibilityElement;
@@ -62,7 +73,7 @@ export class AccessibilityElement {
   }
 }
 
-export class AccessibilitySnapshot {
+export class AccessibilitySnapshot implements AccessibilitySnapshotInterface {
   declare readonly app: string;
   declare readonly time: number;
   declare readonly root: AccessibilityElement;

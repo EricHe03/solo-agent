@@ -1,6 +1,8 @@
+import type { CallOptions } from "@swipt/api";
+
 import { invoke } from "./async";
 
-export type Options = { signal?: AbortSignal };
+export type Options = CallOptions;
 
 export const check = (value: unknown, allowed: string[]): Record<string, unknown> => {
   if (value === undefined) {

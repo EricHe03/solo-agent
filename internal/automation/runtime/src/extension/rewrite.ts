@@ -1,6 +1,6 @@
 import { parse } from "meriyah";
 
-import { completion, hoist, replHead } from "./head";
+import { completion, dynamicImport, hoist, load, replHead } from "./head";
 
 type Node = { type: string; start: number; end: number; [key: string]: any };
 type Edit = [position: number, length: number, insert: string];
@@ -101,11 +101,60 @@ const track = (source: string, edits: Edit[]) => {
   return list;
 };
 
-const isModule = (code: string): boolean => {
+const head = "(async () => {";
+const wrap = (code: string) => `${head}${code}\n})`;
+const options = { ranges: true, loc: true, webcompat: true };
+
+const located = (error: unknown, offset: number): { error: unknown; line: number; column: number } => {
+  const { loc, description } = error as { loc?: { start: { line: number; column: number } }; description?: string };
+  if (loc === undefined) {
+    return { error, line: 0, column: 0 };
+  }
+  const line = loc.start.line;
+  const column = (line === 1 ? loc.start.column - offset : loc.start.column) + 1;
+  return { error: new SyntaxError(`${description} (line ${line}, column ${column})`), line, column };
+};
+
+const staticImports = (code: string, failure: unknown): { code: string; imports: Node[] } => {
+  let program: Node;
   try {
-    return (parse(code, { module: true, webcompat: true }) as unknown as Node).body.some((node: Node) => /^(Import|Export)/.test(node.type));
-  } catch {
-    return false;
+    program = parse(code, { ...options, module: true, lexical: true }) as unknown as Node;
+  } catch (error) {
+    const script = located(failure, head.length);
+    const module = located(error, 0);
+    throw (module.line - script.line || module.column - script.column) > 0 ? module.error : script.error;
+  }
+  if (program.body.some((node: Node) => node.type.startsWith("Export"))) {
+    throw new SyntaxError("export declarations are unavailable because nothing imports REPL input");
+  }
+  const imports: Node[] = program.body.filter((node: Node) => node.type === "ImportDeclaration");
+  if (imports.length === 0) {
+    throw located(failure, head.length).error;
+  }
+  let blanked = code;
+  for (const node of imports) {
+    blanked = `${blanked.slice(0, node.start)};${blanked.slice(node.start + 1, node.end).replace(/[^\n\r\u2028\u2029]/g, " ")}${blanked.slice(node.end)}`;
+  }
+  return { code: blanked, imports };
+};
+
+const dynamicImports = (node: unknown, edits: Edit[]): void => {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      dynamicImports(item, edits);
+    }
+    return;
+  }
+  if (node === null || typeof node !== "object" || typeof (node as Node).type !== "string") {
+    return;
+  }
+  if ((node as Node).type === "ImportExpression") {
+    edits.push([(node as Node).start, "import".length, dynamicImport]);
+  }
+  for (const [key, value] of Object.entries(node)) {
+    if (key !== "loc") {
+      dynamicImports(value, edits);
+    }
   }
 };
 
@@ -131,25 +180,33 @@ const columnsOf = (source: string, start: number, edits: (readonly [number, numb
 };
 
 export function rewrite(code: string): { text: string; columns: Columns } {
-  const head = "(async () => {";
-  const source = `${head}${code}\n})`;
+  let imports: Node[] = [];
   let program: Node;
   try {
-    program = parse(source, { ranges: true, loc: true, webcompat: true }) as unknown as Node;
-  } catch (error) {
-    if (isModule(code)) {
-      throw new SyntaxError("there is no module system, so import and export declarations are unavailable; the API is in global objects");
+    program = parse(wrap(code), options) as unknown as Node;
+  } catch (failure) {
+    ({ code, imports } = staticImports(code, failure));
+    try {
+      program = parse(wrap(code), options) as unknown as Node;
+    } catch (error) {
+      throw located(error, head.length).error;
     }
-    const located = error as { loc?: { start: { line: number; column: number } }; description?: string };
-    if (located.loc) {
-      const { line, column } = located.loc.start;
-      throw new SyntaxError(`${located.description} (line ${line}, column ${(line === 1 ? column - head.length : column) + 1})`);
-    }
-    throw error;
   }
+  const source = wrap(code);
   const body: Node[] = program.body[0].expression.body.body;
   const names = new Set<string>();
   const hoisted: string[] = [];
+  for (const declaration of imports) {
+    const specifier = JSON.stringify(declaration.source.value);
+    if (declaration.specifiers.length === 0) {
+      hoisted.push(`${load}(${specifier});`);
+    }
+    for (const item of declaration.specifiers) {
+      names.add(item.local.name);
+      const exported = item.type === "ImportDefaultSpecifier" ? "default" : item.type === "ImportSpecifier" ? item.imported.name ?? item.imported.value : undefined;
+      hoisted.push(`${item.local.name} = ${load}(${specifier}${exported === undefined ? "" : `, ${JSON.stringify(exported)}`});`);
+    }
+  }
   const edits: Edit[] = [];
   const list = track(source, edits);
   for (const node of body) {
@@ -178,6 +235,7 @@ export function rewrite(code: string): { text: string; columns: Columns } {
         list([node], false);
     }
   }
+  dynamicImports(program, edits);
   let text = source;
   const ordered = edits.map((edit, index) => [...edit, index] as const).sort((a, b) => b[0] - a[0] || b[3] - a[3]);
   for (const [position, length, insert] of ordered) {

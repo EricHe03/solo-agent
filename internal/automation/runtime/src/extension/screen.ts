@@ -1,8 +1,15 @@
+import type { Rect } from "@swipt/api";
+import type { ImageDifference, RasterImage as RasterImageInterface } from "@swipt/api/image";
+import type {
+  RecordingSession as RecordingSessionInterface, ScreenChange, ScreenFindOptions, ScreenMatch, ScreenRecording as ScreenRecordingInterface, ScreenTarget,
+  TimelineEvent, WaitOptions,
+} from "@swipt/api/screen";
+
 import { stream } from "./async";
 import { DOMException } from "./errors";
 import { AbortController } from "./events";
 import { cacheDirectory, FileHandle, fileOf, handleOfPath, pathOf } from "./files";
-import { adopt, adoptOptional, finite, freeze, graphicsNative, handleOf, imageResult, RasterImage, rectOf, run, timeoutOf, type ImageHandle, type Rect } from "./image";
+import { adopt, adoptOptional, finite, freeze, graphicsNative, handleOf, imageResult, RasterImage, rectOf, run, timeoutOf, type ImageHandle } from "./image";
 import { check, optionsOf, signalOf, type Options } from "./options";
 
 interface RecordingHandle {
@@ -32,17 +39,10 @@ interface VideoInfo {
   height: number;
   scale: number;
   changes: RawChange[];
-  events: Record<string, unknown>[];
+  events: TimelineEvent[];
 }
 
 const largestFrameCount = 1000;
-
-type TimelineEvent =
-  | { time: number; type: "operation"; name: string; arguments?: unknown[]; durationMs?: number; error?: string; message?: string }
-  | { time: number; type: "action"; swiplet: string; action: string; caller: string }
-  | { time: number; type: "foreground"; app: string }
-  | { time: number; type: "log"; swiplet: string; level: string; message: string }
-  | { time: number; type: "feed" };
 
 const clip = (text: string, limit: number) => {
   const line = text.replace(/\s*\n\s*/g, " ");
@@ -109,7 +109,7 @@ const videoOf = (id: number): ScreenRecording => {
   return new ScreenRecording(handle as VideoHandle);
 };
 
-export class RecordingSession {
+export class RecordingSession implements RecordingSessionInterface {
   declare readonly file: FileHandle;
   declare readonly start: number;
 
@@ -132,15 +132,15 @@ export class RecordingSession {
   }
 }
 
-export class ScreenRecording {
+export class ScreenRecording implements ScreenRecordingInterface {
   declare readonly file: FileHandle;
   declare readonly start: number | null;
   declare readonly duration: number;
   declare readonly width: number;
   declare readonly height: number;
   declare readonly scale: number;
-  declare readonly changes: readonly object[];
-  declare readonly events: readonly object[];
+  declare readonly changes: readonly ScreenChange[];
+  declare readonly events: readonly TimelineEvent[];
 
   constructor(handle: VideoHandle) {
     videos.set(this, handle);
@@ -175,7 +175,7 @@ export class ScreenRecording {
     return new RasterImage(videos.get(this)!.frame(this.#time(time, "the time")));
   }
 
-  frames(times: readonly number[] | { everyMs: number; from?: number; to?: number }): RasterImage[] {
+  frames(times: readonly number[] | { readonly everyMs: number; readonly from?: number; readonly to?: number }): RasterImage[] {
     let chosen: number[];
     if (Array.isArray(times)) {
       chosen = times.map((time, index) => this.#time(time, `time ${index + 1}`));
@@ -198,7 +198,7 @@ export class ScreenRecording {
     return chosen.map(time => this.frame(time));
   }
 
-  async grid(options?: Options & { times?: readonly number[]; columns?: number; width?: number }): Promise<RasterImage> {
+  async grid(options?: Options & { readonly times?: readonly number[]; readonly columns?: number; readonly width?: number }): Promise<RasterImage> {
     const { times, columns, width } = optionsOf(options, ["times", "columns", "width"]);
     const args: Record<string, unknown> = {};
     if (times !== undefined) {
@@ -222,13 +222,16 @@ export class ScreenRecording {
     return imageResult(run("video.grid", args, [videos.get(this)!], signalOf(options)));
   }
 
-  async diff(from: number, to: number, options?: Options & { threshold?: number }) {
+  async diff(from: number, to: number, options?: Options & { readonly threshold?: number }) {
     const { threshold } = optionsOf(options, ["threshold"]);
     const args = { from: this.#time(from, "from"), to: this.#time(to, "to"), threshold: thresholdOf(threshold) };
-    return freeze(await run("video.diff", args, [videos.get(this)!], signalOf(options)));
+    return freeze(await run<ImageDifference>("video.diff", args, [videos.get(this)!], signalOf(options)));
   }
 
-  async find(target: ScreenTarget | readonly ScreenTarget[], options?: MatchOptions & { from?: number; to?: number }): Promise<(ScreenMatch & { readonly time: number }) | null> {
+  async find(
+    target: ScreenTarget | readonly ScreenTarget[],
+    options?: Omit<ScreenFindOptions, "timeoutMs"> & { readonly from?: number; readonly to?: number },
+  ): Promise<(ScreenMatch & { readonly time: number }) | null> {
     const values = optionsOf(options, [...matchKeys, "from", "to"]);
     const { args, images } = matchArgs(target, values);
     if (values.from !== undefined) {
@@ -240,7 +243,15 @@ export class ScreenRecording {
     return matchOf(await run<(RawMatch & { time: number }) | null>("video.find", args, [videos.get(this)!, ...images], signalOf(options)));
   }
 
-  async export(options?: Options & { file?: unknown; from?: number; to?: number; region?: Rect; scale?: number; format?: "mov" | "mp4" | "gif"; frameRate?: number }): Promise<FileHandle> {
+  async export(options?: Options & {
+    readonly file?: unknown;
+    readonly from?: number;
+    readonly to?: number;
+    readonly region?: Rect;
+    readonly scale?: number;
+    readonly format?: "mov" | "mp4" | "gif";
+    readonly frameRate?: number;
+  }): Promise<FileHandle> {
     const { file, from, to, region, scale, format = "mp4", frameRate } = optionsOf(options, ["file", "from", "to", "region", "scale", "format", "frameRate"]);
     if (format !== "mov" && format !== "mp4" && format !== "gif") {
       throw new TypeError("the format must be mov, mp4 or gif");
@@ -279,7 +290,7 @@ export class ScreenRecording {
 
   toString(): string {
     const entries: { time: number; end: number; text: string; detail?: string }[] = [];
-    for (const event of this.events as unknown as readonly TimelineEvent[]) {
+    for (const event of this.events) {
       const entry = timelineEntry(event);
       if (entry !== undefined) {
         entries.push({ time: event.time, end: event.time + (event.type === "operation" ? event.durationMs ?? 0 : 0), ...entry });
@@ -348,18 +359,7 @@ const limited = (signal: AbortSignal | undefined, timeout: number | null) => {
 
 export const screenshot = (options?: Options) => imageResult(run("screenshot", {}, [], signalOf(check(options, []))));
 
-type ScreenTarget = RasterImage | RegExp | string;
-
-type RawMatch = { frame: Rect; center: [number, number]; score: number; text: string | null; target: number; image: number };
-
-interface ScreenMatch {
-  readonly frame: Rect;
-  readonly center: [number, number];
-  readonly score: number;
-  readonly text: string | null;
-  readonly target: number;
-  readonly image: RasterImage;
-}
+type RawMatch = Omit<ScreenMatch, "image"> & { image: number };
 
 const findLimit = (value: unknown): number | null => {
   if (value === undefined || value === 0) {
@@ -373,8 +373,6 @@ const findLimit = (value: unknown): number | null => {
   }
   return value;
 };
-
-type MatchOptions = Options & { region?: Rect; threshold?: number; scales?: readonly number[]; languages?: readonly string[]; minimumHeight?: number; binarize?: number };
 
 const matchArgs = (target: ScreenTarget | readonly ScreenTarget[], options: Record<string, unknown>) => {
   const { region, threshold, scales, languages, minimumHeight, binarize } = options;
@@ -443,14 +441,14 @@ const matchOf = <T extends { image: number }>(result: T | null) => {
   return freeze({ ...match, image: adopt(image) });
 };
 
-export const find = async (target: ScreenTarget | readonly ScreenTarget[], options?: MatchOptions & { timeoutMs?: number }): Promise<ScreenMatch | null> => {
+export const find = async (target: ScreenTarget | readonly ScreenTarget[], options?: ScreenFindOptions): Promise<ScreenMatch | null> => {
   const values = optionsOf(options, [...matchKeys, "timeoutMs"]);
   const { args, images } = matchArgs(target, values);
   args.timeoutMs = findLimit(values.timeoutMs);
   return matchOf(await run<RawMatch | null>("screen.find", args, images, signalOf(options)));
 };
 
-export const waitFor = async (predicate: (frame: RasterImage) => boolean | Promise<boolean>, options?: Options & { timeoutMs?: number }): Promise<RasterImage> => {
+export const waitFor = async (predicate: (frame: RasterImage) => boolean | Promise<boolean>, options?: Options & { readonly timeoutMs?: number }): Promise<RasterImage> => {
   if (typeof predicate !== "function") {
     throw new TypeError("the predicate must be a function");
   }
@@ -468,19 +466,19 @@ export const waitFor = async (predicate: (frame: RasterImage) => boolean | Promi
   throw new DOMException("the screen stream ended", "UnavailableError");
 };
 
-export const waitForChange = (options?: Options & { region?: Rect; timeoutMs?: number; threshold?: number; from?: RasterImage }) => {
+export const waitForChange = (options?: WaitOptions & { readonly from?: RasterImageInterface }) => {
   const { rest, args } = waitArgs(options, ["from"]);
   const objects = rest.from === undefined ? [] : [handleOf(rest.from, "from")];
   return imageResult(run("screen.waitForChange", args, objects, signalOf(options)));
 };
 
-export const waitForStable = (options?: Options & { region?: Rect; timeoutMs?: number; threshold?: number; durationMs?: number }) => {
+export const waitForStable = (options?: WaitOptions & { readonly durationMs?: number }) => {
   const { rest, args } = waitArgs(options, ["durationMs"]);
   args.durationMs = durationOf(rest.durationMs, "durationMs", 500);
   return imageResult(run("screen.waitForStable", args, [], signalOf(options)));
 };
 
-export const record = async (options?: Options & { file?: unknown }): Promise<RecordingSession> => {
+export const record = async (options?: Options & { readonly file?: unknown }): Promise<RecordingSession> => {
   const { file } = optionsOf(options, ["file"]);
   const target = file === undefined ? defaultFile("Recordings", "mov") : fileOf(file, "file");
   const path = pathOf(target);

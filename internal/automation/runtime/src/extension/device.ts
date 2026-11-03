@@ -1,8 +1,11 @@
+import type { ObservableState } from "@swipt/api";
+import type { ApplicationStateEvent, DeviceInfo, DisplayState, InstalledApplication } from "@swipt/api/device";
+
 import { invoke, stream } from "./async";
 import { handleOfPath } from "./files";
 import { act, check, optionsOf, signalOf, type Options } from "./options";
 
-const state = <T>(name: string) => Object.freeze({
+const state = <T>(name: string): ObservableState<T> => Object.freeze({
   get: (options?: Options) => invoke<T>("device.state", [name], { signal: signalOf(check(options, [])) }),
   values: (options?: Options) => stream<T>("device.state", [name], signalOf(check(options, [])), "latest"),
 });
@@ -14,18 +17,18 @@ const bundleIdOf = (bundleId: unknown): string => {
   return bundleId;
 };
 
-export const info = (options?: Options) => invoke("device.info", [], { signal: signalOf(check(options, [])) });
+export const info = (options?: Options) => invoke<DeviceInfo>("device.info", [], { signal: signalOf(check(options, [])) });
 export const foregroundApplication = state<string>("foreground");
 export const locked = state<boolean>("locked");
-export const displayState = state<string>("display");
+export const displayState = state<DisplayState>("display");
 export const unlock = (options?: Options) => act("device.unlock", [], check(options, []));
 
 export const applicationEvents = (options?: Options) =>
-  stream("device.applicationEvents", [], signalOf(check(options, [])), "all", value => Object.freeze(value));
-export const installedApplications = (options?: Options) => invoke("device.installedApplications", [], { signal: signalOf(check(options, [])) });
+  stream<ApplicationStateEvent>("device.applicationEvents", [], signalOf(check(options, [])), "all", value => Object.freeze(value as ApplicationStateEvent));
+export const installedApplications = (options?: Options) => invoke<InstalledApplication[]>("device.installedApplications", [], { signal: signalOf(check(options, [])) });
 export const applicationIcon = async (bundleId: string, options?: Options) =>
   handleOfPath(await invoke<string>("device.applicationIcon", [bundleIdOf(bundleId)], { signal: signalOf(check(options, [])) }));
-export const launchApplication = (bundleId: string, options?: Options) =>
+export const launchApplication = (bundleId: string, options?: Options & { readonly url?: string; readonly restart?: boolean }) =>
   act("device.launchApplication", [bundleIdOf(bundleId), optionsOf(options, ["url", "restart"])], options);
 
 export const pasteboard = (options?: Options) => invoke<string | null>("device.pasteboard", [], { signal: signalOf(check(options, [])) });

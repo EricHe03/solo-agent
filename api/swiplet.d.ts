@@ -108,3 +108,5 @@ export declare function useService<E extends Extension<any, true>>(): ServiceHan
 export declare function exit(): void;
 
 export declare function preferredLocalizations(localizations: readonly string[]): string[];
+
+export {};

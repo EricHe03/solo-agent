@@ -1,12 +1,15 @@
+import type { Point, Rect } from "@swipt/api";
+import type {
+  ConnectedComponent, DetectedBarcode, ImageDifference, ImageFormat, ImageStats, RasterImage as RasterImageInterface, RecognizedTextBox, RecognizedTextLine,
+  TemplateMatch, TextRecognitionOptions,
+} from "@swipt/api/image";
+
 import { invoke } from "./async";
 import { DOMException } from "./errors";
 import { fileOf, pathOf } from "./files";
 import { native, type GraphicsNative } from "./native";
 import { check, optionsOf, signalOf, type Options } from "./options";
 
-export type Point = [x: number, y: number];
-export type Rect = [x: number, y: number, width: number, height: number];
-type Quad = [Point, Point, Point, Point];
 type Color = [red: number, green: number, blue: number];
 
 export interface ImageHandle {
@@ -158,16 +161,6 @@ export const adoptOptional = (id: unknown): RasterImage | undefined => {
   return handle === null ? undefined : new RasterImage(handle as ImageHandle);
 };
 
-interface TextOptions extends Options {
-  region?: unknown;
-  languages?: unknown;
-  detectLanguage?: unknown;
-  level?: unknown;
-  words?: unknown;
-  correction?: unknown;
-  minimumHeight?: unknown;
-}
-
 const strings = (value: unknown, name: string): string[] => {
   if (!Array.isArray(value) || !value.every(item => typeof item === "string")) {
     throw new TypeError(`${name} must be an array of strings`);
@@ -199,42 +192,23 @@ const textOptionsOf = (options: unknown): Record<string, unknown> => {
   };
 };
 
-interface TextBox {
-  readonly quad: Quad;
-  readonly frame: Rect;
-  readonly center: Point;
-}
-
-interface TextCandidate {
-  readonly text: string;
-  readonly confidence: number;
-  boundingBox(start: number, end: number): TextBox | null;
-}
-
-interface TextLine extends TextCandidate {
-  readonly quad: Quad;
-  readonly frame: Rect;
-  readonly center: Point;
-  readonly candidates: readonly TextCandidate[];
-}
-
 interface TextHandle {
-  boundingBox(line: number, candidate: number, start: number, end: number): TextBox | null;
+  boundingBox(line: number, candidate: number, start: number, end: number): RecognizedTextBox | null;
 }
 
-interface RawLine extends TextBox {
+interface RawLine extends RecognizedTextBox {
   text: string;
   confidence: number;
   candidates: { text: string; confidence: number }[];
 }
 
-const linesOf = (result: { lines: RawLine[]; text: number }): TextLine[] => {
+const linesOf = (result: { lines: RawLine[]; text: number }): RecognizedTextLine[] => {
   const handle = graphicsNative().take(result.text) as TextHandle | null;
   if (handle === null) {
     throw new DOMException("the text was released", "InvalidStateError");
   }
   const boxed = <T extends object>(value: T, text: string, line: number, candidate: number): T => Object.defineProperty(value, "boundingBox", {
-    value: (start: number, end: number): TextBox | null => {
+    value: (start: number, end: number): RecognizedTextBox | null => {
       const from = integer(start, "start", 0, text.length);
       return freeze(handle.boundingBox(line, candidate, from, integer(end, "end", from, text.length)));
     },
@@ -242,10 +216,10 @@ const linesOf = (result: { lines: RawLine[]; text: number }): TextLine[] => {
   return result.lines.map(({ candidates, ...line }, index) => freeze(boxed({
     ...line,
     candidates: candidates.map((candidate, rank) => boxed({ ...candidate }, candidate.text, index, rank)),
-  }, line.text, index, 0) as unknown as TextLine));
+  }, line.text, index, 0) as unknown as RecognizedTextLine));
 };
 
-const formatOf = (value: unknown): "png" | "jpeg" | "heic" => {
+const formatOf = (value: unknown): ImageFormat => {
   if (value !== "png" && value !== "jpeg" && value !== "heic") {
     throw new TypeError("the format must be png, jpeg or heic");
   }
@@ -292,7 +266,7 @@ const matchOptionsOf = (options: unknown, extra: string[]) => {
   return out;
 };
 
-export class RasterImage {
+export class RasterImage implements RasterImageInterface {
   declare readonly width: number;
   declare readonly height: number;
   declare readonly scale: number;
@@ -319,7 +293,7 @@ export class RasterImage {
     return new RasterImage(handleOf(this).crop(x, y, width, height));
   }
 
-  resize(size: number | { width?: number; height?: number }): RasterImage {
+  resize(size: number | { readonly width?: number; readonly height?: number }): RasterImage {
     const handle = handleOf(this);
     let width: number;
     let height: number;
@@ -355,7 +329,7 @@ export class RasterImage {
     return new RasterImage(handleOf(this).threshold(level === "otsu" ? -1 : integer(level, "the level", 0, 255)));
   }
 
-  mask(color: unknown, options?: { tolerance?: number }): RasterImage {
+  mask(color: unknown, options?: { readonly tolerance?: number }): RasterImage {
     const { tolerance } = check(options, ["tolerance"]) as { tolerance?: unknown };
     let low: Color;
     let high: Color;
@@ -386,13 +360,13 @@ export class RasterImage {
     return new RasterImage(handleOf(this).erode(integer(radius, "the radius", 1, 64)));
   }
 
-  async encode(format: "png" | "jpeg" | "heic" = "png", options?: Options & { quality?: number }): Promise<Uint8Array> {
+  async encode(format: ImageFormat = "png", options?: Options & { readonly quality?: number }): Promise<Uint8Array> {
     const { quality } = optionsOf(options, ["quality"]);
     const result = await run<{ bytes: number }>("encode", { format: formatOf(format), quality: qualityOf(quality) }, [handleOf(this)], signalOf(options));
     return bytesOf(result.bytes);
   }
 
-  async save(file: unknown, options?: Options & { format?: "png" | "jpeg" | "heic"; quality?: number }) {
+  async save(file: unknown, options?: Options & { readonly format?: ImageFormat; readonly quality?: number }) {
     const { format, quality } = optionsOf(options, ["format", "quality"]);
     const handle = fileOf(file, "the file");
     const path = pathOf(handle);
@@ -406,21 +380,24 @@ export class RasterImage {
     return run("pixel", { point: pointOf(point, "the point") }, [handleOf(this)], signalOf(check(options, [])));
   }
 
-  async stats(options?: Options & { region?: Rect }): Promise<{ mean: number[]; min: number[]; max: number[]; deviation: number[] }> {
+  async stats(options?: Options & { readonly region?: Rect }): Promise<ImageStats> {
     const { region } = optionsOf(options, ["region"]);
-    return freeze(await run("stats", { region: region === undefined ? undefined : rectOf(region, "region") }, [handleOf(this)], signalOf(options)));
+    return freeze(await run<ImageStats>("stats", { region: region === undefined ? undefined : rectOf(region, "region") }, [handleOf(this)], signalOf(options)));
   }
 
-  async find(template: RasterImage, options?: Options & { threshold?: number; region?: Rect; scales?: number[] }) {
-    const found = await run<unknown[]>("find", { ...matchOptionsOf(options, []), limit: 1 }, [handleOf(this), handleOf(template, "the template")], signalOf(options));
+  async find(template: RasterImage, options?: Options & { readonly threshold?: number; readonly region?: Rect; readonly scales?: readonly number[] }) {
+    const found = await run<TemplateMatch[]>("find", { ...matchOptionsOf(options, []), limit: 1 }, [handleOf(this), handleOf(template, "the template")], signalOf(options));
     return found.length > 0 ? freeze(found[0]) : null;
   }
 
-  async findAll(template: RasterImage, options?: Options & { threshold?: number; region?: Rect; scales?: number[]; limit?: number; overlap?: number }) {
-    return freeze(await run<unknown[]>("find", matchOptionsOf(options, ["limit", "overlap"]), [handleOf(this), handleOf(template, "the template")], signalOf(options)));
+  async findAll(
+    template: RasterImage,
+    options?: Options & { readonly threshold?: number; readonly region?: Rect; readonly scales?: readonly number[]; readonly limit?: number; readonly overlap?: number },
+  ) {
+    return freeze(await run<TemplateMatch[]>("find", matchOptionsOf(options, ["limit", "overlap"]), [handleOf(this), handleOf(template, "the template")], signalOf(options)));
   }
 
-  async matchColors(checks: readonly { point: Point; color: unknown; tolerance?: number }[], options?: Options): Promise<boolean[]> {
+  async matchColors(checks: readonly { readonly point: Point; readonly color: unknown; readonly tolerance?: number }[], options?: Options): Promise<boolean[]> {
     if (!Array.isArray(checks)) {
       throw new TypeError("the checks must be an array");
     }
@@ -431,25 +408,25 @@ export class RasterImage {
     return run("colors", { checks: encoded }, [handleOf(this)], signalOf(check(options, [])));
   }
 
-  async components(options?: Options & { minimumPixels?: number }) {
+  async components(options?: Options & { readonly minimumPixels?: number }) {
     const { minimumPixels } = optionsOf(options, ["minimumPixels"]);
-    return freeze(await run<unknown[]>("components", { minimumPixels: minimumPixels === undefined ? 1 : integer(minimumPixels, "minimumPixels", 1, Number.MAX_SAFE_INTEGER) }, [handleOf(this)], signalOf(options)));
+    return freeze(await run<ConnectedComponent[]>("components", { minimumPixels: minimumPixels === undefined ? 1 : integer(minimumPixels, "minimumPixels", 1, Number.MAX_SAFE_INTEGER) }, [handleOf(this)], signalOf(options)));
   }
 
-  async recognizeText(options?: TextOptions): Promise<TextLine[]> {
+  async recognizeText(options?: TextRecognitionOptions): Promise<RecognizedTextLine[]> {
     return linesOf(await run<{ lines: RawLine[]; text: number }>("text", textOptionsOf(options), [handleOf(this)], signalOf(options)));
   }
 
-  async diff(other: RasterImage, options?: Options & { threshold?: number }) {
+  async diff(other: RasterImage, options?: Options & { readonly threshold?: number }) {
     const { threshold } = optionsOf(options, ["threshold"]);
-    return freeze(await run("diff", { threshold: threshold === undefined ? undefined : integer(threshold, "threshold", 1, 255) }, [handleOf(this), handleOf(other, "the other image")], signalOf(options)));
+    return freeze(await run<ImageDifference>("diff", { threshold: threshold === undefined ? undefined : integer(threshold, "threshold", 1, 255) }, [handleOf(this), handleOf(other, "the other image")], signalOf(options)));
   }
 
   distance(other: RasterImage, options?: Options): Promise<number> {
     return run("distance", {}, [handleOf(this), handleOf(other, "the other image")], signalOf(check(options, [])));
   }
 
-  async nearest(candidates: readonly RasterImage[], options?: Options): Promise<{ index: number; distance: number }> {
+  async nearest(candidates: readonly RasterImage[], options?: Options): Promise<{ readonly index: number; readonly distance: number }> {
     if (!Array.isArray(candidates) || candidates.length === 0) {
       throw new TypeError("the candidates must be a non-empty array of Images");
     }
@@ -458,7 +435,7 @@ export class RasterImage {
   }
 
   async detectBarcodes(options?: Options) {
-    return freeze(await run<unknown[]>("barcodes", {}, [handleOf(this)], signalOf(check(options, []))));
+    return freeze(await run<DetectedBarcode[]>("barcodes", {}, [handleOf(this)], signalOf(check(options, []))));
   }
 
   toString(): string {
@@ -472,7 +449,7 @@ export { freeze };
 
 export const imageResult = async (result: Promise<{ image: number }>): Promise<RasterImage> => adopt((await result).image);
 
-export const decode = (data: unknown, options?: Options & { scale?: number }) => {
+export const decode = (data: unknown, options?: Options & { readonly scale?: number }) => {
   const { scale } = optionsOf(options, ["scale"]);
   const args: Record<string, unknown> = {};
   if (scale !== undefined) {

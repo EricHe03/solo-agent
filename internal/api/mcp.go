@@ -45,13 +45,13 @@ func (s *Server) newMCP() (*mcp.Server, http.Handler) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "js",
 		Title:       "Control the device",
-		Description: "Run JavaScript on the device",
+		Description: "Run JavaScript on the device; import declarations and import() load " + strings.Join(declarations.Modules, ", "),
 		Meta:        mcp.Meta{"anthropic/alwaysLoad": true},
 	}, s.js)
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "js_api",
 		Title:       "Device JavaScript API",
-		Description: "TypeScript declarations of the js globals",
+		Description: "TypeScript declarations of the js globals and modules",
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true},
 		Meta:        mcp.Meta{"anthropic/alwaysLoad": true},
 	}, func(context.Context, *mcp.CallToolRequest, struct{}) (*mcp.CallToolResult, any, error) {

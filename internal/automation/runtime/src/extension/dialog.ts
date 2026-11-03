@@ -1,3 +1,5 @@
+import type { IntentDialog } from "@swipt/api/swiplet";
+
 import { inspect } from "../shared/inspect";
 import { invoke } from "./async";
 import { native } from "./native";
@@ -54,7 +56,7 @@ const range = (min: unknown, max: unknown, integer: boolean) => {
   }
 };
 
-export function createDialog() {
+export function createDialog(): IntentDialog {
   const ask = <T>(request: Record<string, unknown>, inApp: boolean, signal?: AbortSignal) => invoke<T>("dialog", [request, inApp], { signal });
   const api = {
     requestChoice: async <T extends string | { title: string; style?: string }>(choices: T[], message: string, value?: Options): Promise<T> => {
@@ -85,7 +87,7 @@ export function createDialog() {
       }
       await ask({ kind: "confirmation", prompt: text(message, "the prompt"), actionName }, false, signal);
     },
-    requestValue: async (type: string, message?: string, value?: Options): Promise<unknown> => {
+    requestValue: (async (type: string, message?: string, value?: Options): Promise<unknown> => {
       const request = { kind: "value", type, prompt: prompt(message) };
       switch (type) {
         case "text": {
@@ -115,7 +117,7 @@ export function createDialog() {
           return ask(request, true, options(value, []).signal);
       }
       throw new TypeError(`the type must be one of ${types.join(", ")}`);
-    },
+    }) as IntentDialog["requestValue"],
     requestDisambiguation: async (values: string[], message: string, value?: Options): Promise<string> =>
       values[await ask<number>({ kind: "disambiguation", prompt: text(message, "the prompt"), values: strings(values, "the values") }, false, options(value, []).signal)],
     requestValueConfirmation: (value: string, message: string, extra?: Options): Promise<boolean> =>
@@ -127,5 +129,3 @@ export function createDialog() {
   };
   return Object.freeze(api);
 }
-
-export type Dialog = ReturnType<typeof createDialog>;
