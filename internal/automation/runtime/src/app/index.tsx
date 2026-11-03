@@ -2,8 +2,7 @@ import { registerRootComponent, requireNativeModule, type EventSubscription } fr
 import { Component, useEffect, useMemo, useSyncExternalStore, useState, type ComponentType, type ReactNode } from "react";
 
 import { inspect } from "../shared/inspect";
-import { directoryOf, type FileHost } from "./files";
-import { createSQLite, type DatabaseChangeEvent } from "../shared/sqlite";
+import { createSQLite, type DatabaseChangeEvent, type SQLiteBridge } from "../shared/sqlite";
 
 type ServiceStatus = "starting" | "running" | "stopped" | "failed";
 
@@ -28,70 +27,25 @@ interface Props {
   source: string;
   dataDirectory: string;
   assetsDirectory: string;
+  cacheDirectory: string;
   service: ServiceEvent;
 }
 
-interface SwiptHost extends FileHost {
-  call(swiplet: string, action: string, input: string): Promise<string>;
-  setServiceEnabled(swiplet: string, enabled: boolean): Promise<void>;
+interface SwiptHost {
+  call(action: string, input: string): Promise<string>;
+  setServiceEnabled(enabled: boolean): Promise<void>;
   mounted(surface: string): void;
-  exit(swiplet: string): void;
+  exit(): void;
   preferredLocalizations(localizations: string[]): string[];
-  log(swiplet: string, level: string, message: string): void;
+  log(level: string, message: string): void;
   fail(surface: string, message: string): void;
-  report(swiplet: string, message: string): void;
-  sqlite(swiplet: string, request: string): string;
-  addListener(event: "service", listener: (event: ServiceEvent & { name: string }) => void): EventSubscription;
-  addListener(event: "sqlite", listener: (event: DatabaseChangeEvent & { swiplet: string }) => void): EventSubscription;
-}
-
-interface State {
-  service: Service;
-  listeners: Set<() => void>;
+  report(message: string): void;
+  sqlite(request: string): string;
+  addListener(event: "service", listener: (event: ServiceEvent) => void): EventSubscription;
+  addListener(event: "sqlite", listener: (event: DatabaseChangeEvent) => void): EventSubscription;
 }
 
 const host = requireNativeModule<SwiptHost>("SwiptHost");
-
-Object.assign(globalThis, {
-  sleep: (ms: number, { signal }: { signal?: AbortSignal } = {}) =>
-    new Promise<void>((resolve, reject) => {
-      if (signal?.aborted) {
-        reject(signal.reason);
-        return;
-      }
-      const abort = () => {
-        clearTimeout(timer);
-        reject(signal!.reason);
-      };
-      const timer = setTimeout(() => {
-        signal?.removeEventListener("abort", abort);
-        resolve();
-      }, ms);
-      signal?.addEventListener("abort", abort, { once: true });
-    }),
-});
-const states = new Map<string, State>();
-
-const stateOf = (name: string): State => {
-  let state = states.get(name);
-  if (state === undefined) {
-    state = { service: { enabled: false, status: "stopped", error: null, since: null }, listeners: new Set() };
-    states.set(name, state);
-  }
-  return state;
-};
-
-const serviceOf = (event: ServiceEvent): Service => ({
-  enabled: Boolean(event.enabled), status: event.status, error: event.error || null, since: event.since > 0 ? new Date(event.since) : null,
-});
-
-host.addListener("service", event => {
-  const state = stateOf(event.name);
-  state.service = serviceOf(event);
-  for (const listener of state.listeners) {
-    listener();
-  }
-});
 
 const describe = (error: unknown): string => (error instanceof Error ? String(error.stack ?? `${error.name}: ${error.message}`) : `Uncaught ${inspect(error)}`);
 
@@ -99,17 +53,36 @@ const messageOf = (error: unknown): string => (error instanceof Error ? error.me
 
 const format = (value: unknown): string => (typeof value === "string" ? value : value instanceof Error ? describe(value) : inspect(value));
 
-const swipletOf = (error: unknown): string => (error instanceof Error && /\bswiplet:\/\/([^/]+)\//.exec(String(error.stack))?.[1]) || "";
+(console as { reportErrorsAsExceptions?: boolean }).reportErrorsAsExceptions = false;
+const web = require("./web") as {
+  installWeb(host: SwiptHost, format: (value: unknown) => string): void;
+  pathOfURI(uri: string): string;
+  fileSystem(dataURI: string, assetsURI: string, cacheURI: string): Record<string, unknown>;
+};
+web.installWeb(host, format);
+Object.defineProperty(globalThis, "sleep", { value: (require("../extension/async") as { sleep: unknown }).sleep, writable: true, configurable: true, enumerable: false });
 
-const reportFor = (swiplet: string) => (error: unknown) => {
-  host.log(swiplet, "error", describe(error));
-  host.report(swiplet, messageOf(error));
+let service: Service = { enabled: false, status: "stopped", error: null, since: null };
+const serviceListeners = new Set<() => void>();
+
+const serviceOf = (event: ServiceEvent): Service => ({
+  enabled: Boolean(event.enabled), status: event.status, error: event.error || null, since: event.since > 0 ? new Date(event.since) : null,
+});
+
+host.addListener("service", event => {
+  service = serviceOf(event);
+  for (const listener of serviceListeners) {
+    listener();
+  }
+});
+
+const report = (error: unknown) => {
+  host.log("error", describe(error));
+  host.report(messageOf(error));
 };
 
-const report = (error: unknown) => reportFor(swipletOf(error))(error);
-
-const fail = (name: string, surface: string, error: unknown) => {
-  host.log(name, "error", describe(error));
+const fail = (surface: string, error: unknown) => {
+  host.log("error", describe(error));
   host.fail(surface, messageOf(error));
 };
 
@@ -121,23 +94,8 @@ exceptions.handleException = (error, isFatal) => {
   }
 };
 
-(console as { reportErrorsAsExceptions?: boolean }).reportErrorsAsExceptions = false;
-
-for (const [method, level] of [["log", "info"], ["info", "info"], ["warn", "warn"], ["error", "error"], ["debug", "debug"]] as const) {
-  const original = console[method];
-  console[method] = (...values: unknown[]) => {
-    original(...values);
-    host.log(swipletOf(new Error()), level, values.map(format).join(" "));
-  };
-}
-
 (HermesInternal as { enablePromiseRejectionTracker?: (options: { allRejections: boolean; onUnhandled: (id: number, error: unknown) => void }) => void } | null)
   ?.enablePromiseRejectionTracker?.({ allRejections: true, onUnhandled: (_, error) => report(error) });
-
-const consoleOf = (name: string) => {
-  const print = (level: string) => (...values: unknown[]) => host.log(name, level, values.map(format).join(" "));
-  return Object.freeze({ log: print("info"), info: print("info"), warn: print("warn"), error: print("error"), debug: print("debug") });
-};
 
 const exportsOf = (specifier: string, values: Record<string, unknown>) =>
   new Proxy({ __esModule: true, ...values }, {
@@ -158,13 +116,12 @@ const preferredLocalizations = (localizations: readonly string[]): string[] => {
   return host.preferredLocalizations([...localizations]);
 };
 
-function interfaceModule({ name, service }: Props) {
-  const state = stateOf(name);
-  state.service = serviceOf(service);
+function interfaceModule(props: Props) {
+  service = serviceOf(props.service);
   const subscribe = (listener: () => void) => {
-    state.listeners.add(listener);
+    serviceListeners.add(listener);
     return () => {
-      state.listeners.delete(listener);
+      serviceListeners.delete(listener);
     };
   };
   const call = (action: string, input: unknown, options: { signal?: AbortSignal } = {}): Promise<unknown> => {
@@ -172,7 +129,7 @@ function interfaceModule({ name, service }: Props) {
     if (signal?.aborted) {
       return Promise.reject(abortError(signal));
     }
-    const reply = host.call(name, action, JSON.stringify(input === undefined ? null : input)).then(value => (value ? JSON.parse(value) : undefined));
+    const reply = host.call(action, JSON.stringify(input === undefined ? null : input)).then(value => (value ? JSON.parse(value) : undefined));
     if (signal === undefined) {
       return reply;
     }
@@ -185,12 +142,12 @@ function interfaceModule({ name, service }: Props) {
   const calls = new Proxy({} as Record<string, unknown>, {
     get: (_, action) => (typeof action !== "string" || action === "then" ? undefined : (input?: unknown, options?: { signal?: AbortSignal }) => call(action, input, options)),
   });
-  const setEnabled = (enabled: boolean) => host.setServiceEnabled(name, Boolean(enabled));
+  const setEnabled = (enabled: boolean) => host.setServiceEnabled(Boolean(enabled));
   const useService = () => {
-    const current = useSyncExternalStore(subscribe, () => state.service);
+    const current = useSyncExternalStore(subscribe, () => service);
     return useMemo(() => ({ ...current, setEnabled }), [current]);
   };
-  return exportsOf("@swipt/api/swiplet", { actions: () => calls, useService, exit: () => host.exit(name), preferredLocalizations });
+  return exportsOf("@swipt/api/swiplet", { actions: () => calls, useService, exit: () => host.exit(), preferredLocalizations });
 }
 
 const modules: Record<string, () => unknown> = {
@@ -213,45 +170,39 @@ const modules: Record<string, () => unknown> = {
   "@expo/ui/community/slider": () => require("@expo/ui/community/slider"),
 };
 
+const sqliteBridge = (props: Props): SQLiteBridge => ({
+  request: call => JSON.parse(host.sqlite(JSON.stringify(call))),
+  defaultDirectory: web.pathOfURI(props.dataDirectory),
+  subscribe(listener) {
+    const subscription = host.addListener("sqlite", listener);
+    return () => subscription.remove();
+  },
+});
+
 function load(props: Props): { Swiplet: ComponentType; close(): void } {
-  const sqlite = createSQLite({
-    request: call => JSON.parse(host.sqlite(props.name, JSON.stringify(call))),
-    defaultDirectory: decodeURIComponent(props.dataDirectory.replace(/^file:\/\//, "")).replace(/\/+$/, ""),
-    subscribe(listener) {
-      const subscription = host.addListener("sqlite", event => {
-        if (event.swiplet === props.name) {
-          listener(event);
-        }
-      });
-      return () => subscription.remove();
-    },
-  });
+  const sqlite = createSQLite(sqliteBridge(props));
   const own: Record<string, () => unknown> = {
     "@swipt/api": () => exportsOf("@swipt/api", {}),
     "@swipt/api/swiplet": () => interfaceModule(props),
-    "@swipt/api/file-system": () =>
-      exportsOf("@swipt/api/file-system", {
-        dataDirectory: directoryOf(host, props.name, "data", props.dataDirectory),
-        assets: directoryOf(host, props.name, "assets", props.assetsDirectory),
-      }),
+    "@swipt/api/file-system": () => exportsOf("@swipt/api/file-system", web.fileSystem(props.dataDirectory, props.assetsDirectory, props.cacheDirectory)),
     "expo-sqlite": () => sqlite.exports,
   };
+  const required = new Map<string, unknown>();
   const resolve = (specifier: string) => {
+    if (required.has(specifier)) {
+      return required.get(specifier);
+    }
     const module = own[specifier] ?? modules[specifier];
     if (module === undefined) {
       throw new Error(`Swipt doesn't provide "${specifier}"; bundle it into ${props.file}`);
     }
-    return module();
+    const exports = module();
+    required.set(specifier, exports);
+    return exports;
   };
   const module: { exports: { default?: ComponentType } & Record<string, unknown> } = { exports: {} };
   try {
-    new Function("require", "module", "exports", "console", "reportError", `${props.source}\n//# sourceURL=swiplet://${props.name}/${props.file}`)(
-      resolve,
-      module,
-      module.exports,
-      consoleOf(props.name),
-      reportFor(props.name),
-    );
+    new Function("require", "module", "exports", "reportError", `${props.source}\n//# sourceURL=swiplet://${props.name}/${props.file}`)(resolve, module, module.exports, report);
   } catch (error) {
     sqlite.close();
     throw error;
@@ -259,7 +210,7 @@ function load(props: Props): { Swiplet: ComponentType; close(): void } {
   return { Swiplet: module.exports.default ?? (module.exports as unknown as ComponentType), close: sqlite.close };
 }
 
-class Boundary extends Component<{ name: string; surface: string; children: ReactNode }, { failed: boolean }> {
+class Boundary extends Component<{ surface: string; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
 
   static getDerivedStateFromError() {
@@ -267,7 +218,7 @@ class Boundary extends Component<{ name: string; surface: string; children: Reac
   }
 
   componentDidCatch(error: unknown) {
-    fail(this.props.name, this.props.surface, error);
+    fail(this.props.surface, error);
   }
 
   render() {
@@ -285,17 +236,17 @@ function Root(props: Props) {
   });
   useEffect(() => {
     if ("error" in loaded) {
-      fail(props.name, props.surface, loaded.error);
+      fail(props.surface, loaded.error);
     }
     host.mounted(props.surface);
-  }, [loaded, props.name, props.surface]);
+  }, [loaded, props.surface]);
   useEffect(() => () => ("close" in loaded ? loaded.close() : undefined), [loaded]);
   if ("error" in loaded) {
     return null;
   }
   const { Swiplet } = loaded;
   return (
-    <Boundary name={props.name} surface={props.surface}>
+    <Boundary surface={props.surface}>
       <Swiplet />
     </Boundary>
   );

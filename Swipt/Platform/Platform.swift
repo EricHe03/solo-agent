@@ -94,13 +94,19 @@ final class Platform {
         let core = LibSwiptNewPlatform(options, events, deviceOptions, deviceEvents, Graphics.shared)!
         self.core = core
         let box = UncheckedSendable(value: core)
-        SwiptHostModule.database = { swiplet, request in
+        SwiptHostModule.database = { client, swiplet, request in
             var failure: NSError?
-            let answer = box.value.swipletDatabase(swiplet, request: request, error: &failure)
+            let answer = box.value.swipletDatabase(client, swiplet: swiplet, request: request, error: &failure)
             if let failure {
                 throw failure
             }
             return answer
+        }
+        SwiptHostModule.closeDatabases = { client in
+            box.value.closeSwipletDatabases(client)
+        }
+        SwiptHostModule.openWeb = { swiplet in
+            try SwipletWeb(box.value, swiplet: swiplet)
         }
         Graphics.shared.attach(core.device()!)
         device = DeviceConnection(core.device()!, events: deviceEvents)
@@ -200,49 +206,6 @@ final class Platform {
         core.logSwiplet(swiplet, level: level, message: message)
     }
 
-    func statSwipletFile(_ swiplet: String, root: String, path: String) async throws -> SwipletFileInfo {
-        let box = UncheckedSendable(value: core)
-        return try await blocking { SwipletFileInfo(try box.value.statSwipletFile(swiplet, root: root, path: path)) }
-    }
-
-    func listSwipletFiles(_ swiplet: String, root: String, path: String) async throws -> [SwipletFileInfo] {
-        let box = UncheckedSendable(value: core)
-        return try await blocking {
-            let list = try box.value.listSwipletFiles(swiplet, root: root, path: path)
-            return (0..<list.len()).compactMap { list.get($0) }.map(SwipletFileInfo.init)
-        }
-    }
-
-    func readSwipletFile(_ swiplet: String, root: String, path: String) async throws -> Data {
-        let box = UncheckedSendable(value: core)
-        return try await blocking { try box.value.readSwipletFile(swiplet, root: root, path: path) }
-    }
-
-    func writeSwipletFile(_ swiplet: String, root: String, path: String, data: Data) async throws {
-        let box = UncheckedSendable(value: core)
-        try await blocking { try box.value.writeSwipletFile(swiplet, root: root, path: path, data: data) }
-    }
-
-    func makeSwipletDirectory(_ swiplet: String, root: String, path: String) async throws {
-        let box = UncheckedSendable(value: core)
-        try await blocking { try box.value.makeSwipletDirectory(swiplet, root: root, path: path) }
-    }
-
-    func removeSwipletFile(_ swiplet: String, root: String, path: String) async throws {
-        let box = UncheckedSendable(value: core)
-        try await blocking { try box.value.removeSwipletFile(swiplet, root: root, path: path) }
-    }
-
-    func copySwipletFile(_ swiplet: String, root: String, from: String, toRoot: String, to: String) async throws {
-        let box = UncheckedSendable(value: core)
-        try await blocking { try box.value.copySwipletFile(swiplet, root: root, from: from, toRoot: toRoot, to: to) }
-    }
-
-    func moveSwipletFile(_ swiplet: String, root: String, from: String, toRoot: String, to: String) async throws {
-        let box = UncheckedSendable(value: core)
-        try await blocking { try box.value.moveSwipletFile(swiplet, root: root, from: from, toRoot: toRoot, to: to) }
-    }
-
     func swiplets() -> [LibSwiptSwipletInfo] {
         guard let list = core.swiplets() else { return [] }
         return (0..<list.len()).compactMap { list.get($0) }
@@ -288,7 +251,7 @@ final class Platform {
         case .service(let swiplet, let service):
             serviceChanged(swiplet, to: service)
         case .databaseChanged(let swiplet, let database, let path, let table, let rowID):
-            SwiptHostModule.send("sqlite", ["swiplet": swiplet, "databaseName": database, "databaseFilePath": path, "tableName": table, "rowId": rowID])
+            SwiptHostModule.send("sqlite", to: swiplet, ["databaseName": database, "databaseFilePath": path, "tableName": table, "rowId": rowID])
         case .swipletsChanged:
             SwipletStore.shared.reload()
         case .apiFailed(let message):
@@ -491,21 +454,5 @@ final class Platform {
         case .tunnel:
             developer.cloudflareNamedTunnel = tunnel
         }
-    }
-}
-
-nonisolated struct SwipletFileInfo: Sendable {
-    let exists: Bool
-    let name: String
-    let directory: Bool
-    let size: Int64
-    let modified: Int64
-
-    init(_ info: LibSwiptSwipletFileInfo) {
-        exists = info.exists
-        name = info.name
-        directory = info.directory
-        size = info.size
-        modified = info.modified
     }
 }

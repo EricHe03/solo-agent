@@ -61,11 +61,14 @@ function* walk(directory) {
 
 function buildUI() {
   const inputs = [
-    ...walk(path.join(runtime, "src/app")),
-    ...walk(path.join(runtime, "src/shared")),
+    ...walk(path.join(runtime, "src")),
     ...walk(path.join(runtime, "patches")),
     path.join(runtime, "package.json"),
     path.join(runtime, "app.json"),
+    path.join(runtime, "babel.config.js"),
+    path.join(runtime, "metro.config.js"),
+    path.join(runtime, "metro.transformer.js"),
+    path.join(runtime, "slots.mjs"),
     path.join(root, "package.json"),
     path.join(root, "bun.lock"),
   ].sort();

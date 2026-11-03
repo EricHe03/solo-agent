@@ -356,14 +356,6 @@ func (h *Host) withRoot(id, kind, name string, work func(root *fileRoot, name st
 	return work(root, name)
 }
 
-func (h *Host) StatFile(id, kind, name string) (info FileInfo, found bool, err error) {
-	err = h.withRoot(id, kind, name, func(root *fileRoot, name string) error {
-		info, found, err = root.stat(name)
-		return err
-	})
-	return
-}
-
 func (h *Host) ListFiles(id, kind, name string) (files []FileInfo, err error) {
 	err = h.withRoot(id, kind, name, func(root *fileRoot, name string) error {
 		files, err = root.list(name)
@@ -384,30 +376,6 @@ func (h *Host) WriteFile(id, kind, name string, data []byte) error {
 	return h.withRoot(id, kind, name, func(root *fileRoot, name string) error { return root.write(name, data) })
 }
 
-func (h *Host) MakeDirectory(id, kind, name string) error {
-	return h.withRoot(id, kind, name, func(root *fileRoot, name string) error { return root.mkdir(name) })
-}
-
 func (h *Host) RemoveFile(id, kind, name string) error {
 	return h.withRoot(id, kind, name, func(root *fileRoot, name string) error { return root.remove(name) })
-}
-
-func (h *Host) TransferFile(id, kind, name, targetKind, target string, move bool) error {
-	target, err := cleanName(target)
-	if err != nil {
-		return err
-	}
-	return h.withRoot(id, kind, name, func(root *fileRoot, name string) error {
-		destination := root
-		if targetKind != kind {
-			if destination, err = h.swipletRoot(id, targetKind); err != nil {
-				return err
-			}
-			defer destination.Close()
-		}
-		if move {
-			return root.moveTo(name, destination, target)
-		}
-		return root.copyTo(name, destination, target)
-	})
 }

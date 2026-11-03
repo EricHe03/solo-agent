@@ -1,72 +1,128 @@
 import ExpoModulesCore
 
-public struct SwiptHostFileInfo {
-  public var exists = false
-  public var directory = false
-  public var size: Int64 = 0
-  public var modified: Int64 = 0
-
-  public init() {}
-
-  public init(exists: Bool, directory: Bool, size: Int64, modified: Int64) {
-    self.exists = exists
-    self.directory = directory
-    self.size = size
-    self.modified = modified
-  }
+public enum SwiptHostWebResult: Sendable {
+  case data(Data)
+  case json(String)
+  case failure(String)
 }
 
-public struct SwiptHostFileEntry {
-  public let name: String
-  public let directory: Bool
-
-  public init(name: String, directory: Bool) {
-    self.name = name
-    self.directory = directory
-  }
+public protocol SwiptHostWeb: AnyObject, Sendable {
+  func start(_ id: String, name: String, arguments: String, completion: @escaping @Sendable (SwiptHostWebResult) -> Void)
+  func cancel(_ id: String)
+  func put(_ data: Data) -> String
+  func release(_ id: String, reason: String)
+  func openFile(root: String, path: String) -> String
+  func compression(format: String, mode: String) throws -> [String]
+  func random(_ length: Int) throws -> Data
+  func digest(algorithm: String, data: Data) throws -> Data
+  func decodeText(_ data: Data, fatal: Bool) -> (text: String, valid: Bool, restored: Int)
+  func close()
 }
 
 @MainActor
-public protocol SwiptHostDelegate: AnyObject {
-  func call(swiplet: String, action: String, input: String) async throws -> String
-  func setServiceEnabled(swiplet: String, enabled: Bool) async throws
+public protocol SwiptHostDelegate: AnyObject, Sendable {
+  nonisolated var swiplet: String { get }
+  func call(action: String, input: String) async throws -> String
+  func setServiceEnabled(_ enabled: Bool) async throws
   func surfaceDidMount(_ surface: String)
-  func exit(swiplet: String)
-  func log(swiplet: String, level: String, message: String)
+  func exit()
+  func log(level: String, message: String)
   func fail(surface: String, message: String)
-  func report(swiplet: String, message: String)
-  func statFile(swiplet: String, root: String, path: String) async throws -> SwiptHostFileInfo
-  func listFiles(swiplet: String, root: String, path: String) async throws -> [SwiptHostFileEntry]
-  func readFile(swiplet: String, root: String, path: String) async throws -> Data
-  func writeFile(swiplet: String, root: String, path: String, data: Data) async throws
-  func makeDirectory(swiplet: String, root: String, path: String) async throws
-  func removeFile(swiplet: String, root: String, path: String) async throws
-  func copyFile(swiplet: String, root: String, from: String, toRoot: String, to: String) async throws
-  func moveFile(swiplet: String, root: String, from: String, toRoot: String, to: String) async throws
+  func report(message: String)
+  nonisolated func storeBlob(_ data: Data, id: String)
+  nonisolated func removeBlob(_ id: String)
 }
 
 public final class SwiptHostModule: Module {
-  @MainActor public static weak var delegate: SwiptHostDelegate?
-  nonisolated(unsafe) public static var database: (@Sendable (_ swiplet: String, _ request: String) throws -> String)?
+  nonisolated(unsafe) public static var database: (@Sendable (_ client: String, _ swiplet: String, _ request: String) throws -> String)?
+  nonisolated(unsafe) public static var closeDatabases: (@Sendable (_ client: String) -> Void)?
+  nonisolated(unsafe) public static var openWeb: (@Sendable (_ swiplet: String) throws -> any SwiptHostWeb)?
 
   private static let lock = NSLock()
   private static let modules = NSHashTable<SwiptHostModule>.weakObjects()
+  private static let delegates = NSMapTable<AppContext, AnyObject>.weakToWeakObjects()
 
-  public static func send(_ event: String, _ body: [String: Any?]) {
+  private let client = UUID().uuidString
+  private let webLock = NSLock()
+  private var web: (any SwiptHostWeb)?
+  private var webClosed = false
+
+  public static func bind(_ appContext: AppContext, to delegate: any SwiptHostDelegate) {
+    lock.lock()
+    delegates.setObject(delegate, forKey: appContext)
+    lock.unlock()
+  }
+
+  public static func unbind(_ delegate: any SwiptHostDelegate) {
+    lock.lock()
+    let unbound = (delegates.keyEnumerator().allObjects as! [AppContext]).filter { delegates.object(forKey: $0) === delegate }
+    for appContext in unbound {
+      delegates.removeObject(forKey: appContext)
+    }
+    let modules = modules.allObjects
+    lock.unlock()
+    for module in modules where unbound.contains(where: { $0 === module.appContext }) {
+      module.closeWeb()
+    }
+  }
+
+  public static func send(_ event: String, to swiplet: String, _ body: [String: Any?]) {
     lock.lock()
     let modules = modules.allObjects
     lock.unlock()
-    for module in modules {
+    for module in modules where module.delegate()?.swiplet == swiplet {
       module.sendEvent(event, body)
     }
   }
 
-  @MainActor
-  private static func host() throws -> SwiptHostDelegate {
-    guard let delegate else {
+  private func delegate() -> (any SwiptHostDelegate)? {
+    guard let appContext else { return nil }
+    Self.lock.lock()
+    defer { Self.lock.unlock() }
+    return Self.delegates.object(forKey: appContext) as? any SwiptHostDelegate
+  }
+
+  private func host() throws -> any SwiptHostDelegate {
+    guard let delegate = delegate() else {
       throw Exception(name: "SwiptHostUnavailable", description: "Swipt isn't ready for swiplets")
     }
     return delegate
+  }
+
+  private func webSession() throws -> any SwiptHostWeb {
+    webLock.lock()
+    defer { webLock.unlock() }
+    if let web {
+      return web
+    }
+    guard !webClosed, let open = Self.openWeb else {
+      throw Exception(name: "SwiptHostUnavailable", description: "Swipt isn't ready for swiplets")
+    }
+    let session = try open(try host().swiplet)
+    web = session
+    return session
+  }
+
+  private func openedWeb() -> (any SwiptHostWeb)? {
+    webLock.lock()
+    defer { webLock.unlock() }
+    return web
+  }
+
+  private func closeWeb() {
+    webLock.lock()
+    let session = web
+    web = nil
+    webClosed = true
+    webLock.unlock()
+    session?.close()
+  }
+
+  private func database(_ request: String) throws -> String {
+    guard let database = Self.database else {
+      throw Exception(name: "SwiptHostUnavailable", description: "Swipt isn't ready for swiplets")
+    }
+    return try database(client, try host().swiplet, request)
   }
 
   public func definition() -> ModuleDefinition {
@@ -84,99 +140,126 @@ public final class SwiptHostModule: Module {
       Self.lock.lock()
       Self.modules.remove(self)
       Self.lock.unlock()
+      Self.closeDatabases?(self.client)
+      self.closeWeb()
     }
 
-    AsyncFunction("call") { @MainActor (swiplet: String, action: String, input: String) async throws -> String in
-      try await Self.host().call(swiplet: swiplet, action: action, input: input)
+    Function("languages") { () -> [String] in
+      Locale.preferredLanguages
     }
 
-    AsyncFunction("setServiceEnabled") { @MainActor (swiplet: String, enabled: Bool) async throws in
-      try await Self.host().setServiceEnabled(swiplet: swiplet, enabled: enabled)
+    AsyncFunction("webStart") { (id: String, name: String, arguments: String) async throws -> [String: Any] in
+      let session = try self.webSession()
+      let result = await withCheckedContinuation { continuation in
+        session.start(id, name: name, arguments: arguments) { continuation.resume(returning: $0) }
+      }
+      switch result {
+      case .data(let data):
+        return ["data": data]
+      case .json(let json):
+        return ["json": json]
+      case .failure(let failure):
+        return ["failure": failure]
+      }
+    }
+
+    Function("webCancel") { (id: String) in
+      self.openedWeb()?.cancel(id)
+    }
+
+    Function("webPut") { (data: Data) throws -> String in
+      try self.webSession().put(data)
+    }
+
+    Function("webRelease") { (id: String, reason: String) in
+      self.openedWeb()?.release(id, reason: reason)
+    }
+
+    Function("webOpenFile") { (root: String, path: String) throws -> String in
+      try self.webSession().openFile(root: root, path: path)
+    }
+
+    Function("webCompression") { (format: String, mode: String) throws -> [String] in
+      try self.webSession().compression(format: format, mode: mode)
+    }
+
+    Function("webRandom") { (length: Double) throws -> Data in
+      guard let length = Int(exactly: length) else {
+        throw Exception(name: "TypeError", description: "the length must be an integer")
+      }
+      return try self.webSession().random(length)
+    }
+
+    Function("webDigest") { (algorithm: String, data: Data) throws -> Data in
+      try self.webSession().digest(algorithm: algorithm, data: data)
+    }
+
+    Function("webDecodeText") { (data: Data, fatal: Bool) throws -> [String: Any] in
+      let decoded = try self.webSession().decodeText(data, fatal: fatal)
+      return decoded.valid ? ["text": decoded.text] : ["restored": decoded.restored]
+    }
+
+    Function("publishObjectURL") { (url: String, data: Data?) throws in
+      guard url.hasPrefix("blob:") else {
+        throw Exception(name: "TypeError", description: "the URL must be a blob URL")
+      }
+      let id = String(url.dropFirst("blob:".count))
+      if let data {
+        try self.host().storeBlob(data, id: id)
+      } else {
+        try self.host().removeBlob(id)
+      }
+    }
+
+    AsyncFunction("call") { @MainActor (action: String, input: String) async throws -> String in
+      try await self.host().call(action: action, input: input)
+    }
+
+    AsyncFunction("setServiceEnabled") { @MainActor (enabled: Bool) async throws in
+      try await self.host().setServiceEnabled(enabled)
     }
 
     Function("mounted") { (surface: String) in
+      guard let delegate = self.delegate() else { return }
       Task { @MainActor in
-        Self.delegate?.surfaceDidMount(surface)
+        delegate.surfaceDidMount(surface)
       }
     }
 
-    Function("exit") { (swiplet: String) in
+    Function("exit") {
+      guard let delegate = self.delegate() else { return }
       Task { @MainActor in
-        Self.delegate?.exit(swiplet: swiplet)
+        delegate.exit()
       }
     }
 
-    Function("sqlite") { (swiplet: String, request: String) throws -> String in
-      guard let database = Self.database else {
-        throw Exception(name: "SwiptHostUnavailable", description: "Swipt isn't ready for swiplets")
-      }
-      return try database(swiplet, request)
+    Function("sqlite") { (request: String) throws -> String in
+      try self.database(request)
     }
 
     Function("preferredLocalizations") { (localizations: [String]) -> [String] in
       Bundle.preferredLocalizations(from: localizations, forPreferences: Locale.preferredLanguages)
     }
 
-    Function("log") { (swiplet: String, level: String, message: String) in
+    Function("log") { (level: String, message: String) in
+      guard let delegate = self.delegate() else { return }
       Task { @MainActor in
-        Self.delegate?.log(swiplet: swiplet, level: level, message: message)
+        delegate.log(level: level, message: message)
       }
     }
 
     Function("fail") { (surface: String, message: String) in
+      guard let delegate = self.delegate() else { return }
       Task { @MainActor in
-        Self.delegate?.fail(surface: surface, message: message)
+        delegate.fail(surface: surface, message: message)
       }
     }
 
-    Function("report") { (swiplet: String, message: String) in
+    Function("report") { (message: String) in
+      guard let delegate = self.delegate() else { return }
       Task { @MainActor in
-        Self.delegate?.report(swiplet: swiplet, message: message)
+        delegate.report(message: message)
       }
-    }
-
-    AsyncFunction("fileStat") { @MainActor (swiplet: String, root: String, path: String) async throws -> [String: Any] in
-      let info = try await Self.host().statFile(swiplet: swiplet, root: root, path: path)
-      return ["exists": info.exists, "directory": info.directory, "size": info.size, "modified": info.modified]
-    }
-
-    AsyncFunction("fileList") { @MainActor (swiplet: String, root: String, path: String) async throws -> [[String: Any]] in
-      try await Self.host().listFiles(swiplet: swiplet, root: root, path: path).map { ["name": $0.name, "directory": $0.directory] }
-    }
-
-    AsyncFunction("fileRead") { @MainActor (swiplet: String, root: String, path: String) async throws -> String in
-      try await Self.host().readFile(swiplet: swiplet, root: root, path: path).base64EncodedString()
-    }
-
-    AsyncFunction("fileReadText") { @MainActor (swiplet: String, root: String, path: String) async throws -> String in
-      String(decoding: try await Self.host().readFile(swiplet: swiplet, root: root, path: path), as: UTF8.self)
-    }
-
-    AsyncFunction("fileWrite") { @MainActor (swiplet: String, root: String, path: String, base64: String) async throws in
-      guard let data = Data(base64Encoded: base64) else {
-        throw Exception(name: "SwiptHostInvalidData", description: "the data is not base64")
-      }
-      try await Self.host().writeFile(swiplet: swiplet, root: root, path: path, data: data)
-    }
-
-    AsyncFunction("fileWriteText") { @MainActor (swiplet: String, root: String, path: String, text: String) async throws in
-      try await Self.host().writeFile(swiplet: swiplet, root: root, path: path, data: Data(text.utf8))
-    }
-
-    AsyncFunction("fileMkdir") { @MainActor (swiplet: String, root: String, path: String) async throws in
-      try await Self.host().makeDirectory(swiplet: swiplet, root: root, path: path)
-    }
-
-    AsyncFunction("fileRemove") { @MainActor (swiplet: String, root: String, path: String) async throws in
-      try await Self.host().removeFile(swiplet: swiplet, root: root, path: path)
-    }
-
-    AsyncFunction("fileCopy") { @MainActor (swiplet: String, root: String, from: String, toRoot: String, to: String) async throws in
-      try await Self.host().copyFile(swiplet: swiplet, root: root, from: from, toRoot: toRoot, to: to)
-    }
-
-    AsyncFunction("fileMove") { @MainActor (swiplet: String, root: String, from: String, toRoot: String, to: String) async throws in
-      try await Self.host().moveFile(swiplet: swiplet, root: root, from: from, toRoot: toRoot, to: to)
     }
   }
 }

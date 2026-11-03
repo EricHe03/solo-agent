@@ -116,8 +116,8 @@ final class SwipletStore {
 
     func serviceChanged(_ id: String, to service: SwipletService) {
         services[id] = service
-        SwiptHostModule.send("service", [
-            "name": id, "enabled": service.enabled, "status": service.status.rawValue, "error": service.error,
+        SwiptHostModule.send("service", to: id, [
+            "enabled": service.enabled, "status": service.status.rawValue, "error": service.error,
             "since": service.since.map { $0.timeIntervalSince1970 * 1000 } ?? 0,
         ])
     }

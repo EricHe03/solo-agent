@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/automation"
 )
@@ -200,80 +199,8 @@ func copyFile(writer io.Writer, name string) error {
 	return err
 }
 
-type SwipletFileInfo struct {
-	Exists    bool
-	Name      string
-	Directory bool
-	Size      int64
-	Modified  int64
-}
-
-type SwipletFileList struct {
-	items []*SwipletFileInfo
-}
-
-func (l *SwipletFileList) Len() int32 { return int32(len(l.items)) }
-
-func (l *SwipletFileList) Get(index int32) *SwipletFileInfo { return l.items[index] }
-
-func swipletFileInfo(info automation.FileInfo) *SwipletFileInfo {
-	return &SwipletFileInfo{Exists: true, Name: info.Name, Directory: info.Directory, Size: info.Size, Modified: info.Modified.UnixMilli()}
-}
-
-func (p *Platform) StatSwipletFile(swiplet, root, path string) (*SwipletFileInfo, error) {
-	info, found, err := p.host.StatFile(swiplet, root, path)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return &SwipletFileInfo{}, nil
-	}
-	return swipletFileInfo(info), nil
-}
-
-func (p *Platform) ListSwipletFiles(swiplet, root, path string) (*SwipletFileList, error) {
-	files, err := p.host.ListFiles(swiplet, root, path)
-	if err != nil {
-		return nil, err
-	}
-	return &SwipletFileList{items: common.Map(files, swipletFileInfo)}, nil
-}
-
-func (p *Platform) ReadSwipletFile(swiplet, root, path string) ([]byte, error) {
-	data, err := p.host.ReadFile(swiplet, root, path)
-	if err != nil {
-		return nil, err
-	}
-	if data == nil {
-		data = []byte{}
-	}
-	return data, nil
-}
-
-func (p *Platform) WriteSwipletFile(swiplet, root, path string, data []byte) error {
-	return p.host.WriteFile(swiplet, root, path, data)
-}
-
-func (p *Platform) MakeSwipletDirectory(swiplet, root, path string) error {
-	return p.host.MakeDirectory(swiplet, root, path)
-}
-
-func (p *Platform) RemoveSwipletFile(swiplet, root, path string) error {
-	return p.host.RemoveFile(swiplet, root, path)
-}
-
-func (p *Platform) CopySwipletFile(swiplet, root, from, toRoot, to string) error {
-	return p.host.TransferFile(swiplet, root, from, toRoot, to, false)
-}
-
-func (p *Platform) MoveSwipletFile(swiplet, root, from, toRoot, to string) error {
-	return p.host.TransferFile(swiplet, root, from, toRoot, to, true)
-}
-
-const appDatabaseClient = "app"
-
-func (p *Platform) SwipletDatabase(swiplet string, request string) (string, error) {
-	result, err := p.host.SQLite(appDatabaseClient, swiplet, []byte(request))
+func (p *Platform) SwipletDatabase(client, swiplet, request string) (string, error) {
+	result, err := p.host.SQLite(client, swiplet, []byte(request))
 	if err != nil {
 		return "", err
 	}
@@ -282,4 +209,8 @@ func (p *Platform) SwipletDatabase(swiplet string, request string) (string, erro
 		return "", err
 	}
 	return string(data), nil
+}
+
+func (p *Platform) CloseSwipletDatabases(client string) {
+	p.host.CloseDatabases(client, "")
 }
