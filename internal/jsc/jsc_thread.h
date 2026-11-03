@@ -32,6 +32,12 @@ typedef enum {
 	JSC_NATIVE,
 } jsc_kind;
 
+typedef struct {
+	void *data;
+	size_t length;
+	bool wide;
+} jsc_text;
+
 typedef void (*jsc_native)(JSGlobalContextRef context, int32_t command, JSValueRef value, uint64_t argument);
 
 typedef struct {
@@ -40,18 +46,15 @@ typedef struct {
 	JSValueRef value;
 	JSValueRef *arguments;
 	size_t count;
-	const JSChar *text;
-	size_t text_length;
-	const JSChar *name;
-	size_t name_length;
+	jsc_text text;
+	jsc_text name;
 	uintptr_t handle;
 	uintptr_t native;
 	int32_t native_command;
 	uint64_t native_argument;
 
 	JSValueRef result;
-	JSChar *out;
-	size_t out_length;
+	jsc_text out;
 	uint8_t *data;
 	size_t data_length;
 	double number;
@@ -66,13 +69,11 @@ typedef struct {
 	uintptr_t handle;
 	const JSValueRef *arguments;
 	size_t count;
-	JSChar *json;
-	size_t json_length;
+	jsc_text json;
 	uint8_t *bytes;
 	size_t bytes_length;
 	JSValueRef value;
-	JSChar *error;
-	size_t error_length;
+	jsc_text error;
 	bool done;
 } jsc_host_request;
 

@@ -15,7 +15,9 @@ import (
 	"context"
 	"encoding/json"
 	"runtime/cgo"
+	"strings"
 	"unicode/utf16"
+	"unicode/utf8"
 	"unsafe"
 
 	"github.com/sagernet/sing/common"
@@ -99,9 +101,9 @@ func (c *Context) serve(request *C.jsc_host_request) {
 	}
 	switch {
 	case err != nil:
-		request.error, request.error_length = cString(err.Error())
+		request.error = cString(err.Error())
 	case data != nil:
-		request.json, request.json_length = cString(string(data))
+		request.json = cString(string(data))
 	}
 	C.jsc_answer(c.runtime, request)
 }
@@ -114,7 +116,7 @@ func (c *Context) outcome(cmd *C.jsc_command) (Value, error) {
 }
 
 func output(cmd *C.jsc_command) (string, error) {
-	out := goString(cmd.out, cmd.out_length)
+	out := goString(cmd.out)
 	if cmd.terminated {
 		return "", ErrTerminated
 	}
@@ -158,8 +160,7 @@ func (c *Context) NewObject() Value {
 func (c *Context) NewString(value string) Value {
 	cmd := command(C.JSC_NEW_STRING)
 	defer C.free(unsafe.Pointer(cmd))
-	cmd.text, cmd.text_length = cString(value)
-	defer C.free(unsafe.Pointer(cmd.text))
+	cmd.text = cString(value)
 	c.submit(cmd)
 	return Value{c, cmd.result}
 }
@@ -167,10 +168,8 @@ func (c *Context) NewString(value string) Value {
 func (c *Context) Evaluate(source, url string) (Value, error) {
 	cmd := command(C.JSC_EVALUATE)
 	defer C.free(unsafe.Pointer(cmd))
-	cmd.text, cmd.text_length = cString(source)
-	defer C.free(unsafe.Pointer(cmd.text))
-	cmd.name, cmd.name_length = cString(url)
-	defer C.free(unsafe.Pointer(cmd.name))
+	cmd.text = cString(source)
+	cmd.name = cString(url)
 	c.submit(cmd)
 	return c.outcome(cmd)
 }
@@ -193,8 +192,7 @@ func (v Value) Get(name string) (Value, error) {
 	cmd := command(C.JSC_GET)
 	defer C.free(unsafe.Pointer(cmd))
 	cmd.object = v.ref
-	cmd.name, cmd.name_length = cString(name)
-	defer C.free(unsafe.Pointer(cmd.name))
+	cmd.name = cString(name)
 	v.context.submit(cmd)
 	return v.context.outcome(cmd)
 }
@@ -203,8 +201,7 @@ func (v Value) Set(name string, value Value) {
 	cmd := command(C.JSC_SET)
 	defer C.free(unsafe.Pointer(cmd))
 	cmd.object, cmd.value = v.ref, value.ref
-	cmd.name, cmd.name_length = cString(name)
-	defer C.free(unsafe.Pointer(cmd.name))
+	cmd.name = cString(name)
 	v.context.submit(cmd)
 }
 
@@ -212,8 +209,7 @@ func (v Value) SetFunction(name string, function Function) {
 	cmd := command(C.JSC_SET_FUNCTION)
 	defer C.free(unsafe.Pointer(cmd))
 	cmd.object = v.ref
-	cmd.name, cmd.name_length = cString(name)
-	defer C.free(unsafe.Pointer(cmd.name))
+	cmd.name = cString(name)
 	cmd.handle = C.uintptr_t(cgo.NewHandle(function))
 	v.context.submit(cmd)
 }
@@ -223,7 +219,7 @@ func (v Value) Describe() string {
 	defer C.free(unsafe.Pointer(cmd))
 	cmd.value = v.ref
 	v.context.submit(cmd)
-	return goString(cmd.out, cmd.out_length)
+	return goString(cmd.out)
 }
 
 func (v Value) Call(arguments ...Value) (Value, error) {
@@ -300,14 +296,25 @@ func (c *Context) RunNative(function uintptr, kind int32, value Value, argument 
 	c.submit(cmd)
 }
 
-func cString(value string) (*C.JSChar, C.size_t) {
-	units := utf16.Encode([]rune(value))
-	buffer := (*C.JSChar)(C.malloc(C.size_t(len(units)) * C.size_t(unsafe.Sizeof(C.JSChar(0)))))
-	copy(unsafe.Slice((*uint16)(unsafe.Pointer(buffer)), len(units)), units)
-	return buffer, C.size_t(len(units))
+// JavaScriptCore keeps an all-ASCII string in 8 bits, and makes an empty
+// string of invalid UTF-8 (WebKit 21bb1f66,
+// Source/JavaScriptCore/API/JSStringRef.cpp:44; WebKit 21bb1f66,
+// Source/WTF/wtf/text/StringImpl.cpp:267).
+func cString(value string) C.jsc_text {
+	if utf8.ValidString(value) && !strings.ContainsRune(value, 0) {
+		return C.jsc_text{data: unsafe.Pointer(C.CString(value)), length: C.size_t(len(value))}
+	}
+	units := unsafe.Slice((*uint16)(C.malloc(C.size_t(len(value))*C.size_t(unsafe.Sizeof(C.JSChar(0))))), len(value))[:0]
+	for _, r := range value {
+		units = utf16.AppendRune(units, r)
+	}
+	return C.jsc_text{data: unsafe.Pointer(unsafe.SliceData(units)), length: C.size_t(len(units)), wide: true}
 }
 
-func goString(value *C.JSChar, length C.size_t) string {
-	defer C.free(unsafe.Pointer(value))
-	return string(utf16.Decode(unsafe.Slice((*uint16)(unsafe.Pointer(value)), int(length))))
+func goString(text C.jsc_text) string {
+	defer C.free(text.data)
+	if !text.wide {
+		return string(unsafe.Slice((*byte)(text.data), int(text.length)))
+	}
+	return string(utf16.Decode(unsafe.Slice((*uint16)(text.data), int(text.length))))
 }

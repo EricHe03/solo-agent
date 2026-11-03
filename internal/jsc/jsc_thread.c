@@ -41,11 +41,32 @@ static const double jsc_check_interval = 0.05;
 
 static void jsc_service(jsc_runtime *rt, bool *until);
 
+static JSStringRef jsc_take_string(jsc_text *text) {
+	JSStringRef string = text->wide ? JSStringCreateWithCharacters(text->data, text->length) : JSStringCreateWithUTF8CString(text->data);
+	free(text->data);
+	return string;
+}
+
+// The UTF-8 conversion stops at a lone surrogate (WebKit 21bb1f66,
+// Source/JavaScriptCore/API/JSStringRef.cpp:89; WebKit 21bb1f66,
+// Source/WTF/wtf/unicode/UTF8Conversion.cpp:92).
 static void jsc_copy_out(jsc_command *cmd, JSStringRef text) {
-	cmd->out_length = JSStringGetLength(text);
-	cmd->out = malloc(sizeof(JSChar) * cmd->out_length);
-	if (cmd->out_length > 0) {
-		memcpy(cmd->out, JSStringGetCharactersPtr(text), sizeof(JSChar) * cmd->out_length);
+	size_t length = JSStringGetLength(text);
+	size_t capacity = JSStringGetMaximumUTF8CStringSize(text);
+	uint8_t *utf8 = malloc(capacity);
+	size_t size = JSStringGetUTF8CString(text, (char *)utf8, capacity) - 1;
+	size_t units = 0;
+	for (size_t index = 0; index < size; index++) {
+		units += (utf8[index] & 0xC0) != 0x80;
+		units += utf8[index] >= 0xF0;
+	}
+	if (units == length) {
+		cmd->out = (jsc_text){.data = utf8, .length = size};
+	} else {
+		free(utf8);
+		JSChar *utf16 = malloc(sizeof(JSChar) * length);
+		memcpy(utf16, JSStringGetCharactersPtr(text), sizeof(JSChar) * length);
+		cmd->out = (jsc_text){.data = utf16, .length = length, .wide = true};
 	}
 	JSStringRelease(text);
 }
@@ -93,13 +114,13 @@ static JSValueRef jsc_call_host(JSContextRef ctx, JSObjectRef function, JSObject
 	jsc_service(rt, &request.done);
 	pthread_mutex_unlock(&rt->mutex);
 	JSValueRef result = JSValueMakeUndefined(ctx);
-	if (request.error != NULL) {
-		JSStringRef text = JSStringCreateWithCharacters(request.error, request.error_length);
+	if (request.error.data != NULL) {
+		JSStringRef text = jsc_take_string(&request.error);
 		JSValueRef message = JSValueMakeString(ctx, text);
 		JSStringRelease(text);
 		*exception = JSObjectMakeError(ctx, 1, &message, NULL);
-	} else if (request.json != NULL) {
-		JSStringRef text = JSStringCreateWithCharacters(request.json, request.json_length);
+	} else if (request.json.data != NULL) {
+		JSStringRef text = jsc_take_string(&request.json);
 		result = JSValueMakeFromJSONString(ctx, text);
 		JSStringRelease(text);
 	} else if (request.bytes != NULL) {
@@ -111,8 +132,6 @@ static JSValueRef jsc_call_host(JSContextRef ctx, JSObjectRef function, JSObject
 		result = request.value;
 		JSValueUnprotect(ctx, result);
 	}
-	free(request.error);
-	free(request.json);
 	return result;
 }
 
@@ -206,7 +225,7 @@ static void jsc_execute(jsc_runtime *rt, jsc_command *cmd) {
 		break;
 	}
 	case JSC_NEW_STRING: {
-		JSStringRef text = JSStringCreateWithCharacters(cmd->text, cmd->text_length);
+		JSStringRef text = jsc_take_string(&cmd->text);
 		JSValueRef value = JSValueMakeString(ctx, text);
 		JSStringRelease(text);
 		JSValueProtect(ctx, value);
@@ -214,8 +233,8 @@ static void jsc_execute(jsc_runtime *rt, jsc_command *cmd) {
 		break;
 	}
 	case JSC_EVALUATE: {
-		JSStringRef script = JSStringCreateWithCharacters(cmd->text, cmd->text_length);
-		JSStringRef url = JSStringCreateWithCharacters(cmd->name, cmd->name_length);
+		JSStringRef script = jsc_take_string(&cmd->text);
+		JSStringRef url = jsc_take_string(&cmd->name);
 		JSValueRef value = JSEvaluateScript(ctx, script, NULL, url, 1, &exception);
 		JSStringRelease(script);
 		JSStringRelease(url);
@@ -223,20 +242,20 @@ static void jsc_execute(jsc_runtime *rt, jsc_command *cmd) {
 		break;
 	}
 	case JSC_GET: {
-		JSStringRef name = JSStringCreateWithCharacters(cmd->name, cmd->name_length);
+		JSStringRef name = jsc_take_string(&cmd->name);
 		JSValueRef value = JSObjectGetProperty(ctx, (JSObjectRef)cmd->object, name, &exception);
 		JSStringRelease(name);
 		jsc_finish(rt, cmd, value, exception);
 		break;
 	}
 	case JSC_SET: {
-		JSStringRef name = JSStringCreateWithCharacters(cmd->name, cmd->name_length);
+		JSStringRef name = jsc_take_string(&cmd->name);
 		JSObjectSetProperty(ctx, (JSObjectRef)cmd->object, name, cmd->value, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete, NULL);
 		JSStringRelease(name);
 		break;
 	}
 	case JSC_SET_FUNCTION: {
-		JSStringRef name = JSStringCreateWithCharacters(cmd->name, cmd->name_length);
+		JSStringRef name = jsc_take_string(&cmd->name);
 		JSObjectSetProperty(ctx, (JSObjectRef)cmd->object, name, jsc_make_host(rt, cmd->handle), kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete, NULL);
 		JSStringRelease(name);
 		break;
