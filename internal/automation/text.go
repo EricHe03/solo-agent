@@ -29,15 +29,18 @@ func (e *engine) decodeText(arguments []jsc.Value) (any, error) {
 	if utf8.Valid(data) {
 		return string(data), nil
 	}
-	if arguments[1].Number() != 0 {
-		return nil, nil
+	text, restored, ok := decodeUTF8(data, arguments[1].Number() != 0)
+	if !ok {
+		return restored, nil
 	}
-	return decodeUTF8(data), nil
+	return text, nil
 }
 
-func decodeUTF8(data []byte) string {
+func decodeUTF8(data []byte, fatal bool) (text string, restored int, ok bool) {
 	var out strings.Builder
-	out.Grow(len(data))
+	if !fatal {
+		out.Grow(len(data))
+	}
 	needed, seen := 0, 0
 	var point rune
 	lower, upper := byte(0x80), byte(0xbf)
@@ -67,11 +70,17 @@ func decodeUTF8(data []byte) string {
 				}
 				needed, point = 3, rune(b&0x07)
 			default:
+				if fatal {
+					return "", -1, false
+				}
 				out.WriteRune(utf8.RuneError)
 			}
 			continue
 		}
 		if b < lower || b > upper {
+			if fatal {
+				return "", index, false
+			}
 			needed, seen, point = 0, 0, 0
 			lower, upper = 0x80, 0xbf
 			out.WriteRune(utf8.RuneError)
@@ -87,7 +96,10 @@ func decodeUTF8(data []byte) string {
 		needed, seen, point = 0, 0, 0
 	}
 	if needed != 0 {
+		if fatal {
+			return "", -1, false
+		}
 		out.WriteRune(utf8.RuneError)
 	}
-	return out.String()
+	return out.String(), 0, true
 }

@@ -28,7 +28,7 @@ export interface Native {
   locate(line: number, column: number): Position | undefined;
   sqlite(request: string): unknown;
   encodeText(text: string): Uint8Array;
-  decodeText(data: Uint8Array, fatal: number): string | undefined;
+  decodeText(data: Uint8Array, fatal: number): string | number;
   release(id: string, reason?: string): void;
   compression(format: string, mode: "compress" | "decompress"): [writer: string, reader: string];
   openFile(root: string, path: string): string;
