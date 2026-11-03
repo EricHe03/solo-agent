@@ -234,6 +234,16 @@ async function installApp(options) {
   }
   devicectl(["device", "install", "app", "--device", device.udid, app]);
   devicectl(["device", "process", "launch", "--terminate-existing", "--device", device.udid, bundleId]);
+
+  const installed = devicectl(["device", "info", "apps", "--device", device.udid, "--bundle-id", bundleId], { parse: true }).result.apps;
+  if (installed.length !== 1) {
+    throw new Error(`${device.name} does not list ${bundleId} after the install`);
+  }
+  const { version, bundleVersion } = installed[0];
+  if (bundleVersion !== stamp) {
+    throw new Error(`${device.name} has Swipt build ${bundleVersion} installed, not the one just built (${stamp})`);
+  }
+  console.log(`Swipt ${version} (${bundleVersion}) is installed and launched on ${device.name}`);
 }
 
 function parse(argv) {
@@ -263,7 +273,7 @@ const commands = [
   ["archive", "Archive Release with the built lib and frameworks into build/Swipt.ipa; also runs ui"],
   ["ipa", "Build runtime, lib and frameworks, then archive"],
   ["icon", "Export the AltStore icon into build/altstore/icon.png"],
-  ["install [-d NAME|UDID]", "Build runtime, lib and the ios app, then install and launch it on the device"],
+  ["install [-d NAME|UDID]", "Build runtime, lib and the ios app, install and launch it on the device, and check the installed build"],
 ];
 
 const usage = `usage: bun dev COMMAND
@@ -272,6 +282,7 @@ commands:
 ${commands.map(([use, help]) => `  ${use.padEnd(38)}${help}`).join("\n")}
 
 install picks the paired iOS device that -d or SWIPT_DEVICE names by CoreDevice name or UDID, or the only one; when Swipt answers on it, it unlocks the device first.
+install fails when the build number installed on the device differs from the one just built.
 XCODEBUILD_FLAGS adds flags to every xcodebuild run.`;
 
 async function main() {
