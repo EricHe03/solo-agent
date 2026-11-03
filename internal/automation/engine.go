@@ -8,13 +8,14 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"errors"
 	"io/fs"
 	"maps"
 	"math"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -32,6 +33,9 @@ import (
 
 //go:embed runtime.js
 var runtimeSource string
+
+//go:embed chunks
+var chunkSources embed.FS
 
 const (
 	extensionHead     = "(function (require, module, exports) {"
@@ -282,7 +286,7 @@ func (h *Host) newEngine(swiplet Swiplet, dialog Dialog, logger log.ContextLogge
 			e.context.Close()
 		}
 	}()
-	evaluated, err := e.context.Evaluate(runtimeSource+"\n;__swiptRuntime", "runtime.js")
+	evaluated, err := e.context.Evaluate(runtimeSource, "runtime.js")
 	if err != nil {
 		return nil, err
 	}
@@ -408,10 +412,24 @@ func (e *engine) natives() map[string]jsc.Function {
 		"openFile":               e.openFile,
 		"encodeText":             e.encodeText,
 		"decodeText":             e.decodeText,
+		"chunk":                  e.chunk,
 		"setTimeout":             e.schedule(false),
 		"setInterval":            e.schedule(true),
 		"clearTimer":             e.clear,
 	}
+}
+
+func (e *engine) chunk(arguments []jsc.Value) (any, error) {
+	values, err := texts(arguments, 1)
+	if err != nil {
+		return nil, err
+	}
+	name := values[0] + ".js"
+	source, err := chunkSources.ReadFile(path.Join("chunks", name))
+	if err != nil {
+		return nil, err
+	}
+	return e.context.Evaluate(string(source), name)
 }
 
 func (e *engine) sqlite(arguments []jsc.Value) (any, error) {

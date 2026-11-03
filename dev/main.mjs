@@ -244,7 +244,7 @@ function parse(argv) {
 
 const commands = [
   ["proto", "Regenerate the Go and JavaScript gRPC code from internal/proto"],
-  ["runtime", "Build the SDK runtime that libswipt embeds (internal/automation/runtime.js and the declarations)"],
+  ["runtime", "Build the SDK runtime that libswipt embeds (internal/automation/runtime.js, its chunks and the declarations)"],
   ["lib", "Build the runtime, then libswipt into Frameworks/LibSwipt.xcframework"],
   ["ui", "Bundle the Swiplet UI runtime into build/runtime/main.jsbundle when its inputs changed"],
   ["frameworks", "Install the React Native frameworks that the Xcode project links"],

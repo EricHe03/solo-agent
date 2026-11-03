@@ -33,6 +33,7 @@ export interface Native {
   compression(format: string, mode: "compress" | "decompress"): [writer: string, reader: string];
   openFile(root: string, path: string): string;
   publishObjectURL?(url: string, data: Uint8Array | null): void;
+  chunk(name: string): (core: object) => unknown;
   setTimeout(callback: (...args: unknown[]) => void, timeout: number, ...args: unknown[]): number;
   setInterval(callback: (...args: unknown[]) => void, timeout: number, ...args: unknown[]): number;
   clearTimer(id: number): void;
