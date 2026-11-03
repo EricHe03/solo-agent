@@ -2,11 +2,9 @@ package libSwipt
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"maps"
 	"slices"
-	"strings"
 
 	"github.com/sagernet/sing/common"
 	"github.com/swipt-automation/swipt/internal/coredevice/lockdown"
@@ -136,18 +134,7 @@ func ParsePairingRecord(record []byte) (*PairingRecordInfo, error) {
 	}, nil
 }
 
-// idevice validates Bonjour authTag as SipHash of identifier with altIRK,
-// taking reversed bytes 0 through 5 of the little-endian result
-// (idevice 3854a5d, idevice/src/remote_pairing/peer_device.rs:33-45,
-// idevice/src/remote_pairing/peer_device.rs:129-140).
 func PairingRecordMatchesService(record []byte, identifier string, authTag string) bool {
 	parsed, err := pairing.ParseRecord(record)
-	if err != nil || len(parsed.AltIRK) != 16 || identifier == "" {
-		return false
-	}
-	tag, err := base64.StdEncoding.DecodeString(strings.TrimSpace(authTag))
-	if err != nil || len(tag) != 6 {
-		return false
-	}
-	return string(pairing.AuthTag(parsed.AltIRK, identifier)) == string(tag)
+	return err == nil && parsed.MatchesService(identifier, authTag)
 }

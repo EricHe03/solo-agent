@@ -52,6 +52,7 @@ type Options struct {
 	Logger     logger.ContextLogger
 	AppVersion string
 	AppBuild   string
+	Shutdown   func()
 }
 
 type Server struct {
@@ -69,6 +70,7 @@ type Server struct {
 	sessions map[*mcp.ServerSession]*automation.REPL
 	requests map[uint64]context.CancelCauseFunc
 	sequence uint64
+	draining chan struct{}
 	closed   bool
 }
 
@@ -164,6 +166,12 @@ func (s *Server) Serve(listener net.Listener, prefix string, authenticates bool)
 	s.access.Unlock()
 	tracked := &trackedListener{Listener: listener, conns: make(map[*trackedConn]struct{})}
 	err := server.Serve(tracked)
+	s.access.Lock()
+	draining := s.draining
+	s.access.Unlock()
+	if draining != nil {
+		<-draining
+	}
 	tracked.closeConns()
 	s.access.Lock()
 	s.servers = slices.DeleteFunc(s.servers, func(it *http.Server) bool { return it == server })
@@ -266,6 +274,23 @@ func (s *Server) takeSessions() func() {
 			_ = session.Close()
 		}
 	}
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.access.Lock()
+	if s.closed || s.draining != nil {
+		s.access.Unlock()
+		return s.Close()
+	}
+	s.draining = make(chan struct{})
+	servers := slices.Clone(s.servers)
+	s.access.Unlock()
+	var err error
+	for _, server := range servers {
+		err = E.Errors(err, server.Shutdown(ctx))
+	}
+	close(s.draining)
+	return E.Errors(err, s.Close())
 }
 
 func (s *Server) Close() error {

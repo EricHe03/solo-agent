@@ -1,9 +1,12 @@
 package pairing
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 	"math/bits"
 	"slices"
+	"strings"
 )
 
 // idevice computes the Bonjour authTag with SipHash using the 16-byte IRK
@@ -14,6 +17,18 @@ func AuthTag(irk []byte, identifier string) []byte {
 	tag := binary.LittleEndian.AppendUint64(nil, sum)[:6]
 	slices.Reverse(tag)
 	return tag
+}
+
+// idevice validates Bonjour authTag as SipHash of identifier with altIRK,
+// taking reversed bytes 0 through 5 of the little-endian result
+// (idevice 3854a5d, idevice/src/remote_pairing/peer_device.rs:33-45,
+// idevice/src/remote_pairing/peer_device.rs:129-140).
+func (r *Record) MatchesService(identifier string, authTag string) bool {
+	if len(r.AltIRK) != 16 || identifier == "" {
+		return false
+	}
+	tag, err := base64.StdEncoding.DecodeString(strings.TrimSpace(authTag))
+	return err == nil && len(tag) == 6 && bytes.Equal(tag, AuthTag(r.AltIRK, identifier))
 }
 
 func sipHash24(k0, k1 uint64, message []byte) uint64 {

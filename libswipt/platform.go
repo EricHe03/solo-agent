@@ -42,6 +42,7 @@ type PlatformHandler interface {
 	OnDatabaseChanged(swiplet string, database string, path string, table string, rowID int64)
 	OnSwipletsChanged()
 	OnAPIFailed(message string)
+	OnShutdownRequested()
 	AppActive() bool
 }
 

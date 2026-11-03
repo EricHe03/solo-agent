@@ -84,6 +84,12 @@ export const logs = (context) =>
     }
   });
 
+export const stop = (context) =>
+  session(context, async (client) => {
+    await client.system.shutdown({}, { signal: context.signal });
+    console.log("stopped");
+  });
+
 function readInput(value) {
   if (value === undefined || value === "") {
     return undefined;

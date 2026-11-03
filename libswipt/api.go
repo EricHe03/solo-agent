@@ -1,9 +1,11 @@
 package libSwipt
 
 import (
+	"context"
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/swipt-automation/swipt/internal/api"
@@ -14,6 +16,8 @@ const (
 	APIMCPPath     = api.MCPPath
 	APIServiceType = discovery.ServiceType
 )
+
+const apiCloseGrace = time.Second
 
 type APIOptions struct {
 	Token                     string
@@ -49,7 +53,9 @@ func (p *Platform) SetAPI(options *APIOptions) error {
 	if options == nil || !options.LocalNetwork && options.Cloudflare == nil {
 		p.api = nil
 		if state != nil {
-			_ = state.server.Close()
+			ctx, cancel := context.WithTimeout(context.Background(), apiCloseGrace)
+			_ = state.server.Shutdown(ctx)
+			cancel()
 			closeListener(state.local)
 			closeListener(state.tunnel)
 		}
@@ -65,7 +71,7 @@ func (p *Platform) SetAPI(options *APIOptions) error {
 	if state == nil {
 		state = &apiState{server: api.New(api.Options{
 			Device: p.device.connection, Swiplets: p.host, Dialog: p.dialog, Logs: p.logFactory, Logger: p.logFactory.NewLogger("api"),
-			AppVersion: p.appVersion, AppBuild: p.appBuild,
+			AppVersion: p.appVersion, AppBuild: p.appBuild, Shutdown: p.handler.OnShutdownRequested,
 		})}
 		p.api = state
 	}

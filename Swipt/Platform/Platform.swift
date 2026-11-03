@@ -256,6 +256,9 @@ final class Platform {
             SwipletStore.shared.reload()
         case .apiFailed(let message):
             apiFailed(message)
+        case .shutdownRequested:
+            developer.isLocalNetworkEnabled = false
+            developer.isCloudflareEnabled = false
         }
     }
 

@@ -114,9 +114,10 @@ const file_system_proto_rawDesc = "" +
 	"\x11device_connection\x18\x04 \x01(\v2\x17.swipt.DeviceConnectionR\x10deviceConnection\x12\x1f\n" +
 	"\vapp_version\x18\x05 \x01(\tR\n" +
 	"appVersion\x12\x1b\n" +
-	"\tapp_build\x18\x06 \x01(\tR\bappBuild2J\n" +
+	"\tapp_build\x18\x06 \x01(\tR\bappBuild2\x86\x01\n" +
 	"\rSystemService\x129\n" +
-	"\aGetInfo\x12\x16.google.protobuf.Empty\x1a\x16.swipt.GetInfoResponseB2Z0github.com/swipt-automation/swipt/internal/protob\x06proto3"
+	"\aGetInfo\x12\x16.google.protobuf.Empty\x1a\x16.swipt.GetInfoResponse\x12:\n" +
+	"\bShutdown\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.EmptyB2Z0github.com/swipt-automation/swipt/internal/protob\x06proto3"
 
 var (
 	file_system_proto_rawDescOnce sync.Once
@@ -142,9 +143,11 @@ var (
 var file_system_proto_depIdxs = []int32{
 	1, // 0: swipt.GetInfoResponse.device_connection:type_name -> swipt.DeviceConnection
 	2, // 1: swipt.SystemService.GetInfo:input_type -> google.protobuf.Empty
-	0, // 2: swipt.SystemService.GetInfo:output_type -> swipt.GetInfoResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
+	2, // 2: swipt.SystemService.Shutdown:input_type -> google.protobuf.Empty
+	0, // 3: swipt.SystemService.GetInfo:output_type -> swipt.GetInfoResponse
+	2, // 4: swipt.SystemService.Shutdown:output_type -> google.protobuf.Empty
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name

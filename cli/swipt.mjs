@@ -196,6 +196,13 @@ const commands = [
         run: connection.remove,
       },
       {
+        name: "stop",
+        short: "Stop the Swipt server",
+        args: [0, 0],
+        options: deviceOption,
+        run: device.stop,
+      },
+      {
         name: "logs",
         short: "Print the logs",
         args: [0, 0],

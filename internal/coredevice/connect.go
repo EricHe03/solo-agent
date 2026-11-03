@@ -67,6 +67,7 @@ func ConnectRemotePairing(ctx context.Context, options RemotePairingOptions) (*D
 
 type LockdownOptions struct {
 	Address netip.Addr
+	Dial    lockdown.Dialer
 	Record  *lockdown.PairRecord
 	Logger  logger.ContextLogger
 }
@@ -75,9 +76,12 @@ func ConnectLockdown(ctx context.Context, options LockdownOptions) (*Device, err
 	if options.Logger == nil {
 		options.Logger = logger.NOP()
 	}
-	dial := func(ctx context.Context, port uint16) (net.Conn, error) {
-		var dialer net.Dialer
-		return dialer.DialContext(ctx, "tcp", netip.AddrPortFrom(options.Address, port).String())
+	dial := options.Dial
+	if dial == nil {
+		dial = func(ctx context.Context, port uint16) (net.Conn, error) {
+			var dialer net.Dialer
+			return dialer.DialContext(ctx, "tcp", netip.AddrPortFrom(options.Address, port).String())
+		}
 	}
 	identity := handshakeIdentity(options.Record.HostID)
 	return connectLockdown(ctx, options.Record, dial, identity, options.Logger)

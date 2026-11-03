@@ -30,6 +30,7 @@ nonisolated enum PlatformEvent: Sendable {
     case databaseChanged(swiplet: String, database: String, path: String, table: String, rowID: Int64)
     case swipletsChanged
     case apiFailed(String)
+    case shutdownRequested
 }
 
 nonisolated final class PlatformEvents: NSObject, LibSwiptPlatformHandlerProtocol, @unchecked Sendable {
@@ -68,6 +69,10 @@ nonisolated final class PlatformEvents: NSObject, LibSwiptPlatformHandlerProtoco
 
     func onAPIFailed(_ message: String?) {
         deliver.withLock { $0 }?(.apiFailed(message ?? ""))
+    }
+
+    func onShutdownRequested() {
+        deliver.withLock { $0 }?(.shutdownRequested)
     }
 
     func onBackdrop(_ image: Data?) {
