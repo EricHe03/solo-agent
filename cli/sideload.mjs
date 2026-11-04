@@ -478,6 +478,32 @@ const teamChoice = ({ id, name }) => ({
   value: id,
 });
 
+const installHint = '; install it with "swipt sideload install"';
+
+async function sideloadedDevices(devices, hint = "") {
+  const sideloaded = await step(
+    "looking for Swipt on the devices",
+    () =>
+      Promise.all(
+        devices.map((device) =>
+          apps(device.udid).then(
+            (listed) =>
+              listed.some((app) =>
+                sideloadedPattern.test(app.bundleIdentifier),
+              ),
+            () => true,
+          ),
+        ),
+      ),
+    { transient: true },
+  );
+  const found = devices.filter((_, index) => sideloaded[index]);
+  if (found.length === 0) {
+    throw new Error(`Swipt is not sideloaded on any online iOS device${hint}`);
+  }
+  return found;
+}
+
 async function locate(context, device, fresh = false) {
   const { options } = context;
   const listed = await step(
@@ -610,11 +636,16 @@ async function askPasscode(context) {
 }
 
 async function deploy(context, onlyNewer) {
-  const device = await coreDevice(context);
+  const device = await coreDevice(
+    context,
+    onlyNewer
+      ? { filter: (devices) => sideloadedDevices(devices, installHint) }
+      : undefined,
+  );
   const { team, current } = await locate(context, device, !onlyNewer);
   if (current === undefined && onlyNewer) {
     throw new Error(
-      `Swipt is not sideloaded on ${device.name}${team === undefined ? "" : ` by team ${team}`}; install it with "swipt sideload install"`,
+      `Swipt is not sideloaded on ${device.name}${team === undefined ? "" : ` by team ${team}`}${installHint}`,
     );
   }
   const passcode =
@@ -1058,7 +1089,7 @@ async function trustAndOpen(context, device, id, passcode) {
 }
 
 export async function uninstall(context) {
-  const device = await coreDevice(context);
+  const device = await coreDevice(context, { filter: sideloadedDevices });
   const { team, current } = await locate(context, device);
   if (current === undefined) {
     throw new Error(

@@ -1,11 +1,12 @@
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
 import { label, sameName } from "./connection.mjs";
-import { choose, step } from "./output.mjs";
+import { choose, interactive, step } from "./output.mjs";
 
 const exec = promisify(execFile);
 
@@ -14,7 +15,7 @@ const xcodeMissing =
 
 export async function devicectl(args, { parse = false } = {}) {
   const output = parse
-    ? path.join(os.tmpdir(), `devicectl-${process.pid}.json`)
+    ? path.join(os.tmpdir(), `devicectl-${randomUUID()}.json`)
     : undefined;
   try {
     await exec(
@@ -54,7 +55,7 @@ const reachability =
 const deviceLine = (device) =>
   `  ${device.name}  ${device.udid}${device.offline ? "  (offline)" : ""}`;
 
-export async function coreDevice(context, { required = true } = {}) {
+export async function coreDevice(context, { required = true, filter } = {}) {
   const given = context.options.device;
   const listed = await step(
     "looking for devices",
@@ -104,10 +105,14 @@ export async function coreDevice(context, { required = true } = {}) {
   if (matches.length === 0) {
     throw failure;
   }
+  const choices =
+    filter !== undefined && interactive(context)
+      ? await filter(matches)
+      : matches;
   return choose(
     context,
     "Choose a device",
-    matches.map((device) => ({
+    choices.map((device) => ({
       name: `${device.name}  ${device.udid}`,
       short: device.name,
       value: device,
