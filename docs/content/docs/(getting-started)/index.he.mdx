@@ -1,0 +1,63 @@
+---
+title: התקנה
+---
+
+## סקירה כללית
+
+Swipt הוא פלטפורמת אוטומציה.
+
+נכון לעכשיו הוא תומך רק במכשירי iPhone ו-iPad עם **iOS 27** ואילך, וניתן להתקין אותו רק בהתקנה צדדית.
+
+## התקנה צדדית באמצעות Mac
+
+אם לא רוצים להתקין כלי נפרד להתקנה צדדית, מומלץ להשתמש בכלי `sideload` המובנה ב-Swipt CLI.
+
+הכלי חותם על Swipt ומתקין אותו באמצעות Xcode, ולכן הוא יכול:
+
+- להשתמש בחשבון Apple שכבר התחברת אליו, בלי לבקש ממך להתחבר שוב.
+- להגדיר את Swipt כך שישתמש בקישור הקיים בין ה-Mac למכשיר, בלי לבצע קישור מחדש במכשיר.
+- לתת במכשיר אמון באישור המפתחים החינמי ולבצע בו הגדרות ראשוניות נוספות.
+
+ביישום ״המסוף״ יש להריץ:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+לאחר מכן יש לפעול לפי ההנחיות ולבחור את המכשיר להתקנה ואת הצוות לחתימה.
+
+Swipt משלים באופן אוטומטי כמעט את כל ההגדרה הראשונית, אבל עדיין יש להפעיל את ה-VPN מסוג לולאה חוזרת. לפרטים, יש לעיין בדף [הגדרה ראשונית](./setup.mdx).
+
+```shell
+swipt sideload update # עדכון Swipt או הארכת התוקף שלו
+swipt sideload uninstall # הסרת Swipt
+```
+
+## ללא Mac
+
+ניתן להתקין את Swipt באמצעות AltStore או כלי אחר להתקנה צדדית, או לבצע התקנה צדדית ידנית.
+
+<Tabs items={["מקור AltStore", "ידני"]}>
+  <Tab value="מקור AltStore">
+    גרסה יציבה:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    גרסה לילית:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="ידני">
+    - גרסה יציבה: יש להוריד את [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) מדף [הגרסה העדכנית ביותר](https://github.com/swipt-automation/swipt/releases/latest).
+    - גרסה לילית: יש להוריד את [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) מדף [הגרסה הלילית](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+כדי להשלים את השלב [הגדרה ראשונית](./setup.mdx), יש לפעול לפי ההוראות ביישום.

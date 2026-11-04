@@ -1,0 +1,5 @@
+{
+  "title": "Ξεκινήστε",
+  "defaultOpen": true,
+  "pages": ["index", "setup"]
+}

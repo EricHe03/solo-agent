@@ -1,0 +1,63 @@
+---
+title: Inštalácia
+---
+
+## Prehľad
+
+Swipt je automatizačná platforma.
+
+Momentálne podporuje iba iPhone a iPad so systémom **iOS 27** alebo novším a treba ju inštalovať cez sideloading.
+
+## Sideloading pomocou Macu
+
+Ak nechcete inštalovať samostatný framework na sideloading, odporúčame nástroj `sideload` vstavaný v Swipt CLI.
+
+Apku Swipt podpíše a nainštaluje pomocou Xcode, takže dokáže:
+
+- Použiť Apple účet, do ktorého ste už prihlásení, takže sa nemusíte znova prihlasovať.
+- Nastaviť apku Swipt na používanie existujúceho spárovania Macu so zariadením, takže na zariadení netreba znova párovať.
+- Dôverovať bezplatnému vývojárskemu certifikátu a vykonať na zariadení ďalšie úvodné nastavenia.
+
+V apke Terminál spustite:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Potom podľa pokynov vyberte zariadenie, na ktoré sa má apka nainštalovať, a tím, ktorý sa použije na podpísanie.
+
+Takmer celé úvodné nastavenie dokončí apka Swipt automaticky, ale stále musíte spustiť Loopback VPN. Pozrite si časť [Úvodné nastavenie](./setup.mdx).
+
+```shell
+swipt sideload update # Aktualizovať apku Swipt alebo predĺžiť jej platnosť
+swipt sideload uninstall # Odinštalovať apku Swipt
+```
+
+## Bez Macu
+
+Apku Swipt môžete nainštalovať pomocou AltStore alebo iného frameworku na sideloading, prípadne použiť ručný sideloading.
+
+<Tabs items={["Zdroj AltStore", "Ručne"]}>
+  <Tab value="Zdroj AltStore">
+    Stabilné vydanie:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Nočné vydanie:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Ručne">
+    - Stabilné vydanie: stiahnite si [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) z [najnovšieho vydania](https://github.com/swipt-automation/swipt/releases/latest).
+    - Nočné vydanie: stiahnite si [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) z [nočného vydania](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Podľa pokynov v apke dokončite [Úvodné nastavenie](./setup.mdx).

@@ -1,15 +1,18 @@
 import { zhCN } from "@fumadocs/language/zh-cn";
+import { zhTW } from "@fumadocs/language/zh-tw";
 import { uiTranslations } from "fumadocs-ui/i18n";
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 import Image from "next/image";
 import { i18n } from "./i18n";
-import { appName, gitConfig } from "./shared";
+import { appName, docsRoute, gitConfig } from "./shared";
+import uiStrings from "./translations.json";
 
 export const translations = i18n
   .translations()
   .extend(uiTranslations())
-  .add({ en: { displayName: "English" } })
-  .preset("zh-Hans", zhCN());
+  .add(uiStrings)
+  .preset("zh-Hans", zhCN())
+  .preset("zh-Hant", zhTW());
 
 export function baseOptions(locale: string): BaseLayoutProps {
   return {
@@ -20,7 +23,7 @@ export function baseOptions(locale: string): BaseLayoutProps {
           {appName}
         </>
       ),
-      url: `/${locale}`,
+      url: `/${locale}${docsRoute}`,
     },
     githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
   };

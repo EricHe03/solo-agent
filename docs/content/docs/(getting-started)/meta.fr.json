@@ -1,0 +1,5 @@
+{
+  "title": "Commencer",
+  "defaultOpen": true,
+  "pages": ["index", "setup"]
+}

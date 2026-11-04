@@ -1,0 +1,63 @@
+---
+title: Установка
+---
+
+## Обзор
+
+Swipt — платформа автоматизации.
+
+Сейчас поддерживаются только iPhone и iPad с **iOS 27** или новее, а установить Swipt можно только через сайдлоадинг.
+
+## Сайдлоадинг с помощью Mac
+
+Если Вы не хотите устанавливать отдельный инструмент для сайдлоадинга, рекомендуем встроенную в Swipt CLI утилиту `sideload`.
+
+Она подписывает и устанавливает Swipt с помощью Xcode, поэтому может:
+
+- Использовать Аккаунт Apple, в который уже выполнен вход, и не просить войти снова.
+- Настроить приложение Swipt на работу с уже созданной парой между Mac и устройством, чтобы не создавать пару на устройстве заново.
+- Подтвердить доверие к бесплатному сертификату разработчика и выполнить на устройстве остальную начальную настройку.
+
+В приложении «Терминал» выполните команды:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Затем следуйте подсказкам, чтобы выбрать устройство для установки и команду разработчиков для подписи.
+
+Почти всю настройку Swipt выполнит автоматически, но Петлевой VPN нужно запустить самостоятельно. Подробнее — в разделе «[Начальная настройка](./setup.mdx)».
+
+```shell
+swipt sideload update # Обновить Swipt или продлить срок действия подписи
+swipt sideload uninstall # Удалить Swipt
+```
+
+## Без Mac
+
+Swipt можно установить с помощью AltStore или другого инструмента для сайдлоадинга либо выполнить сайдлоадинг вручную.
+
+<Tabs items={["Источник AltStore", "Вручную"]}>
+  <Tab value="Источник AltStore">
+    Стабильная версия:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Ночная сборка:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Вручную">
+    - Стабильная версия: скачайте [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) из [последнего выпуска](https://github.com/swipt-automation/swipt/releases/latest).
+    - Ночная сборка: скачайте [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) из [ночного выпуска](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Следуйте инструкциям в приложении, чтобы завершить настройку. Подробнее — в разделе «[Начальная настройка](./setup.mdx)».

@@ -1,0 +1,63 @@
+---
+title: Εγκατάσταση
+---
+
+## Επισκόπηση
+
+Το Swipt είναι μια πλατφόρμα αυτοματοποίησης.
+
+Προς το παρόν υποστηρίζει μόνο iPhone και iPad με **iOS 27** ή νεότερη έκδοση και πρέπει να εγκατασταθεί με πλευρική φόρτωση.
+
+## Πλευρική φόρτωση με Mac
+
+Αν δεν θέλετε να εγκαταστήσετε ένα αυτόνομο πλαίσιο πλευρικής φόρτωσης, συνιστούμε το εργαλείο `sideload` που είναι ενσωματωμένο στο Swipt CLI.
+
+Υπογράφει και εγκαθιστά το Swipt με το Xcode, επομένως μπορεί:
+
+- Να χρησιμοποιεί τον λογαριασμό Apple στον οποίο έχετε ήδη συνδεθεί, χωρίς να σας ζητά να συνδεθείτε ξανά.
+- Να ρυθμίζει το Swipt ώστε να χρησιμοποιεί την υπάρχουσα ζευγοποίηση του Mac σας με τη συσκευή, χωρίς να χρειάζεται νέα ζευγοποίηση στη συσκευή.
+- Να εμπιστεύεται το δωρεάν πιστοποιητικό προγραμματιστή και να ολοκληρώνει άλλες αρχικές ρυθμίσεις στη συσκευή σας.
+
+Εκτελέστε στο Τερματικό:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Στη συνέχεια, ακολουθήστε τις οδηγίες που εμφανίζονται για να επιλέξετε τη συσκευή στην οποία θα εγκατασταθεί το Swipt και την ομάδα που θα χρησιμοποιηθεί για την υπογραφή.
+
+Το Swipt ολοκληρώνει αυτόματα σχεδόν όλη την αρχική ρύθμιση, αλλά πρέπει ακόμη να ξεκινήσετε το VPN loopback. Δείτε την ενότητα [Αρχική ρύθμιση](./setup.mdx).
+
+```shell
+swipt sideload update # Ενημέρωση του Swipt ή παράταση της ισχύος του
+swipt sideload uninstall # Απεγκατάσταση του Swipt
+```
+
+## Χωρίς Mac
+
+Μπορείτε να εγκαταστήσετε το Swipt με το AltStore ή με άλλο πλαίσιο πλευρικής φόρτωσης, ή να κάνετε την πλευρική φόρτωση χειροκίνητα.
+
+<Tabs items={["Πηγή AltStore", "Χειροκίνητα"]}>
+  <Tab value="Πηγή AltStore">
+    Σταθερή έκδοση:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Νυχτερινή έκδοση:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Χειροκίνητα">
+    - Σταθερή έκδοση: Κάντε λήψη του [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) από την [πιο πρόσφατη έκδοση](https://github.com/swipt-automation/swipt/releases/latest).
+    - Νυχτερινή έκδοση: Κάντε λήψη του [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) από τη [νυχτερινή έκδοση](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Ακολουθήστε τις οδηγίες στην εφαρμογή για να ολοκληρώσετε την [Αρχική ρύθμιση](./setup.mdx).

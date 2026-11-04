@@ -1,0 +1,63 @@
+---
+title: 설치
+---
+
+## 개요
+
+Swipt는 자동화 플랫폼입니다.
+
+현재 **iOS 27** 이상을 실행하는 iPhone 및 iPad만 지원하며, 사이드로딩으로 설치해야 합니다.
+
+## Mac으로 사이드로딩
+
+별도의 사이드로딩 프레임워크를 설치하고 싶지 않다면 Swipt CLI에 내장된 `sideload` 도구를 권장합니다.
+
+이 도구는 Xcode로 Swipt에 서명한 후 설치하므로 다음 작업을 수행할 수 있습니다.
+
+- 이미 로그인한 Apple 계정을 사용하므로 다시 로그인하지 않아도 됩니다.
+- Mac과 기기 간의 기존 페어링을 사용하도록 Swipt를 구성하므로 기기에서 다시 페어링하지 않아도 됩니다.
+- 기기에서 무료 개발자 인증서를 신뢰하고 기타 초기 설정을 수행합니다.
+
+터미널에서 다음 명령을 실행하십시오.
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+그런 다음 표시되는 안내에 따라 설치할 기기와 서명에 사용할 팀을 선택하십시오.
+
+Swipt가 초기 설정을 거의 모두 자동으로 완료하지만, 루프백 VPN은 직접 시작해야 합니다. [초기 설정](./setup.mdx)을 참조하십시오.
+
+```shell
+swipt sideload update # Swipt 업데이트 또는 만료일 연장
+swipt sideload uninstall # Swipt 제거
+```
+
+## Mac 없이
+
+AltStore 또는 다른 사이드로딩 프레임워크로 Swipt를 설치하거나, 수동으로 사이드로딩할 수 있습니다.
+
+<Tabs items={["AltStore 소스", "수동"]}>
+  <Tab value="AltStore 소스">
+    안정 버전:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    나이틀리 버전:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="수동">
+    - 안정 버전: [최신 릴리스](https://github.com/swipt-automation/swipt/releases/latest)에서 [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa)를 다운로드하십시오.
+    - 나이틀리 버전: [나이틀리 릴리스](https://github.com/swipt-automation/swipt/releases/tag/nightly)에서 [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa)를 다운로드하십시오.
+
+  </Tab>
+</Tabs>
+
+앱 내 안내에 따라 [초기 설정](./setup.mdx)을 완료하십시오.

@@ -1,0 +1,63 @@
+---
+title: Орнату
+---
+
+## Шолу
+
+Swipt – автоматтандыру платформасы.
+
+Қазір ол тек **iOS 27** немесе одан кейінгі нұсқасында жұмыс істейтін iPhone және iPad құрылғыларына қолдау көрсетеді және App Store дүкенінен тыс орнатылуы керек.
+
+## Mac компьютері арқылы орнату
+
+App Store дүкенінен тыс орнатуға арналған бөлек құрал орнатқыңыз келмесе, Swipt CLI құрамындағы `sideload` құралы ұсынылады.
+
+Ол Swipt қолданбасына Xcode арқылы қол қойып, оны орнатады, сондықтан мына әрекеттерді орындай алады:
+
+- Қайта кіруді сұрамай, бұрыннан кірген Apple аккаунтыңызды пайдалану.
+- Құрылғыда қайта жұптамай, Swipt қолданбасын Mac компьютеріңіз бен құрылғы арасындағы бұрыннан бар жұптауды пайдаланатындай етіп баптау.
+- Құрылғыңызда тегін әзірлеуші сертификатына сенім білдіріп, басқа да бастапқы баптау жұмыстарын орындау.
+
+«Терминал» қолданбасында мына пәрмендерді орындаңыз:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Содан кейін нұсқауларды орындап, орнатылатын құрылғы мен қол қоятын әзірлеушілер тобын таңдаңыз.
+
+Swipt бастапқы баптау қадамдарының барлығын дерлік автоматты түрде орындайды, бірақ Loopback VPN желісін әлі де өзіңіз іске қосуыңыз керек. [Бастапқы баптау](./setup.mdx) бөлімін қараңыз.
+
+```shell
+swipt sideload update # Swipt қолданбасын жаңарту немесе жарамдылық мерзімін ұзарту
+swipt sideload uninstall # Swipt қолданбасын жою
+```
+
+## Mac компьютерінсіз орнату
+
+Swipt қолданбасын AltStore немесе App Store дүкенінен тыс орнатуға арналған басқа құрал арқылы немесе қолмен орнатуға болады.
+
+<Tabs items={["AltStore дереккөзі", "Қолмен"]}>
+  <Tab value="AltStore дереккөзі">
+    Тұрақты нұсқа:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Түнгі нұсқа:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Қолмен">
+    - Тұрақты нұсқа: [соңғы шығарылымнан](https://github.com/swipt-automation/swipt/releases/latest) [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) файлын жүктеп алыңыз.
+    - Түнгі нұсқа: [түнгі шығарылымнан](https://github.com/swipt-automation/swipt/releases/tag/nightly) [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) файлын жүктеп алыңыз.
+
+  </Tab>
+</Tabs>
+
+[Бастапқы баптау](./setup.mdx) кезеңін аяқтау үшін қолданбадағы нұсқауларды орындаңыз.

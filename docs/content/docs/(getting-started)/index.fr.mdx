@@ -1,0 +1,63 @@
+---
+title: Installation
+---
+
+## Présentation
+
+Swipt est une plateforme d’automatisation.
+
+Pour le moment, seuls les iPhone et les iPad sous **iOS 27** ou version ultérieure sont pris en charge, et Swipt s’installe uniquement par sideloading.
+
+## Sideloading avec un Mac
+
+Si vous ne souhaitez pas installer d’outil de sideloading autonome, nous vous recommandons l’outil `sideload` intégré à Swipt CLI.
+
+Il signe et installe Swipt avec Xcode, ce qui lui permet de :
+
+- utiliser le compte Apple déjà connecté, sans vous demander de vous reconnecter ;
+- configurer Swipt pour utiliser le jumelage existant entre votre Mac et l’appareil, sans avoir à refaire le jumelage sur l’appareil ;
+- faire confiance au certificat de développeur gratuit et effectuer d’autres opérations de configuration initiale sur votre appareil.
+
+Dans Terminal, exécutez :
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Suivez ensuite les invites pour choisir l’appareil sur lequel installer Swipt et l’équipe à utiliser pour la signature.
+
+Swipt effectue presque toute la configuration automatiquement, mais vous devez tout de même démarrer le VPN de bouclage. Consultez la section [Configuration](./setup.mdx).
+
+```shell
+swipt sideload update # Mettre à jour Swipt ou prolonger sa validité
+swipt sideload uninstall # Désinstaller Swipt
+```
+
+## Sans utiliser de Mac
+
+Vous pouvez installer Swipt avec AltStore ou un autre outil de sideloading, ou effectuer le sideloading manuellement.
+
+<Tabs items={["Source AltStore", "Manuellement"]}>
+  <Tab value="Source AltStore">
+    Stable :
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Nightly :
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Manuellement">
+    - Stable : téléchargez [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) depuis la [dernière version](https://github.com/swipt-automation/swipt/releases/latest).
+    - Nightly : téléchargez [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) depuis la [version Nightly](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Suivez les instructions affichées dans l’app pour terminer l’étape [Configuration](./setup.mdx).

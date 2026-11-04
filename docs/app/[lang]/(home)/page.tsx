@@ -1,19 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-
-const copy = {
-  en: {
-    tagline: "The universal iOS automation platform.",
-    read: "Getting Started",
-  },
-  "zh-Hans": {
-    tagline: "通用的 iOS 自动化平台。",
-    read: "开始使用",
-  },
-};
+import { redirect } from "next/navigation";
+import { docsRoute } from "@/lib/shared";
+import copy from "./copy.json";
 
 export default async function HomePage({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
+  redirect(`/${lang}${docsRoute}`);
   const text = copy[lang as keyof typeof copy];
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-6 py-20 text-center">

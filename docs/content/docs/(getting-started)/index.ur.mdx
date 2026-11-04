@@ -1,0 +1,63 @@
+---
+title: انسٹالیشن
+---
+
+## جائزہ
+
+Swipt ڈیوائس کو خودکار بنانے کا پلیٹ فارم ہے۔
+
+فی الحال یہ صرف **iOS 27** یا اس کے بعد کے ورژن پر چلنے والے iPhone اور iPad پر دستیاب ہے، اور اسے سائیڈ لوڈ کرنا ضروری ہے۔
+
+## Mac کے ذریعے سائیڈ لوڈ کریں
+
+اگر آپ الگ سے سائیڈ لوڈنگ فریم ورک انسٹال نہیں کرنا چاہتے تو Swipt CLI میں شامل `sideload` ٹول استعمال کرنے کی تجویز دی جاتی ہے۔
+
+یہ Xcode کی مدد سے Swipt پر دستخط کر کے اسے انسٹال کرتا ہے، اس لیے یہ درج ذیل کام کر سکتا ہے:
+
+- آپ سے دوبارہ سائن اِن کرنے کو کہے بغیر اسی Apple اکاؤنٹ کا استعمال کرنا جس میں آپ پہلے سے سائن اِن ہیں۔
+- Swipt کو اس طرح کنفیگر کرنا کہ وہ ڈیوائس کے ساتھ آپ کے Mac کی موجودہ پیئرنگ استعمال کرے اور ڈیوائس پر دوبارہ پیئر نہ کرنا پڑے۔
+- مفت ڈیولپر سرٹیفیکیٹ پر اعتبار کرنا اور آپ کے ڈیوائس پر پہلی بار استعمال کے لیے درکار دیگر کنفیگریشن مکمل کرنا۔
+
+Terminal ایپ میں یہ کمانڈ چلائیں:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+پھر ہدایات پر عمل کرتے ہوئے انسٹال کرنے کے لیے ڈیوائس اور دستخط کرنے کے لیے ٹیم منتخب کریں۔
+
+سیٹ اپ کا تقریباً سارا کام Swipt کی طرف سے خودکار طور پر مکمل ہو جاتا ہے، لیکن لوپ بیک VPN آپ کو پھر بھی خود شروع کرنا ہو گا۔ [سیٹ اپ](./setup.mdx) دیکھیں۔
+
+```shell
+swipt sideload update # Swipt کو اپ ڈیٹ کریں یا اس کی میعاد کی تجدید کریں
+swipt sideload uninstall # Swipt کو ان انسٹال کریں
+```
+
+## Mac کے بغیر
+
+آپ AltStore یا کسی دوسرے سائیڈ لوڈنگ فریم ورک سے Swipt انسٹال کر سکتے ہیں، یا اسے دستی طور پر سائیڈ لوڈ کر سکتے ہیں۔
+
+<Tabs items={["AltStore سورس", "دستی"]}>
+  <Tab value="AltStore سورس">
+    مستحکم:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    نائٹلی:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="دستی">
+    - مستحکم: [تازہ ترین ریلیز](https://github.com/swipt-automation/swipt/releases/latest) سے [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) ڈاؤنلوڈ کریں۔
+    - نائٹلی: [نائٹلی ریلیز](https://github.com/swipt-automation/swipt/releases/tag/nightly) سے [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) ڈاؤنلوڈ کریں۔
+
+  </Tab>
+</Tabs>
+
+[سیٹ اپ](./setup.mdx) مکمل کرنے کے لیے ایپ میں دی گئی ہدایات پر عمل کریں۔

@@ -1,0 +1,63 @@
+---
+title: Instalare
+---
+
+## Prezentare generală
+
+Swipt este o platformă de automatizare.
+
+În prezent, este compatibilă doar cu dispozitivele iPhone și iPad care rulează **iOS 27** sau o versiune ulterioară și trebuie instalată prin sideloading.
+
+## Sideloading cu un Mac
+
+Dacă nu doriți să instalați un instrument independent de sideloading, vă recomandăm utilitarul `sideload` integrat în Swipt CLI.
+
+Acesta semnează și instalează Swipt cu Xcode, astfel că poate:
+
+- Să utilizeze contul Apple în care v-ați autentificat deja, fără să vă ceară să vă autentificați din nou.
+- Să configureze Swipt pentru a utiliza asocierea existentă dintre Mac și dispozitiv, fără să fie necesară o nouă asociere pe dispozitiv.
+- Să acorde încredere certificatului gratuit de dezvoltator și să efectueze alți pași de configurare inițială pe dispozitiv.
+
+În Terminal, rulați:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Apoi urmați instrucțiunile afișate pentru a alege dispozitivul pe care se va face instalarea și echipa utilizată pentru semnare.
+
+Aplicația Swipt efectuează automat aproape toată configurarea, dar trebuie totuși să porniți VPN-ul de loopback. Consultați secțiunea [Configurare](./setup.mdx).
+
+```shell
+swipt sideload update # Actualizați Swipt sau prelungiți-i valabilitatea
+swipt sideload uninstall # Dezinstalați Swipt
+```
+
+## Fără Mac
+
+Puteți instala Swipt cu AltStore sau cu alt instrument de sideloading. De asemenea, îl puteți instala manual prin sideloading.
+
+<Tabs items={["Sursă AltStore", "Manual"]}>
+  <Tab value="Sursă AltStore">
+    Versiune stabilă:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Versiune nightly:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Manual">
+    - Versiune stabilă: descărcați [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) din [cea mai recentă lansare](https://github.com/swipt-automation/swipt/releases/latest).
+    - Versiune nightly: descărcați [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) din [lansarea nightly](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Urmați instrucțiunile din aplicație pentru a finaliza pașii din secțiunea [Configurare](./setup.mdx).

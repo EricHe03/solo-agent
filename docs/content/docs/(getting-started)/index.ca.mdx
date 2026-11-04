@@ -1,0 +1,63 @@
+---
+title: Instal·lació
+---
+
+## Descripció general
+
+Swipt és una plataforma d’automatització.
+
+De moment, només és compatible amb iPhones i iPads que tinguin l’**iOS 27** o posterior, i s’ha d’instal·lar per càrrega lateral.
+
+## Càrrega lateral amb un Mac
+
+Si no vols instal·lar cap eina independent de càrrega lateral, et recomanem l’eina `sideload` integrada a la Swipt CLI.
+
+Com que signa i instal·la l’app Swipt amb l’Xcode, pot:
+
+- Utilitzar el compte d’Apple amb què ja has iniciat la sessió, sense demanar-te que la tornis a iniciar.
+- Configurar l’app Swipt perquè utilitzi l’enllaç que el Mac ja té amb el dispositiu, sense haver de tornar a enllaçar-los des del dispositiu.
+- Confiar en el certificat gratuït de desenvolupador i fer altres tasques de configuració inicial al dispositiu.
+
+A l’app Terminal, executa:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Després, segueix les indicacions per triar el dispositiu on vols instal·lar l’app i l’equip amb què la vols signar.
+
+Swipt fa gairebé tota la configuració automàticament, però encara has d’iniciar la VPN de bucle local. Consulta la secció [Configuració inicial](./setup.mdx).
+
+```shell
+swipt sideload update # Actualitza l’app Swipt o renova’n la validesa
+swipt sideload uninstall # Desinstal·la l’app Swipt
+```
+
+## Sense Mac
+
+Pots instal·lar l’app Swipt amb l’AltStore o amb una altra eina de càrrega lateral, o bé fer-ne la càrrega lateral manualment.
+
+<Tabs items={["Font de l’AltStore", "Manualment"]}>
+  <Tab value="Font de l’AltStore">
+    Versió estable:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Versió nocturna:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Manualment">
+    - Versió estable: descarrega [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) del [llançament més recent](https://github.com/swipt-automation/swipt/releases/latest).
+    - Versió nocturna: descarrega [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) del [llançament nocturn](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Segueix les instruccions de l’app per completar la [Configuració inicial](./setup.mdx).

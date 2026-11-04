@@ -1,0 +1,63 @@
+---
+title: Installering
+---
+
+## Oversikt
+
+Swipt er en automatiseringsplattform.
+
+Foreløpig støttes bare iPhone og iPad med **iOS 27** eller nyere, og Swipt må sidelastes.
+
+## Sidelasting med Mac
+
+Vi anbefaler det innebygde `sideload`-verktøyet i Swipt CLI hvis du ikke vil installere et frittstående rammeverk for sidelasting.
+
+Verktøyet signerer og installerer Swipt med Xcode og kan derfor:
+
+- Bruke Apple-kontoen du allerede er logget på med, uten at du må logge på igjen.
+- Konfigurere Swipt til å bruke sammenkoblingen som allerede finnes mellom Macen og enheten, uten at du må koble dem sammen igjen på enheten.
+- Stole på det gratis utviklersertifikatet og utføre annet førstegangsoppsett på enheten.
+
+Kjør dette i Terminal:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Følg deretter instruksjonene for å velge hvilken enhet du vil installere på, og hvilket team du vil signere med.
+
+Swipt fullfører nesten hele oppsettet automatisk, men du må fortsatt starte Loopback-VPN selv. Se [Oppsett](./setup.mdx).
+
+```shell
+swipt sideload update # Oppdater Swipt eller forleng gyldigheten
+swipt sideload uninstall # Avinstaller Swipt
+```
+
+## Uten Mac
+
+Du kan installere Swipt med AltStore eller et annet rammeverk for sidelasting, eller sidelaste appen manuelt.
+
+<Tabs items={["AltStore-kilde", "Manuelt"]}>
+  <Tab value="AltStore-kilde">
+    Stabil:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Nightly:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Manuelt">
+    - Stabil: Last ned [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) fra [den nyeste utgivelsen](https://github.com/swipt-automation/swipt/releases/latest).
+    - Nightly: Last ned [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) fra [Nightly-utgivelsen](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Følg instruksjonene i appen for å fullføre oppsettet. Se [Oppsett](./setup.mdx).

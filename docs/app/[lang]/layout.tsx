@@ -23,10 +23,18 @@ export default async function Layout({
   children,
 }: LayoutProps<"/[lang]">) {
   const { lang } = await params;
+  const dir = ["ar", "he", "ur"].includes(lang) ? "rtl" : "ltr";
   return (
-    <html lang={lang} className={inter.className} suppressHydrationWarning>
+    <html
+      lang={lang}
+      dir={dir}
+      className={inter.className}
+      suppressHydrationWarning
+    >
       <body className="flex flex-col min-h-screen">
-        <Provider i18n={i18nProvider(translations, lang)}>{children}</Provider>
+        <Provider dir={dir} i18n={i18nProvider(translations, lang)}>
+          {children}
+        </Provider>
       </body>
     </html>
   );

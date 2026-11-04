@@ -1,0 +1,63 @@
+---
+title: Yükleme
+---
+
+## Genel bakış
+
+Swipt bir otomasyon platformudur.
+
+Şu anda yalnızca **iOS 27** veya sonraki bir sürümü çalıştıran iPhone ve iPad aygıtlarını destekler ve yandan yüklenmesi gerekir.
+
+## Mac ile yandan yükleme
+
+Bağımsız bir yandan yükleme çerçevesi kurmak istemiyorsanız Swipt CLI ile birlikte gelen `sideload` aracını öneririz.
+
+Bu araç Swipt’i Xcode ile imzalayıp yükler. Bu sayede:
+
+- Zaten giriş yaptığınız Apple Hesabınızı kullanır, yeniden giriş yapmanızı istemez.
+- Swipt’i Mac’inizle aygıt arasındaki mevcut eşlemeyi kullanacak şekilde yapılandırır, aygıtta yeniden eşleme yapmanız gerekmez.
+- Aygıtınızda ücretsiz geliştirici sertifikasına güvenir ve diğer ilk ayarları yapar.
+
+Terminal’de şu komutları çalıştırın:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Ardından yönergeleri izleyerek yükleme yapılacak aygıtı ve imzalama için kullanılacak ekibi seçin.
+
+Swipt kurulumun neredeyse tamamını otomatik olarak yapar ancak Geri Döngü VPN’ini yine de sizin başlatmanız gerekir. [Kurulum](./setup.mdx) bölümüne bakın.
+
+```shell
+swipt sideload update # Swipt’i günceller veya geçerlilik süresini uzatır
+swipt sideload uninstall # Swipt’i kaldırır
+```
+
+## Mac olmadan
+
+Swipt’i AltStore veya başka bir yandan yükleme çerçevesiyle yükleyebilir ya da elle yandan yükleyebilirsiniz.
+
+<Tabs items={["AltStore kaynağı", "Elle"]}>
+  <Tab value="AltStore kaynağı">
+    Kararlı sürüm:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Gecelik sürüm:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Elle">
+    - Kararlı sürüm: [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) dosyasını [en son sürüm](https://github.com/swipt-automation/swipt/releases/latest) sayfasından indirin.
+    - Gecelik sürüm: [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) dosyasını [gecelik sürüm](https://github.com/swipt-automation/swipt/releases/tag/nightly) sayfasından indirin.
+
+  </Tab>
+</Tabs>
+
+Uygulamadaki yönergeleri izleyerek [Kurulum](./setup.mdx) işlemini tamamlayın.

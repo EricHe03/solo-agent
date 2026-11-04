@@ -1,0 +1,63 @@
+---
+title: ਇੰਸਟਾਲੇਸ਼ਨ
+---
+
+## ਸੰਖੇਪ ਜਾਣਕਾਰੀ
+
+Swipt ਇੱਕ ਸਵੈਚਾਲਨ ਪਲੇਟਫ਼ਾਰਮ ਹੈ।
+
+ਇਹ ਫ਼ਿਲਹਾਲ ਸਿਰਫ਼ **iOS 27** ਜਾਂ ਇਸ ਤੋਂ ਬਾਅਦ ਦੇ ਵਰਜਨ 'ਤੇ ਚੱਲਣ ਵਾਲੇ iPhone ਅਤੇ iPad ਦਾ ਸਮਰਥਨ ਕਰਦਾ ਹੈ ਅਤੇ ਇਸਨੂੰ ਸਾਈਡਲੋਡ ਕਰਨਾ ਲਾਜ਼ਮੀ ਹੈ।
+
+## Mac ਨਾਲ ਸਾਈਡਲੋਡ ਕਰਨਾ
+
+ਜੇਕਰ ਤੁਸੀਂ ਕੋਈ ਵੱਖਰਾ ਸਾਈਡਲੋਡਿੰਗ ਫ਼ਰੇਮਵਰਕ ਇੰਸਟਾਲ ਨਹੀਂ ਕਰਨਾ ਚਾਹੁੰਦੇ, ਤਾਂ ਅਸੀਂ Swipt CLI ਵਿੱਚ ਬਿਲਟ-ਇਨ `sideload` ਟੂਲ ਵਰਤਣ ਦੀ ਸਿਫ਼ਾਰਸ਼ ਕਰਦੇ ਹਾਂ।
+
+ਇਹ Xcode ਨਾਲ Swipt ਨੂੰ ਸਾਈਨ ਅਤੇ ਇੰਸਟਾਲ ਕਰਦਾ ਹੈ, ਇਸ ਲਈ ਇਹ ਟੂਲ ਇਹ ਕੰਮ ਕਰ ਸਕਦਾ ਹੈ:
+
+- ਤੁਹਾਨੂੰ ਦੁਬਾਰਾ ਸਾਈਨ ਇਨ ਕਰਨ ਲਈ ਕਹੇ ਬਿਨਾਂ ਉਹੀ Apple ਖਾਤਾ ਵਰਤਣਾ ਜਿਸ ਨਾਲ ਤੁਸੀਂ ਪਹਿਲਾਂ ਹੀ ਸਾਈਨ ਇਨ ਕੀਤਾ ਹੋਇਆ ਹੈ।
+- ਡਿਵਾਈਸ 'ਤੇ ਦੁਬਾਰਾ ਜੋੜਾਬੱਧ ਕੀਤੇ ਬਿਨਾਂ Swipt ਨੂੰ ਡਿਵਾਈਸ ਨਾਲ ਤੁਹਾਡੇ Mac ਦਾ ਮੌਜੂਦਾ ਜੋੜਾਬੱਧ ਕਨੈਕਸ਼ਨ ਵਰਤਣ ਲਈ ਕੌਨਫ਼ਿਗਰ ਕਰਨਾ।
+- ਮੁਫ਼ਤ ਡਿਵੈਲਪਰ ਸਰਟੀਫ਼ਿਕੇਟ 'ਤੇ ਭਰੋਸਾ ਕਰਨਾ ਅਤੇ ਤੁਹਾਡੇ ਡਿਵਾਈਸ 'ਤੇ ਹੋਰ ਸ਼ੁਰੂਆਤੀ ਕੌਨਫ਼ਿਗਰੇਸ਼ਨ ਪੂਰੀ ਕਰਨਾ।
+
+ਟਰਮੀਨਲ ਵਿੱਚ ਇਹ ਕਮਾਂਡਾਂ ਚਲਾਓ:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+ਫਿਰ ਪ੍ਰੌਂਪਟਾਂ ਦੀ ਪਾਲਣਾ ਕਰਕੇ ਉਹ ਡਿਵਾਈਸ ਚੁਣੋ ਜਿਸ 'ਤੇ ਇੰਸਟਾਲ ਕਰਨਾ ਹੈ ਅਤੇ ਉਹ ਟੀਮ ਚੁਣੋ ਜਿਸ ਨਾਲ ਸਾਈਨ ਕਰਨਾ ਹੈ।
+
+Swipt ਲਗਭਗ ਸਾਰਾ ਸੈੱਟਅੱਪ ਸਵੈਚਲਿਤ ਤੌਰ 'ਤੇ ਪੂਰਾ ਕਰ ਦਿੰਦਾ ਹੈ, ਪਰ ਲੂਪਬੈਕ VPN ਤੁਹਾਨੂੰ ਫਿਰ ਵੀ ਖ਼ੁਦ ਸ਼ੁਰੂ ਕਰਨਾ ਪਵੇਗਾ। [ਸੈੱਟਅੱਪ](./setup.mdx) ਪੰਨਾ ਦੇਖੋ।
+
+```shell
+swipt sideload update # Swipt ਨੂੰ ਅੱਪਡੇਟ ਕਰੋ ਜਾਂ ਇਸਦੀ ਮਿਆਦ ਵਧਾਓ
+swipt sideload uninstall # Swipt ਨੂੰ ਅਣਇੰਸਟਾਲ ਕਰੋ
+```
+
+## Mac ਤੋਂ ਬਿਨਾਂ
+
+ਤੁਸੀਂ AltStore ਜਾਂ ਕਿਸੇ ਹੋਰ ਸਾਈਡਲੋਡਿੰਗ ਫ਼ਰੇਮਵਰਕ ਨਾਲ Swipt ਇੰਸਟਾਲ ਕਰ ਸਕਦੇ ਹੋ ਜਾਂ ਇਸਨੂੰ ਮੈਨੁਅਲ ਤਰੀਕੇ ਨਾਲ ਸਾਈਡਲੋਡ ਕਰ ਸਕਦੇ ਹੋ।
+
+<Tabs items={["AltStore ਸਰੋਤ", "ਮੈਨੁਅਲ"]}>
+  <Tab value="AltStore ਸਰੋਤ">
+    ਸਥਿਰ:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    ਨਾਈਟਲੀ:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="ਮੈਨੁਅਲ">
+    - ਸਥਿਰ: [ਨਵੀਨਤਮ ਰਿਲੀਜ਼](https://github.com/swipt-automation/swipt/releases/latest) ਤੋਂ [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) ਡਾਊਨਲੋਡ ਕਰੋ।
+    - ਨਾਈਟਲੀ: [ਨਾਈਟਲੀ ਰਿਲੀਜ਼](https://github.com/swipt-automation/swipt/releases/tag/nightly) ਤੋਂ [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) ਡਾਊਨਲੋਡ ਕਰੋ।
+
+  </Tab>
+</Tabs>
+
+[ਸੈੱਟਅੱਪ](./setup.mdx) ਪੂਰਾ ਕਰਨ ਲਈ ਐਪ ਵਿੱਚ ਦਿੱਤੇ ਨਿਰਦੇਸ਼ਾਂ ਦੀ ਪਾਲਣਾ ਕਰੋ।

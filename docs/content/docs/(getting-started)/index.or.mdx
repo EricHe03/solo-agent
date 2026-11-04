@@ -1,0 +1,63 @@
+---
+title: ଇନ୍‌ଷ୍ଟଲେଶନ୍
+---
+
+## ସଂକ୍ଷିପ୍ତ ବିବରଣୀ
+
+Swipt ଏକ ସ୍ୱୟଂଚାଳନ ପ୍ଲାଟ୍‌ଫର୍ମ୍।
+
+ଏହା ବର୍ତ୍ତମାନ କେବଳ **iOS 27** କିମ୍ବା ପରବର୍ତ୍ତୀ ଭର୍ଶନ୍ ଚାଲୁଥିବା iPhone ଓ iPad କୁ ସମର୍ଥନ କରେ, ଏବଂ ଏହାକୁ ସାଇଡ୍‌ଲୋଡ୍ କରିବା ଆବଶ୍ୟକ।
+
+## Mac ସାହାଯ୍ୟରେ ସାଇଡ୍‌ଲୋଡ୍ କରନ୍ତୁ
+
+ଯଦି ଆପଣ ଅଲଗା ସାଇଡ୍‌ଲୋଡିଂ ଫ୍ରେମ୍‌ୱର୍କ୍ ଇନ୍‌ଷ୍ଟଲ୍ କରିବାକୁ ଚାହୁଁନାହାନ୍ତି, ତେବେ ଆମେ Swipt CLI ସହ ଆସୁଥିବା `sideload` ଟୂଲ୍ ବ୍ୟବହାର କରିବାକୁ ସୁପାରିଶ କରୁଛୁ।
+
+ଏହା Xcode ସାହାଯ୍ୟରେ Swipt କୁ ସାଇନ୍ ଓ ଇନ୍‌ଷ୍ଟଲ୍ କରେ, ତେଣୁ ଏହା ନିମ୍ନଲିଖିତ କାମ କରିପାରେ:
+
+- ଆପଣ ପୂର୍ବରୁ ସାଇନ୍ ଇନ୍ କରିଥିବା Apple ଆକାଉଣ୍ଟ୍ ବ୍ୟବହାର କରେ, ପୁଣି ସାଇନ୍ ଇନ୍ କରିବାକୁ କହେ ନାହିଁ।
+- ଡିଭାଇସ୍ ସହ ଆପଣଙ୍କ Mac ର ପୂର୍ବରୁ ଥିବା ପେୟାରିଂ ବ୍ୟବହାର କରିବାକୁ Swipt କୁ କନ୍‌ଫିଗର୍ କରେ, ଡିଭାଇସ୍‌ରେ ପୁଣି ପେୟାର୍ କରିବା ଦରକାର ପଡ଼େ ନାହିଁ।
+- ଆପଣଙ୍କ ଡିଭାଇସ୍‌ରେ ମାଗଣା ଡେଭଲପର୍ ସାର୍ଟିଫିକେଟ୍ ଉପରେ ବିଶ୍ବାସ କରେ ଏବଂ ପ୍ରଥମ ଥର ପାଇଁ ଆବଶ୍ୟକ ଅନ୍ୟ କନ୍‌ଫିଗରେଶନ୍ ମଧ୍ୟ କରେ।
+
+Terminal ରେ ନିମ୍ନଲିଖିତ କମାଣ୍ଡ୍ ଚଲାନ୍ତୁ:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+ତା’ପରେ ପ୍ରମ୍ପ୍ଟ୍ ଅନୁସରଣ କରି ଇନ୍‌ଷ୍ଟଲ୍ କରିବା ପାଇଁ ଡିଭାଇସ୍ ଏବଂ ସାଇନ୍ କରିବା ପାଇଁ ଟୀମ୍ ବାଛନ୍ତୁ।
+
+Swipt ପ୍ରାୟ ସମସ୍ତ ସେଟ୍‌ଅପ୍ ସ୍ୱୟଂଚାଳିତ ଭାବରେ ସମାପ୍ତ କରେ, କିନ୍ତୁ ଆପଣଙ୍କୁ ତଥାପି ଲୁପ୍‌ବ୍ୟାକ୍ VPN ଚାଲୁ କରିବାକୁ ହେବ। [ସେଟ୍‌ଅପ୍](./setup.mdx) ବିଭାଗ ଦେଖନ୍ତୁ।
+
+```shell
+swipt sideload update # Swipt ଅପଡେଟ୍ କରନ୍ତୁ କିମ୍ବା ଏହାର ସମୟସୀମା ବଢ଼ାନ୍ତୁ
+swipt sideload uninstall # Swipt ଅନ୍‌ଇନ୍‌ଷ୍ଟଲ୍ କରନ୍ତୁ
+```
+
+## Mac ବିନା
+
+ଆପଣ AltStore କିମ୍ବା ଅନ୍ୟ ସାଇଡ୍‌ଲୋଡିଂ ଫ୍ରେମ୍‌ୱର୍କ୍ ସାହାଯ୍ୟରେ Swipt ଇନ୍‌ଷ୍ଟଲ୍ କରିପାରିବେ, କିମ୍ବା ଏହାକୁ ମାନୁଆଲ୍ ଭାବରେ ସାଇଡ୍‌ଲୋଡ୍ କରିପାରିବେ।
+
+<Tabs items={["AltStore ସୋର୍ସ୍", "ମାନୁଆଲ୍"]}>
+  <Tab value="AltStore ସୋର୍ସ୍">
+    ଷ୍ଟେବଲ୍:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    ନାଇଟ୍‌ଲି:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="ମାନୁଆଲ୍">
+    - ଷ୍ଟେବଲ୍: [ନବୀନତମ ରିଲିଜ୍](https://github.com/swipt-automation/swipt/releases/latest) ରୁ [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) ଡାଉନ୍‌ଲୋଡ୍ କରନ୍ତୁ।
+    - ନାଇଟ୍‌ଲି: [ନାଇଟ୍‌ଲି ରିଲିଜ୍](https://github.com/swipt-automation/swipt/releases/tag/nightly) ରୁ [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) ଡାଉନ୍‌ଲୋଡ୍ କରନ୍ତୁ।
+
+  </Tab>
+</Tabs>
+
+[ସେଟ୍‌ଅପ୍](./setup.mdx) ସମାପ୍ତ କରିବା ପାଇଁ ଆପ୍‌ରେ ଥିବା ନିର୍ଦ୍ଦେଶାବଳୀ ଅନୁସରଣ କରନ୍ତୁ।

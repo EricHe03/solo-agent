@@ -1,0 +1,63 @@
+---
+title: Installatie
+---
+
+## Overzicht
+
+Swipt is een automatiseringsplatform.
+
+Het ondersteunt momenteel alleen iPhones en iPads met **iOS 27** of nieuwer en moet via sideloading worden geïnstalleerd.
+
+## Sideloaden met een Mac
+
+Wil je geen los sideloadingframework installeren, dan raden we het hulpprogramma `sideload` aan dat in de Swipt CLI is ingebouwd.
+
+Het ondertekent en installeert Swipt met Xcode en kan daardoor:
+
+- Je Apple Account gebruiken waarmee je al bent ingelogd, zonder dat je opnieuw hoeft in te loggen.
+- Swipt configureren om de bestaande koppeling tussen je Mac en het apparaat te gebruiken, zonder dat je op het apparaat opnieuw hoeft te koppelen.
+- Op je apparaat het gratis ontwikkelaarscertificaat vertrouwen en andere eerste configuratiestappen uitvoeren.
+
+Voer in Terminal het volgende uit:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Volg daarna de aanwijzingen om het apparaat te kiezen waarop je wilt installeren en het team waarmee je wilt ondertekenen.
+
+Swipt voert bijna de hele configuratie automatisch uit, maar je moet het Loopback-VPN nog zelf starten. Zie [Configuratie](./setup.mdx).
+
+```shell
+swipt sideload update # Werk Swipt bij of verleng de geldigheid
+swipt sideload uninstall # Verwijder Swipt
+```
+
+## Zonder Mac
+
+Je kunt Swipt installeren met AltStore of een ander sideloadingframework, of het handmatig sideloaden.
+
+<Tabs items={["AltStore-bron", "Handmatig"]}>
+  <Tab value="AltStore-bron">
+    Stabiel:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Nightly:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Handmatig">
+    - Stabiel: download [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) van de [nieuwste release](https://github.com/swipt-automation/swipt/releases/latest).
+    - Nightly: download [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) van de [nightly-release](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Volg de instructies in de app om de stappen onder [Configuratie](./setup.mdx) te voltooien.

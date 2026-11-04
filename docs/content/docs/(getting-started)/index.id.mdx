@@ -1,0 +1,63 @@
+---
+title: Instalasi
+---
+
+## Ikhtisar
+
+Swipt adalah platform otomatisasi.
+
+Saat ini, Swipt hanya mendukung iPhone dan iPad yang menjalankan **iOS 27** atau versi lebih baru, dan harus di-sideload.
+
+## Sideload dengan Mac
+
+Jika Anda tidak ingin menginstal framework sideload mandiri, disarankan menggunakan alat `sideload` bawaan Swipt CLI.
+
+Alat ini menggunakan Xcode untuk menandatangani dan menginstal Swipt, sehingga dapat:
+
+- Menggunakan Akun Apple yang sudah Anda pakai untuk masuk, tanpa meminta Anda masuk lagi.
+- Mengonfigurasi Swipt agar menggunakan pemasangan yang sudah ada antara Mac Anda dan perangkat, tanpa perlu dipasangkan lagi di perangkat.
+- Memercayai sertifikat pengembang gratis dan melakukan penyiapan awal lainnya di perangkat Anda.
+
+Di Terminal, jalankan:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Lalu, ikuti petunjuk untuk memilih perangkat tempat Swipt diinstal dan tim yang digunakan untuk menandatangani.
+
+Swipt menyelesaikan hampir semua penyiapan secara otomatis, tetapi Anda tetap perlu mengaktifkan VPN Loopback. Lihat [Penyiapan](./setup.mdx).
+
+```shell
+swipt sideload update # Perbarui Swipt atau perpanjang masa berlakunya
+swipt sideload uninstall # Hapus instalan Swipt
+```
+
+## Tanpa Mac
+
+Anda dapat menginstal Swipt dengan AltStore atau framework sideload lainnya, atau melakukan sideload secara manual.
+
+<Tabs items={["Sumber AltStore", "Manual"]}>
+  <Tab value="Sumber AltStore">
+    Stabil:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Nightly:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Manual">
+    - Stabil: Unduh [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) dari [rilis terbaru](https://github.com/swipt-automation/swipt/releases/latest).
+    - Nightly: Unduh [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) dari [rilis nightly](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Ikuti instruksi di app untuk menyelesaikan [Penyiapan](./setup.mdx).

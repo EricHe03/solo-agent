@@ -1,0 +1,63 @@
+---
+title: Instalacija
+---
+
+## Pregled
+
+Swipt je platforma za automatizaciju.
+
+Trenutačno podržava samo iPhone i iPad uređaje sa sustavom **iOS 27** ili novijim, a mora se instalirati bočnim učitavanjem.
+
+## Bočno učitavanje pomoću Mac računala
+
+Ako ne želite instalirati zaseban okvir za bočno učitavanje, preporučujemo alat `sideload` ugrađen u Swipt CLI.
+
+Aplikaciju Swipt potpisuje i instalira pomoću alata Xcode pa može:
+
+- Upotrijebiti Apple račun na koji ste već prijavljeni, bez ponovne prijave.
+- Konfigurirati aplikaciju Swipt tako da upotrebljava postojeće uparivanje vašeg Mac računala s uređajem, bez ponovnog uparivanja na uređaju.
+- Vjerovati besplatnom certifikatu za programere i obaviti ostale korake početnog postavljanja na uređaju.
+
+U aplikaciji Terminal pokrenite sljedeće naredbe:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Zatim slijedite upute i odaberite uređaj na koji želite instalirati aplikaciju te tim za potpisivanje.
+
+Aplikacija Swipt automatski dovršava gotovo cijelo postavljanje, ali VPN povratne petlje i dalje morate pokrenuti sami. Pogledajte odjeljak [Postavljanje](./setup.mdx).
+
+```shell
+swipt sideload update # Ažurira Swipt ili produljuje rok valjanosti
+swipt sideload uninstall # Deinstalira Swipt
+```
+
+## Bez Mac računala
+
+Za instalaciju aplikacije Swipt možete upotrijebiti AltStore ili drugi okvir za bočno učitavanje, a možete je bočno učitati i ručno.
+
+<Tabs items={["Izvor za AltStore", "Ručno"]}>
+  <Tab value="Izvor za AltStore">
+    Stabilno izdanje:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Noćno izdanje:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Ručno">
+    - Stabilno izdanje: Preuzmite datoteku [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) iz [najnovijeg izdanja](https://github.com/swipt-automation/swipt/releases/latest).
+    - Noćno izdanje: Preuzmite datoteku [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) iz [noćnog izdanja](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Slijedite upute u aplikaciji kako biste dovršili korake iz odjeljka [Postavljanje](./setup.mdx).

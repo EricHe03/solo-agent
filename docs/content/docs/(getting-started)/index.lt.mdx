@@ -1,0 +1,63 @@
+---
+title: Diegimas
+---
+
+## Apžvalga
+
+„Swipt” yra automatizavimo platforma.
+
+Šiuo metu ji palaiko tik „iPhone” ir „iPad” įrenginius su „**iOS 27**” arba naujesne versija, be to, ją reikia įkelti šoniniu būdu.
+
+## Šoninis įkėlimas naudojant „Mac” kompiuterį
+
+Jei nenorite diegti atskiros šoninio įkėlimo programos, rekomenduojame naudoti integruotą „Swipt CLI” įrankį `sideload`.
+
+Jis pasirašo ir įdiegia „Swipt” naudodamas „Xcode”, todėl gali:
+
+- Naudoti „Apple” paskyrą, prie kurios jau prisijungta, neprašydamas prisijungti iš naujo.
+- Nustatyti, kad „Swipt” naudotų esamą jūsų „Mac” kompiuterio susiejimą su įrenginiu, be pakartotinio susiejimo įrenginyje.
+- Įrenginyje pasitikėti nemokamu kūrėjo sertifikatu ir atlikti kitus pradinio nustatymo veiksmus.
+
+Programoje „Terminal” paleiskite šias komandas:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Tada pagal nurodymus pasirinkite įrenginį, į kurį diegsite, ir pasirašymui naudojamą komandą.
+
+„Swipt” beveik visą sąranką atlieka automatiškai, tačiau vis tiek turite paleisti grįžtamojo ryšio VPN. Žr. skyrių „[Sąranka](./setup.mdx)”.
+
+```shell
+swipt sideload update # Atnaujinti „Swipt” arba pratęsti galiojimą
+swipt sideload uninstall # Pašalinti „Swipt”
+```
+
+## Be „Mac” kompiuterio
+
+„Swipt” galima įdiegti naudojant „AltStore” ar kitą šoninio įkėlimo programą arba įkelti rankiniu būdu.
+
+<Tabs items={["„AltStore” šaltinis", "Rankiniu būdu"]}>
+  <Tab value="„AltStore” šaltinis">
+    Stabili versija:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Naktinė versija:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Rankiniu būdu">
+    - Stabili versija: atsisiųskite [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) iš [naujausio leidimo](https://github.com/swipt-automation/swipt/releases/latest).
+    - Naktinė versija: atsisiųskite [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) iš [naktinio leidimo](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Vykdykite programoje pateikiamus nurodymus, kad užbaigtumėte sąranką. Žr. skyrių „[Sąranka](./setup.mdx)”.

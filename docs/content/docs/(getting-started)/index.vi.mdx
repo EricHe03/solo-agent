@@ -1,0 +1,63 @@
+---
+title: Cài đặt
+---
+
+## Tổng quan
+
+Swipt là một nền tảng tự động hóa.
+
+Hiện tại, Swipt chỉ hỗ trợ iPhone và iPad chạy **iOS 27** trở lên, và phải được cài đặt bằng cách sideload.
+
+## Sideload bằng máy Mac
+
+Nếu không muốn cài đặt một framework sideload độc lập, bạn nên dùng công cụ `sideload` có sẵn trong Swipt CLI.
+
+Công cụ này ký và cài đặt Swipt bằng Xcode, nhờ đó có thể:
+
+- Sử dụng Tài khoản Apple mà bạn đã đăng nhập, không yêu cầu bạn đăng nhập lại.
+- Định cấu hình Swipt để sử dụng thông tin ghép đôi sẵn có giữa máy Mac của bạn và thiết bị, không cần ghép đôi lại trên thiết bị.
+- Tin cậy chứng chỉ nhà phát triển miễn phí và thực hiện các bước thiết lập ban đầu khác trên thiết bị của bạn.
+
+Trong Terminal, hãy chạy:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Sau đó, hãy làm theo lời nhắc để chọn thiết bị cần cài đặt và nhóm dùng để ký.
+
+Swipt tự động hoàn tất gần như toàn bộ quá trình thiết lập, nhưng bạn vẫn cần bật VPN loopback. Xem phần [Thiết lập](./setup.mdx).
+
+```shell
+swipt sideload update # Cập nhật Swipt hoặc gia hạn thời gian sử dụng
+swipt sideload uninstall # Gỡ cài đặt Swipt
+```
+
+## Không dùng máy Mac
+
+Bạn có thể cài đặt Swipt bằng AltStore hoặc một framework sideload khác, hoặc sideload thủ công.
+
+<Tabs items={["Nguồn AltStore", "Thủ công"]}>
+  <Tab value="Nguồn AltStore">
+    Bản ổn định:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Bản Nightly:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Thủ công">
+    - Bản ổn định: hãy tải xuống [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) từ [bản phát hành mới nhất](https://github.com/swipt-automation/swipt/releases/latest).
+    - Bản Nightly: hãy tải xuống [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) từ [bản phát hành Nightly](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Hãy làm theo hướng dẫn trong ứng dụng để hoàn tất [Thiết lập](./setup.mdx).

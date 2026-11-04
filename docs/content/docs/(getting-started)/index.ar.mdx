@@ -1,0 +1,63 @@
+---
+title: التثبيت
+---
+
+## نظرة عامة
+
+يُعد Swipt منصة للأتمتة.
+
+يقتصر دعمه حاليًا على أجهزة iPhone و iPad التي تعمل بنظام **iOS 27** أو إصدار أحدث، ويجب تثبيته عبر التحميل الجانبي.
+
+## التحميل الجانبي باستخدام Mac
+
+إذا كنت لا ترغب في تثبيت إطار عمل مستقل للتحميل الجانبي، فنوصي باستخدام أداة `sideload` المضمنة في Swipt CLI.
+
+تستخدم هذه الأداة Xcode لتوقيع Swipt وتثبيته، ولذلك يمكنها:
+
+- استخدام حساب Apple الذي سجلت الدخول إليه بالفعل، دون مطالبتك بتسجيل الدخول مرة أخرى
+- تكوين Swipt لاستخدام الإقران الحالي بين Mac والجهاز، دون الحاجة إلى الإقران مرة أخرى على الجهاز
+- الوثوق بشهادة المطور المجانية وإجراء خطوات الإعداد الأولي الأخرى على الجهاز
+
+يرجى تنفيذ الأوامر التالية في تطبيق الوحدة الطرفية:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+بعد ذلك، يرجى اتباع التعليمات لاختيار الجهاز الذي تريد التثبيت عليه والفريق الذي تريد التوقيع باستخدامه.
+
+يكمل Swipt تلقائيًا جميع خطوات الإعداد تقريبًا، لكن لا يزال عليك تشغيل شبكة VPN للاسترجاع. يرجى مراجعة قسم [الإعداد](./setup.mdx).
+
+```shell
+swipt sideload update # تحديث Swipt أو تمديد صلاحيته
+swipt sideload uninstall # إلغاء تثبيت Swipt
+```
+
+## بدون Mac
+
+يمكنك تثبيت Swipt باستخدام AltStore أو إطار عمل آخر للتحميل الجانبي، أو تثبيته يدويًا عبر التحميل الجانبي.
+
+<Tabs items={["مصدر AltStore", "يدوي"]}>
+  <Tab value="مصدر AltStore">
+    الإصدار المستقر:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    الإصدار الليلي:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="يدوي">
+    - الإصدار المستقر: يمكنك تنزيل [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) من [أحدث إصدار](https://github.com/swipt-automation/swipt/releases/latest).
+    - الإصدار الليلي: يمكنك تنزيل [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) من [الإصدار الليلي](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+يرجى اتباع التعليمات في التطبيق لإكمال [الإعداد](./setup.mdx).

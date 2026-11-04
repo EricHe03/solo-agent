@@ -1,0 +1,63 @@
+---
+title: 安裝
+---
+
+## 總覽
+
+Swipt 是一個自動化平台。
+
+目前僅支援搭載 **iOS 27** 或以上版本的 iPhone 和 iPad，且必須以側載方式安裝。
+
+## 使用 Mac 側載
+
+如果不想安裝獨立的側載框架，建議使用 Swipt CLI 內建的 `sideload` 工具。
+
+此工具會透過 Xcode 簽署並安裝 Swipt，因此可以：
+
+- 使用已登入的 Apple 帳號，不必重新登入。
+- 將 Swipt 設定為沿用 Mac 與裝置現有的配對，不必在裝置上重新配對。
+- 在裝置上信任免費開發者憑證，並完成其他初始設定。
+
+在「終端機」中執行：
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+接著依照提示，選擇要安裝 Swipt 的裝置和用於簽署的團隊。
+
+Swipt 會自動完成幾乎所有初始設定，但你仍需啟動回送 VPN。請參閱「[初始設定](./setup.mdx)」。
+
+```shell
+swipt sideload update # 更新 Swipt 或延長有效期限
+swipt sideload uninstall # 解除安裝 Swipt
+```
+
+## 不使用 Mac
+
+可使用 AltStore 或其他側載框架安裝 Swipt，也可以手動側載。
+
+<Tabs items={["AltStore 來源", "手動"]}>
+  <Tab value="AltStore 來源">
+    穩定版：
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    每夜版：
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="手動">
+    - 穩定版：從[最新發行版本](https://github.com/swipt-automation/swipt/releases/latest)下載 [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa)。
+    - 每夜版：從[每夜發行版本](https://github.com/swipt-automation/swipt/releases/tag/nightly)下載 [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa)。
+
+  </Tab>
+</Tabs>
+
+請依照 App 內的指示完成[初始設定](./setup.mdx)。

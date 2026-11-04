@@ -1,0 +1,63 @@
+---
+title: Telepítés
+---
+
+## Áttekintés
+
+A Swipt automatizálási platform.
+
+Jelenleg csak az **iOS 27** vagy újabb rendszert futtató iPhone-okat és iPadeket támogatja, és csak oldalról telepíthető.
+
+## Oldalról telepítés Mackel
+
+Ha nem szeretne önálló, oldalról telepítésre szolgáló keretrendszert telepíteni, a Swipt CLI beépített `sideload` segédprogramját javasoljuk.
+
+Ez a segédprogram az Xcode-dal írja alá és telepíti a Swipt appot, így:
+
+- Azt az Apple-fiókot használja, amelybe már bejelentkezett, és nem kéri az újbóli bejelentkezést.
+- Beállítja, hogy a Swipt app a Mac és az eszköz közötti meglévő párosítást használja, így az eszközön nem kell újra párosítania.
+- Az eszközön megbízhatónak jelöli az ingyenes fejlesztői tanúsítványt, és elvégzi az első használathoz szükséges többi beállítást.
+
+A Terminál appban futtassa a következő parancsokat:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Ezután a megjelenő utasításokat követve válassza ki az eszközt, amelyre telepíteni szeretne, és az aláíráshoz használni kívánt fejlesztői csapatot.
+
+A Swipt szinte a teljes beállítást automatikusan elvégzi, de a visszacsatolási VPN-t továbbra is Önnek kell elindítania. Lásd a [Kezdeti beállítás](./setup.mdx) című részt.
+
+```shell
+swipt sideload update # A Swipt app frissítése vagy lejáratának meghosszabbítása
+swipt sideload uninstall # A Swipt app eltávolítása
+```
+
+## Mac nélkül
+
+A Swipt appot az AltStore-ral vagy egy másik, oldalról telepítésre szolgáló keretrendszerrel telepítheti, de kézzel is elvégezheti az oldalról telepítést.
+
+<Tabs items={["AltStore-forrás", "Kézzel"]}>
+  <Tab value="AltStore-forrás">
+    Stabil:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Éjszakai:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Kézzel">
+    - Stabil: töltse le a [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) fájlt a [legújabb kiadás](https://github.com/swipt-automation/swipt/releases/latest) oldaláról.
+    - Éjszakai: töltse le a [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) fájlt az [éjszakai kiadás](https://github.com/swipt-automation/swipt/releases/tag/nightly) oldaláról.
+
+  </Tab>
+</Tabs>
+
+A [Kezdeti beállítás](./setup.mdx) lépéseit az appban megjelenő utasítások szerint végezze el.

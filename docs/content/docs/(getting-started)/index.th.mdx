@@ -1,0 +1,63 @@
+---
+title: การติดตั้ง
+---
+
+## ภาพรวม
+
+Swipt เป็นแพลตฟอร์มการทำงานอัตโนมัติ
+
+ขณะนี้รองรับเฉพาะ iPhone และ iPad ที่ใช้ **iOS 27** หรือใหม่กว่า และต้องติดตั้งแบบไซด์โหลด
+
+## ติดตั้งแบบไซด์โหลดด้วย Mac
+
+หากไม่ต้องการติดตั้งเฟรมเวิร์กไซด์โหลดแยกต่างหาก แนะนำให้ใช้เครื่องมือ `sideload` ที่มีมาให้ใน Swipt CLI
+
+เครื่องมือนี้เซ็นชื่อและติดตั้ง Swipt ด้วย Xcode จึงสามารถ:
+
+- ใช้บัญชี Apple ที่คุณลงชื่อเข้าไว้แล้ว โดยไม่ต้องลงชื่อเข้าอีกครั้ง
+- กำหนดค่าให้ Swipt ใช้การจับคู่ที่มีอยู่แล้วระหว่าง Mac ของคุณกับอุปกรณ์ โดยไม่ต้องจับคู่อีกครั้งบนอุปกรณ์
+- เชื่อถือใบรับรองนักพัฒนาแบบฟรีและตั้งค่าเบื้องต้นอื่นๆ บนอุปกรณ์ของคุณ
+
+เรียกใช้คำสั่งต่อไปนี้ในเทอร์มินัล:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+จากนั้นทำตามข้อความแจ้งเพื่อเลือกอุปกรณ์ที่จะติดตั้งและทีมที่จะใช้เซ็นชื่อ
+
+Swipt จะตั้งค่าเกือบทั้งหมดให้โดยอัตโนมัติ แต่คุณยังต้องเริ่ม VPN ลูปแบ็คเอง ดูส่วน[การตั้งค่าครั้งแรก](./setup.mdx)
+
+```shell
+swipt sideload update # อัปเดต Swipt หรือต่ออายุการใช้งาน
+swipt sideload uninstall # ถอนการติดตั้ง Swipt
+```
+
+## ติดตั้งโดยไม่ใช้ Mac
+
+คุณสามารถติดตั้ง Swipt ด้วย AltStore หรือเฟรมเวิร์กไซด์โหลดอื่นๆ หรือจะติดตั้งแบบไซด์โหลดด้วยตนเองก็ได้
+
+<Tabs items={["ซอร์ส AltStore", "ด้วยตนเอง"]}>
+  <Tab value="ซอร์ส AltStore">
+    เวอร์ชันเสถียร:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    เวอร์ชัน Nightly:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="ด้วยตนเอง">
+    - เวอร์ชันเสถียร: ดาวน์โหลด [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) จาก[รีลีสล่าสุด](https://github.com/swipt-automation/swipt/releases/latest)
+    - เวอร์ชัน Nightly: ดาวน์โหลด [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) จาก[รีลีส Nightly](https://github.com/swipt-automation/swipt/releases/tag/nightly)
+
+  </Tab>
+</Tabs>
+
+ทำตามคำแนะนำในแอปเพื่อทำ[การตั้งค่าครั้งแรก](./setup.mdx)ให้เสร็จสิ้น

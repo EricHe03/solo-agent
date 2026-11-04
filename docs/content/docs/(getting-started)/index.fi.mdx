@@ -1,0 +1,63 @@
+---
+title: Asennus
+---
+
+## Yleiskatsaus
+
+Swipt on automatisointialusta.
+
+Se tukee tällä hetkellä vain iPhonea ja iPadia, joissa on **iOS 27** tai uudempi, ja se on asennettava sivulataamalla.
+
+## Sivulataus Macilla
+
+Jos et halua asentaa erillistä sivulataustyökalua, suosittelemme Swipt CLI:hin sisältyvää `sideload`-työkalua.
+
+Koska työkalu allekirjoittaa ja asentaa Swiptin Xcodella, se voi:
+
+- Käyttää Apple-tiliä, jolle olet jo kirjautunut, joten sinun ei tarvitse kirjautua uudelleen.
+- Määrittää Swiptin käyttämään Macin ja laitteen jo muodostamaa paria, joten laitteessa ei tarvitse tehdä paria uudelleen.
+- Luottaa ilmaiseen kehittäjävarmenteeseen ja tehdä laitteessa muut alkumääritykset.
+
+Suorita seuraavat komennot Pääte-apissa:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Valitse sitten kehotteiden mukaan laite, johon Swipt asennetaan, ja tiimi, jolla se allekirjoitetaan.
+
+Swipt hoitaa käyttöönoton lähes kokonaan automaattisesti, mutta sinun on silti käynnistettävä Loopback-VPN itse. Katso osio [Käyttöönotto](./setup.mdx).
+
+```shell
+swipt sideload update # Päivitä Swipt tai pidennä sen voimassaoloaikaa
+swipt sideload uninstall # Poista Swiptin asennus
+```
+
+## Ilman Macia
+
+Voit asentaa Swiptin AltStorella tai muulla sivulataustyökalulla, tai voit sivuladata sen manuaalisesti.
+
+<Tabs items={["AltStore-lähde", "Manuaalisesti"]}>
+  <Tab value="AltStore-lähde">
+    Vakaa:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Nightly:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Manuaalisesti">
+    - Vakaa: Lataa [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) [uusimmasta julkaisusta](https://github.com/swipt-automation/swipt/releases/latest).
+    - Nightly: Lataa [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) [nightly-julkaisusta](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Viimeistele [Käyttöönotto](./setup.mdx) apin ohjeiden mukaan.
