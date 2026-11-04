@@ -25,8 +25,9 @@ jobs:
       - name: Set outputs
         id: outputs
         run: |-
+          source .github/github.sh
           PREVIOUS=0
-          if git fetch --depth=1 origin tag nightly; then
+          if retry git fetch --depth=1 origin tag nightly; then
             PREVIOUS=$(git tag -l --format='%(contents:subject)' nightly)
           fi
           echo "build_number=$((PREVIOUS + 1))"
@@ -53,6 +54,16 @@ jobs:
       - name: Select Xcode
         if: steps.library.outputs.cache-hit != 'true'
         run: .github/select_xcode.sh
+      - name: Get Go version
+        id: go
+        if: steps.library.outputs.cache-hit != 'true'
+        run: echo "version=$(sed -n 's/^go //p' go.mod)" >> "$GITHUB_OUTPUT"
+      - name: Cache Go toolchain
+        if: steps.library.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.tool_cache }}/go/${{ steps.go.outputs.version }}
+          key: go-toolchain-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.version }}
       - name: Setup Go
         if: steps.library.outputs.cache-hit != 'true'
         uses: actions/setup-go@v5
@@ -105,16 +116,43 @@ jobs:
           bun-version: 1.4.4
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Get Xcode version
+        id: xcode
+        run: echo "build=$(xcodebuild -version | tail -1 | cut -d ' ' -f 3)" >> "$GITHUB_OUTPUT"
       - name: Cache React Native artifacts
         uses: actions/cache@v4
         with:
           path: ~/Library/Caches/ReactNative/spm-artifacts
           key: react-native-spm-${{ hashFiles('node_modules/react-native/package.json') }}
+      - name: Cache runtime bundle
+        id: runtime_bundle
+        uses: actions/cache@v4
+        with:
+          path: build/runtime
+          key: runtime-bundle-${{ hashFiles('package.json', 'bun.lock', 'internal/automation/runtime/**', '!**/node_modules/**') }}
+      - name: Keep runtime bundle
+        if: steps.runtime_bundle.outputs.cache-hit == 'true'
+        run: touch build/runtime/main.jsbundle
+      - name: Restore ExpoModulesCore
+        id: expo_modules_core
+        uses: actions/cache/restore@v4
+        with:
+          path: |-
+            build/expo-modules-core/inputs
+            build/expo-modules-core/jsi/Products
+            node_modules/expo-modules-core/prebuilds/output/*/xcframeworks/ExpoModulesCore.xcframework
+          key: expo-modules-core-${{ steps.xcode.outputs.build }}-${{ hashFiles('dev/expo-modules-core.mjs', 'node_modules/expo-modules-core/package.json', 'node_modules/expo-modules-core/spm.config.json', 'node_modules/expo-modules-core/ios/**', 'node_modules/expo-modules-core/common/**', 'node_modules/expo-modules-jsi/package.json', 'node_modules/expo-modules-jsi/apple/**', 'node_modules/expo-modules-macros/package.json', 'node_modules/react-native/package.json') }}
       - name: Set up React Native
         run: bun dev frameworks
-      - name: Get Xcode version
-        id: xcode
-        run: echo "build=$(xcodebuild -version | tail -1 | cut -d ' ' -f 3)" >> "$GITHUB_OUTPUT"
+      - name: Save ExpoModulesCore
+        if: steps.expo_modules_core.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |-
+            build/expo-modules-core/inputs
+            build/expo-modules-core/jsi/Products
+            node_modules/expo-modules-core/prebuilds/output/*/xcframeworks/ExpoModulesCore.xcframework
+          key: ${{ steps.expo_modules_core.outputs.cache-primary-key }}
       - name: Cache Swift packages
         uses: actions/cache@v4
         with:
@@ -164,6 +202,14 @@ jobs:
           fetch-depth: 1
       - name: Select Xcode
         run: .github/select_xcode.sh
+      - name: Get Go version
+        id: go
+        run: echo "version=$(sed -n 's/^go //p' go.mod)" >> "$GITHUB_OUTPUT"
+      - name: Cache Go toolchain
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.tool_cache }}/go/${{ steps.go.outputs.version }}
+          key: go-toolchain-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.version }}
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -294,21 +340,46 @@ jobs:
         run: go run ./internal/cmd/build_altstore_source
       - name: Publish
         run: |-
-          if RELEASE=$(gh release view --json tagName --jq .tagName); then
+          source .github/github.sh
+          if RELEASE=$(retry gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name); then
             NOTES=$(git log --format='* %s' "$RELEASE..")
           else
             NOTES=$(git log --format='* %s')
           fi
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" tag -a -f nightly -m "$BUILD_NUMBER" "$GITHUB_SHA"
-          git push -f origin refs/tags/nightly
-          gh release create "nightly-$BUILD_NUMBER" --draft --prerelease --target "$GITHUB_SHA" --title "Nightly build" --notes "$NOTES" \
+          retry git push -f origin refs/tags/nightly
+          DRAFT=$(retry create_draft nightly-draft --prerelease --target "$GITHUB_SHA" --title "Nightly build" --notes "$NOTES" \
             build/Swipt.ipa build/Swipt-iOS.dSYMs.zip build/metadata.json build/altstore/altstore.json build/altstore/icon.png \
-            build/swipt-server-darwin-arm64 build/swipt-server-darwin-x64
-          DRAFT=$(gh release view "nightly-$BUILD_NUMBER" --json apiUrl --jq .apiUrl)
-          if PREVIOUS=$(gh release view nightly --json apiUrl --jq .apiUrl); then
-            gh api -X DELETE "$PREVIOUS"
+            build/swipt-server-darwin-arm64 build/swipt-server-darwin-x64)
+          if PREVIOUS=$(retry gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" --jq .url); then
+            retry delete "$PREVIOUS"
           fi
-          gh api -X PATCH "$DRAFT" -f tag_name=nightly -F draft=false > /dev/null
+          retry gh api -X PATCH "$DRAFT" -f tag_name=nightly -F draft=false > /dev/null
         env:
           BUILD_NUMBER: ${{ needs.calculate_version.outputs.build_number }}
+          GH_TOKEN: ${{ github.token }}
+  prune_caches:
+    name: Prune caches
+    if: github.ref == 'refs/heads/main' && !cancelled()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    needs:
+      - build_ios_ipa
+      - build_server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 1
+      - name: Delete superseded caches
+        run: |-
+          source .github/github.sh
+          CACHES=$(retry gh cache list --ref "$GITHUB_REF" --limit 1000 --json id,key \
+            --jq 'group_by(.key | sub("-[^-]*$"; "")) | map(.[1:]) | flatten | .[].id')
+          for cache in $CACHES; do
+            retry delete "repos/$GITHUB_REPOSITORY/actions/caches/$cache"
+          done
+        env:
           GH_TOKEN: ${{ github.token }}

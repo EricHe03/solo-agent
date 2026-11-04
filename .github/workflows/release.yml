@@ -27,23 +27,24 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Release
         run: |-
-          gh release download nightly -D build -p Swipt.ipa -p Swipt-iOS.dSYMs.zip -p metadata.json -p icon.png -p 'swipt-server-darwin-*'
+          source .github/github.sh
+          retry gh release download nightly -D build --clobber -p Swipt.ipa -p Swipt-iOS.dSYMs.zip -p metadata.json -p icon.png -p 'swipt-server-darwin-*'
           if [ "$(jq .build build/metadata.json)" != "$(git tag -l --format='%(contents:subject)' nightly)" ]; then
             echo "nightly was updated during the release, run it again" >&2
             exit 1
           fi
           TAG=v$(jq -r .version build/metadata.json)
-          if gh release view "$TAG" > /dev/null 2>&1; then
+          if retry gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --silent 2> /dev/null || [ -n "$(retry drafts "$TAG")" ]; then
             echo "$TAG already exists" >&2
             exit 1
           fi
-          if PREVIOUS=$(gh release view --json tagName --jq .tagName); then
+          if PREVIOUS=$(retry gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name); then
             NOTES=$(git log --format='* %s' "$PREVIOUS..nightly")
           else
             NOTES=$(git log --format='* %s' nightly)
           fi
           go run ./internal/cmd/build_altstore_source -tag "$TAG"
-          gh release create "$TAG" --draft --target "$(git rev-parse 'nightly^{commit}')" --notes "$NOTES" \
+          retry create_draft "$TAG" --target "$(git rev-parse 'nightly^{commit}')" --notes "$NOTES" \
             build/Swipt.ipa build/Swipt-iOS.dSYMs.zip build/metadata.json build/icon.png build/altstore/altstore.json \
             build/swipt-server-darwin-arm64 build/swipt-server-darwin-x64
           git archive 'nightly^{commit}' api cli | tar -x -C build
