@@ -1,6 +1,10 @@
-# Swipt
+<p align="center">
+  <img src="Swipt/Resources/AppIcon.icon/Assets/scroll.svg" alt="" width="160">
+</p>
 
-The universal iOS automation platform.
+<h1 align="center">Swipt</h1>
+
+<p align="center">The universal iOS automation platform.</p>
 
 ## Requirements
 
