@@ -42,7 +42,17 @@ var (
 	errStopped         = status.Error(codes.Unavailable, "the API stopped")
 )
 
-type anonymousKey struct{}
+type credentialKey struct{}
+
+type Credential struct {
+	server *Server
+	token  string
+}
+
+type request struct {
+	cancel     context.CancelCauseFunc
+	credential *Credential
+}
 
 type Options struct {
 	Device     *device.Connection
@@ -65,10 +75,9 @@ type Server struct {
 	mcpHTTP http.Handler
 
 	access   sync.Mutex
-	token    string
 	session  *automation.REPL
 	sessions map[*mcp.ServerSession]*automation.REPL
-	requests map[uint64]context.CancelCauseFunc
+	requests map[uint64]request
 	sequence uint64
 	draining chan struct{}
 	closed   bool
@@ -81,7 +90,7 @@ func New(options Options) *Server {
 	s := &Server{
 		options:  options,
 		sessions: make(map[*mcp.ServerSession]*automation.REPL),
-		requests: make(map[uint64]context.CancelCauseFunc),
+		requests: make(map[uint64]request),
 	}
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	s.grpc = grpc.NewServer(
@@ -111,15 +120,13 @@ func New(options Options) *Server {
 	return s
 }
 
-func (s *Server) handler(prefix string, authenticates bool) http.Handler {
+func (s *Server) handler(prefix string, credential *Credential) http.Handler {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == MCPPath {
-			s.serveMCP(w, r, authenticates)
+			s.serveMCP(w, r, credential)
 			return
 		}
-		if !authenticates {
-			r = r.WithContext(context.WithValue(r.Context(), anonymousKey{}, true))
-		}
+		r = r.WithContext(context.WithValue(r.Context(), credentialKey{}, credential))
 		contentType := r.Header.Get("Content-Type")
 		switch {
 		case isWebSocketGRPCRequest(r):
@@ -148,12 +155,12 @@ func (s *Server) handler(prefix string, authenticates bool) http.Handler {
 	}))
 }
 
-func (s *Server) Serve(listener net.Listener, prefix string, authenticates bool) error {
+func (s *Server) Serve(listener net.Listener, prefix string, credential *Credential) error {
 	var protocols http.Protocols
 	protocols.SetHTTP1(true)
 	protocols.SetUnencryptedHTTP2(true)
 	server := &http.Server{
-		Handler:           http.NewCrossOriginProtection().Handler(s.handler(prefix, authenticates)),
+		Handler:           http.NewCrossOriginProtection().Handler(s.handler(prefix, credential)),
 		Protocols:         &protocols,
 		ReadHeaderTimeout: headerTimeout,
 	}
@@ -182,16 +189,26 @@ func (s *Server) Serve(listener net.Listener, prefix string, authenticates bool)
 	return err
 }
 
-func (s *Server) SetToken(token string) {
+func (s *Server) NewCredential(token string) *Credential {
+	return &Credential{server: s, token: token}
+}
+
+func (c *Credential) SetToken(token string) {
+	s := c.server
 	s.access.Lock()
-	if token == s.token {
+	if token == c.token {
 		s.access.Unlock()
 		return
 	}
-	s.token = token
+	c.token = token
 	ended := s.takeSessions()
-	cancels := s.requests
-	s.requests = make(map[uint64]context.CancelCauseFunc)
+	var cancels []context.CancelCauseFunc
+	for id, request := range s.requests {
+		if request.credential == c {
+			cancels = append(cancels, request.cancel)
+			delete(s.requests, id)
+		}
+	}
 	s.access.Unlock()
 	for _, cancel := range cancels {
 		cancel(errTokenReset)
@@ -199,27 +216,26 @@ func (s *Server) SetToken(token string) {
 	ended()
 }
 
-func (s *Server) authorized(token string) bool {
-	s.access.Lock()
-	current := s.token
-	s.access.Unlock()
+func (c *Credential) authorized(token string) bool {
+	c.server.access.Lock()
+	current := c.token
+	c.server.access.Unlock()
 	return current != "" && subtle.ConstantTimeCompare([]byte(token), []byte(current)) == 1
 }
 
-func anonymous(ctx context.Context) bool {
-	allowed, _ := ctx.Value(anonymousKey{}).(bool)
-	return allowed
-}
-
 func (s *Server) authorize(ctx context.Context) (context.Context, func(), error) {
-	if !anonymous(ctx) {
+	credential, found := ctx.Value(credentialKey{}).(*Credential)
+	if !found {
+		return nil, nil, errNoToken
+	}
+	if credential != nil {
 		md, _ := metadata.FromIncomingContext(ctx)
 		values := md.Get("authorization")
 		if len(values) == 0 {
 			return nil, nil, errNoToken
 		}
 		token, isBearer := strings.CutPrefix(values[0], "Bearer ")
-		if !isBearer || !s.authorized(token) {
+		if !isBearer || !credential.authorized(token) {
 			return nil, nil, errUnauthenticated
 		}
 	}
@@ -232,7 +248,7 @@ func (s *Server) authorize(ctx context.Context) (context.Context, func(), error)
 	}
 	s.sequence++
 	id := s.sequence
-	s.requests[id] = cancel
+	s.requests[id] = request{cancel: cancel, credential: credential}
 	s.access.Unlock()
 	return ctx, func() {
 		s.access.Lock()

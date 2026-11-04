@@ -347,12 +347,12 @@ final class Platform {
         let cloudflare = developer.isCloudflareEnabled ? cloudflareTunnel : nil
         guard developer.isLocalNetworkEnabled || cloudflare != nil else { return nil }
         let options = LibSwiptAPIOptions()
-        options.token = developer.token
         options.localNetwork = developer.isLocalNetworkEnabled
         options.port = Int32(developer.localPort)
-        options.localNetworkAuthenticates = developer.localAuthenticates
+        options.localNetworkToken = developer.localAuthenticates ? developer.localToken : ""
         options.cloudflare = cloudflare
         options.cloudflarePath = developer.cloudflarePath
+        options.cloudflareToken = developer.cloudflareToken
         return options
     }
 
@@ -363,7 +363,7 @@ final class Platform {
             DispatchQueue.main.async { self?.observeAPI() }
         }
         let advertisement = options.flatMap {
-            $0.localNetwork ? APIAdvertisement(port: Int($0.port), authenticates: $0.localNetworkAuthenticates) : nil
+            $0.localNetwork ? APIAdvertisement(port: Int($0.port), authenticates: !$0.localNetworkToken.isEmpty) : nil
         }
         let box = UncheckedSendable(value: (core, options))
         Self.queue.async { [weak self] in

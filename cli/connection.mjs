@@ -155,7 +155,7 @@ const requiresToken = (found) =>
   `${found.name} requires a token: swipt device add ${withToken(found.url)}`;
 
 export async function attach(context) {
-  const given = context.options.device ?? process.env.SWIPT_DEVICE;
+  const given = context.options.device;
   const stored = load();
   let device;
   if (given && /[:/]/.test(given)) {
@@ -197,7 +197,7 @@ export async function attach(context) {
     }
     if (names.length > 1) {
       throw new Error(
-        `there is more than one device: ${names.join(", ")}; choose one with -d or SWIPT_DEVICE`,
+        `there is more than one device: ${names.join(", ")}; choose one with -d`,
       );
     }
     device = parseURL(stored[names[0]]);

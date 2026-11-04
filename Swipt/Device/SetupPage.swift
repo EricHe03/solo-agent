@@ -8,11 +8,11 @@ struct SetupPage<Content: View, Actions: View>: View {
 
     private let icon: String
     private let title: Text
-    private let description: Text
+    private let description: Text?
     private let content: Content
     private let actions: Actions
 
-    init(_ icon: String, _ title: Text, description: Text, @ViewBuilder content: () -> Content, @ViewBuilder actions: () -> Actions) {
+    init(_ icon: String, _ title: Text, description: Text? = nil, @ViewBuilder content: () -> Content, @ViewBuilder actions: () -> Actions) {
         self.icon = icon
         self.title = title
         self.description = description
@@ -29,9 +29,11 @@ struct SetupPage<Content: View, Actions: View>: View {
                         .foregroundStyle(.tint)
                     title
                         .font(.largeTitle.bold())
-                    description
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: Self.textWidth)
+                    if let description {
+                        description
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: Self.textWidth)
+                    }
                     content
                 }
                 .multilineTextAlignment(.center)

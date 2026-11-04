@@ -1,10 +1,9 @@
 import { spawnSync } from "node:child_process";
-import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { attach, label, sameName } from "@swipt/cli/connection.mjs";
+import { attach } from "@swipt/cli/connection.mjs";
+import { apps, coreDevice, devicectl } from "@swipt/cli/coredevice.mjs";
 
 import { buildExpoModulesCore } from "./expo-modules-core.mjs";
 
@@ -51,32 +50,6 @@ const frameworks = () => {
   }
 };
 
-function devicectl(args, { parse = false } = {}) {
-  const output = parse
-    ? path.join(os.tmpdir(), `devicectl-${process.pid}.json`)
-    : undefined;
-  const result = spawnSync(
-    "xcrun",
-    ["devicectl", ...args, ...(parse ? ["--json-output", output] : [])],
-    { cwd: root, encoding: "utf8" },
-  );
-  if (result.status !== 0) {
-    const text = `${result.stdout}${result.stderr}`;
-    if (text.includes("4016")) {
-      throw new Error(
-        "CoreDevice cannot reach the device while its loopback VPN is on; turn off Swipt's VPN on the device, then run this again",
-      );
-    }
-    throw new Error(text.trim() || `devicectl exited with ${result.status}`);
-  }
-  if (!parse) {
-    return undefined;
-  }
-  const parsed = JSON.parse(fs.readFileSync(output, "utf8"));
-  fs.rmSync(output);
-  return parsed;
-}
-
 const infoOf = async (client) => {
   try {
     return await client.system.getInfo(
@@ -106,35 +79,6 @@ async function unlock(client) {
   }
 }
 
-function coreDevice(given) {
-  const devices = devicectl(["list", "devices"], { parse: true })
-    .result.devices.filter(
-      (device) =>
-        device.hardwareProperties.platform === "iOS" &&
-        device.hardwareProperties.reality === "physical",
-    )
-    .map((device) => ({
-      name: device.deviceProperties.name,
-      udid: device.hardwareProperties.udid,
-    }));
-  const matches = given
-    ? devices.filter(
-        (device) =>
-          sameName(device.udid, given) ||
-          sameName(label(device.name), label(given)),
-      )
-    : devices;
-  if (matches.length !== 1) {
-    const found = matches.length === 0 ? "no" : "more than one";
-    throw new Error(
-      given
-        ? `${found} iOS device is named ${given}`
-        : `${found} iOS device is paired; choose one with -d NAME|UDID`,
-    );
-  }
-  return matches[0];
-}
-
 async function swipt(name) {
   try {
     const client = await attach({
@@ -152,7 +96,7 @@ async function swipt(name) {
 }
 
 async function installApp(options) {
-  const device = coreDevice(options.device ?? process.env.SWIPT_DEVICE);
+  const device = await coreDevice({ options }, { required: false });
   const stamp = String(Math.floor(Date.now() / 1000));
   run("make", ["lib", "build_ios"], {
     XCODEBUILD_FLAGS: [
@@ -167,8 +111,8 @@ async function installApp(options) {
   if (client !== undefined) {
     await unlock(client).catch(() => {});
   }
-  devicectl(["device", "install", "app", "--device", device.udid, app]);
-  devicectl([
+  await devicectl(["device", "install", "app", "--device", device.udid, app]);
+  await devicectl([
     "device",
     "process",
     "launch",
@@ -178,18 +122,9 @@ async function installApp(options) {
     bundleId,
   ]);
 
-  const installed = devicectl(
-    [
-      "device",
-      "info",
-      "apps",
-      "--device",
-      device.udid,
-      "--bundle-id",
-      bundleId,
-    ],
-    { parse: true },
-  ).result.apps;
+  const installed = (await apps(device.udid)).filter(
+    (app) => app.bundleIdentifier === bundleId,
+  );
   if (installed.length !== 1) {
     throw new Error(
       `${device.name} does not list ${bundleId} after the install`,
@@ -238,7 +173,7 @@ const usage = `usage: bun dev COMMAND
 commands:
 ${commands.map(([use, help]) => `  ${use.padEnd(26)}${help}`).join("\n")}
 
-install picks the paired iOS device that -d or SWIPT_DEVICE names by CoreDevice name or UDID, or the only one; when Swipt answers on it, it unlocks the device first.
+install picks the paired iOS device that -d names by CoreDevice name or UDID, or the only one; when Swipt answers on it, it unlocks the device first.
 install fails when the build number installed on the device differs from the one just built.`;
 
 async function main() {

@@ -23,6 +23,7 @@ struct HomeView: View {
     #if os(iOS)
     @Environment(\.scenePhase) private var scenePhase
     @State private var isProbing = false
+    @State private var isSettingUp = AutomatedSetupView.isRequested
     private let developer = DeveloperSettings.shared
     #endif
 
@@ -31,6 +32,13 @@ struct HomeView: View {
             .modifier(ErrorAlertPresenter())
             #if os(iOS)
             .modifier(SwipletOpener())
+            .background {
+                if AutomatedSetupView.isRequested, !isSettingUp {
+                    Color.clear
+                        .accessibilityElement()
+                        .accessibilityIdentifier("setup-finished")
+                }
+            }
             #endif
             .onChangeCompat(of: homeRequest.pending, initial: true) { pending in
                 guard let pending else { return }
@@ -45,7 +53,9 @@ struct HomeView: View {
     private var layout: some View {
         #if os(iOS)
         WithPerceptionTracking {
-            if Platform.isSupported, SetupView.isNeeded {
+            if Platform.isSupported, isSettingUp {
+                AutomatedSetupView { isSettingUp = false }
+            } else if Platform.isSupported, SetupView.isNeeded {
                 SetupView()
             } else if #available(iOS 18, *) {
                 TabView(selection: $selection) {

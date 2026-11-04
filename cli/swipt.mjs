@@ -7,6 +7,7 @@ import * as connection from "./connection.mjs";
 import * as device from "./device.mjs";
 import { FalseResult } from "./output.mjs";
 import { buildProject, createCommand, sourceCommand } from "./project.mjs";
+import * as sideload from "./sideload.mjs";
 
 const globalOptions = {
   help: { type: "boolean", short: "h", help: "help" },
@@ -17,7 +18,46 @@ const deviceOption = {
     type: "string",
     short: "d",
     value: "NAME|URL",
-    help: "the device to use (SWIPT_DEVICE)",
+    help: "the device to use",
+  },
+};
+
+const sideloadOptions = {
+  device: {
+    type: "string",
+    short: "d",
+    value: "NAME|UDID",
+    help: "device paired with this Mac",
+  },
+  team: {
+    type: "string",
+    value: "ID",
+    help: "team ID, required if more than one",
+  },
+};
+
+const passcodeOptions = (help) => ({
+  passcode: { type: "string", value: "CODE", help },
+  "passcode-type": {
+    type: "string",
+    value: "TYPE",
+    help: "pin (4 or 6 digits, default), numeric or alphanumeric",
+  },
+});
+
+const nightlyOption = {
+  nightly: { type: "boolean", help: "use nightly build" },
+};
+
+const setupOptions = {
+  "no-setup": {
+    type: "boolean",
+    help: "do not pair Swipt, trust its developer or publish its API",
+  },
+  "no-setup-pair": { type: "boolean", help: "do not pair Swipt" },
+  "no-setup-api": {
+    type: "boolean",
+    help: "do not publish the API to the local network",
   },
 };
 
@@ -355,6 +395,41 @@ const commands = [
     ],
   },
   {
+    name: "sideload",
+    short: "Sideload Swipt, signed by Xcode",
+    options: sideloadOptions,
+    commands: [
+      {
+        name: "install",
+        short: "Install latest release",
+        args: [0, 0],
+        options: {
+          ...passcodeOptions("set up auto-unlock with this passcode"),
+          ...nightlyOption,
+          ...setupOptions,
+        },
+        run: sideload.install,
+      },
+      {
+        name: "update",
+        short: "Renew signing if needed and update to latest release",
+        args: [0, 0],
+        options: {
+          ...passcodeOptions("unlock device with this passcode"),
+          ...nightlyOption,
+          ...setupOptions,
+        },
+        run: sideload.update,
+      },
+      {
+        name: "uninstall",
+        short: "Remove Swipt",
+        args: [0, 0],
+        run: sideload.uninstall,
+      },
+    ],
+  },
+  {
     name: "version",
     short: "Print the version",
     args: [0, 0],
@@ -566,7 +641,7 @@ async function main() {
   } catch (error) {
     if (error instanceof FalseResult) {
       process.exitCode = 1;
-    } else if (interrupt.signal.aborted) {
+    } else if (interrupt.signal.aborted || error.name === "ExitPromptError") {
       process.exitCode = 130;
     } else {
       process.exitCode = printError(error, target);

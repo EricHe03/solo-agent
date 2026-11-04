@@ -111,26 +111,39 @@ func label(name string) string {
 	return strings.Join(parts, "-")
 }
 
+type lockdownPeer struct {
+	device usbmuxd.Device
+	record *lockdown.PairRecord
+}
+
+func findLockdownPeer(ctx context.Context, udid string) (lockdownPeer, error) {
+	devices, err := usbmuxd.ListDevices(ctx)
+	if err != nil {
+		return lockdownPeer{}, err
+	}
+	found := common.Find(preferUSB(devices), func(it usbmuxd.Device) bool { return it.UDID == udid })
+	if found.ID == 0 {
+		return lockdownPeer{}, &device.Error{Problem: device.ProblemNoTunnel, Err: E.New("the device is not connected to this Mac")}
+	}
+	data, err := usbmuxd.ReadPairRecord(ctx, udid)
+	if err != nil {
+		return lockdownPeer{}, E.Cause(err, "read the pair record")
+	}
+	record, err := lockdown.ParsePairRecord(data)
+	if err != nil {
+		return lockdownPeer{}, err
+	}
+	return lockdownPeer{device: found, record: record}, nil
+}
+
 func connect(udid string, logger log.ContextLogger) func(ctx context.Context) (*coredevice.Device, error) {
 	return func(ctx context.Context) (*coredevice.Device, error) {
-		devices, err := usbmuxd.ListDevices(ctx)
+		peer, err := findLockdownPeer(ctx, udid)
 		if err != nil {
 			return nil, err
 		}
-		found := common.Find(preferUSB(devices), func(it usbmuxd.Device) bool { return it.UDID == udid })
-		if found.ID == 0 {
-			return nil, &device.Error{Problem: device.ProblemNoTunnel, Err: E.New("the device is not connected to this Mac")}
-		}
-		data, err := usbmuxd.ReadPairRecord(ctx, udid)
-		if err != nil {
-			return nil, E.Cause(err, "read the pair record")
-		}
-		record, err := lockdown.ParsePairRecord(data)
-		if err != nil {
-			return nil, err
-		}
-		logger.Debug("connecting through ", found.Connection, " as usbmuxd device ", found.ID)
-		return coredevice.ConnectLockdown(ctx, coredevice.LockdownOptions{Record: record, Dial: dialer(found.ID), Logger: logger})
+		logger.Debug("connecting through ", peer.device.Connection, " as usbmuxd device ", peer.device.ID)
+		return coredevice.ConnectLockdown(ctx, coredevice.LockdownOptions{Record: peer.record, Dial: dialer(peer.device.ID), Logger: logger})
 	}
 }
 

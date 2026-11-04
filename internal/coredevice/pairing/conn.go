@@ -158,12 +158,16 @@ func lookupBytes(value any, path ...string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(text)
 }
 
-func pairingDataEvent(kind string, data []byte, startNewSession bool) object {
-	return object{"event": object{"_0": object{"pairingData": object{"_0": object{
+func pairingDataEvent(kind string, data []byte, startNewSession bool, sendingHost string) object {
+	pairingData := object{
 		"data":            base64.StdEncoding.EncodeToString(data),
 		"kind":            kind,
 		"startNewSession": startNewSession,
-	}}}}}
+	}
+	if sendingHost != "" {
+		pairingData["sendingHost"] = sendingHost
+	}
+	return object{"event": object{"_0": object{"pairingData": object{"_0": pairingData}}}}
 }
 
 type PairingRejectedError struct {
@@ -178,23 +182,28 @@ func (e *PairingRejectedError) Error() string {
 }
 
 func (c *conn) readPairingData() ([]byte, error) {
-	message, err := c.readPlain()
-	if err != nil {
-		return nil, err
+	for {
+		message, err := c.readPlain()
+		if err != nil {
+			return nil, err
+		}
+		event := lookupObject(message, "event", "_0")
+		if event == nil {
+			return nil, E.New("pairing: expected a pairing event, got ", fmt.Sprint(message))
+		}
+		if rejected := lookupObject(event, "pairingRejectedWithError"); rejected != nil {
+			return nil, &PairingRejectedError{Reason: lookupString(rejected, "wrappedError", "userInfo", "NSLocalizedDescription")}
+		}
+		if lookup(event, "pairVerifyFailed") != nil {
+			return nil, ErrPairVerifyFailed
+		}
+		if lookup(event, "awaitingUserConsent") != nil {
+			continue
+		}
+		data, err := lookupBytes(event, "pairingData", "_0", "data")
+		if err != nil {
+			return nil, E.Cause(err, "unexpected pairing event ", fmt.Sprint(event))
+		}
+		return data, nil
 	}
-	event := lookupObject(message, "event", "_0")
-	if event == nil {
-		return nil, E.New("pairing: expected a pairing event, got ", fmt.Sprint(message))
-	}
-	if rejected := lookupObject(event, "pairingRejectedWithError"); rejected != nil {
-		return nil, &PairingRejectedError{Reason: lookupString(rejected, "wrappedError", "userInfo", "NSLocalizedDescription")}
-	}
-	if lookup(event, "pairVerifyFailed") != nil {
-		return nil, ErrPairVerifyFailed
-	}
-	data, err := lookupBytes(event, "pairingData", "_0", "data")
-	if err != nil {
-		return nil, E.Cause(err, "unexpected pairing event ", fmt.Sprint(event))
-	}
-	return data, nil
 }

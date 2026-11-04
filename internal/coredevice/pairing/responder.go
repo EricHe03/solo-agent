@@ -7,15 +7,12 @@ package pairing
 import (
 	"context"
 	"crypto/ed25519"
-	"crypto/hkdf"
 	"crypto/rand"
-	"crypto/sha512"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	"net"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,11 +20,9 @@ import (
 
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
-	"github.com/swipt-automation/swipt/internal/coredevice/opack"
 	"github.com/swipt-automation/swipt/internal/coredevice/tlv8"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/chacha20poly1305"
 )
 
 // idevice PairableHost advertises _remotepairing-pairable-host._tcp
@@ -71,7 +66,7 @@ func NewResponder(options ResponderOptions) (*Responder, error) {
 	if options.Logger == nil {
 		options.Logger = logger.NOP()
 	}
-	identity, err := responderIdentity(options.Identity)
+	identity, err := newIdentity(options.Identity)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +78,7 @@ func NewResponder(options ResponderOptions) (*Responder, error) {
 	return &Responder{ctx: ctx, cancel: cancel, options: options, logger: options.Logger, listener: listener, identity: identity}, nil
 }
 
-func responderIdentity(previous *Record) (*Record, error) {
+func newIdentity(previous *Record) (*Record, error) {
 	var identity Record
 	if previous == nil {
 		publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
@@ -323,28 +318,6 @@ func (r *Responder) handshake(c *conn) error {
 	}})
 }
 
-func (r *Responder) writeSetup(c *conn, items ...tlv8.Item) error {
-	return c.writePlain(pairingDataEvent("setupManualPairing", tlv8.Encode(items...), false))
-}
-
-func (r *Responder) readSetup(c *conn, state byte) (tlv8.Values, error) {
-	data, err := c.readPairingData()
-	if err != nil {
-		return nil, err
-	}
-	values, err := tlv8.Decode(data)
-	if err != nil {
-		return nil, err
-	}
-	if code, failed := values.Error(); failed {
-		return nil, E.New("pairing: the device reported ", tlv8.ErrorString(code))
-	}
-	if values.State() != state {
-		return nil, E.New("pairing: expected state ", state, ", got ", values.State())
-	}
-	return values, nil
-}
-
 func (r *Responder) pairSetup(state *acceptState, c *conn) (*Record, uint64, error) {
 	number, err := rand.Int(rand.Reader, big.NewInt(1000000))
 	if err != nil {
@@ -369,7 +342,10 @@ func (r *Responder) pairSetup(state *acceptState, c *conn) (*Record, uint64, err
 }
 
 func (r *Responder) pairSetupSteps(c *conn, server *srpServer) (*Record, error) {
-	err := r.writeSetup(c,
+	write := func(items ...tlv8.Item) error {
+		return c.writePlain(pairingDataEvent("setupManualPairing", tlv8.Encode(items...), false, ""))
+	}
+	err := write(
 		tlv8.Item{Type: tlv8.TypeState, Value: []byte{2}},
 		tlv8.Item{Type: tlv8.TypeSalt, Value: server.salt},
 		tlv8.Item{Type: tlv8.TypePublicKey, Value: server.PublicKey()},
@@ -377,37 +353,30 @@ func (r *Responder) pairSetupSteps(c *conn, server *srpServer) (*Record, error) 
 	if err != nil {
 		return nil, E.Cause(err, "send M2")
 	}
-	m3, err := r.readSetup(c, 3)
+	m3, err := readSetup(c, 3)
 	if err != nil {
 		return nil, E.Cause(err, "read M3")
 	}
 	key, serverProof, err := server.Verify(m3[tlv8.TypePublicKey], m3[tlv8.TypeProof])
 	if err != nil {
-		r.writeSetup(c,
+		write(
 			tlv8.Item{Type: tlv8.TypeState, Value: []byte{4}},
 			tlv8.Item{Type: tlv8.TypeError, Value: []byte{tlv8.ErrorAuthentication}},
 		)
 		return nil, err
 	}
-	err = r.writeSetup(c,
+	err = write(
 		tlv8.Item{Type: tlv8.TypeState, Value: []byte{4}},
 		tlv8.Item{Type: tlv8.TypeProof, Value: serverProof},
 	)
 	if err != nil {
 		return nil, E.Cause(err, "send M4")
 	}
-
-	// idevice uses these Pair-Setup HKDF labels for M5/M6
-	// (idevice 3854a5d, idevice/src/remote_pairing/responder.rs:355-362).
-	setupKey, err := hkdf.Key(sha512.New, key, []byte("Pair-Setup-Encrypt-Salt"), "Pair-Setup-Encrypt-Info", chacha20poly1305.KeySize)
+	setupCipher, err := setupCipher(key)
 	if err != nil {
 		return nil, err
 	}
-	setupCipher, err := chacha20poly1305.New(setupKey)
-	if err != nil {
-		return nil, err
-	}
-	m5, err := r.readSetup(c, 5)
+	m5, err := readSetup(c, 5)
 	if err != nil {
 		return nil, E.Cause(err, "read M5")
 	}
@@ -415,41 +384,16 @@ func (r *Responder) pairSetupSteps(c *conn, server *srpServer) (*Record, error) 
 	if err != nil {
 		return nil, E.Cause(err, "decrypt M5")
 	}
-	// idevice parses the decrypted M5 identity without verifying its signature
-	// (idevice 3854a5d, idevice/src/remote_pairing/responder.rs:384-386;
-	// idevice/src/remote_pairing/peer_device.rs:115-120).
-	deviceValues, err := tlv8.Decode(plaintext)
-	if err != nil {
-		return nil, E.Cause(err, "decode M5")
-	}
 	record := *r.identity
-	record.DeviceIdentifier = string(deviceValues[tlv8.TypeIdentifier])
-	if devicePublicKey := deviceValues[tlv8.TypePublicKey]; len(devicePublicKey) == ed25519.PublicKeySize {
-		record.DevicePublicKey = devicePublicKey
+	err = parseDeviceIdentity(plaintext, &record, r.logger)
+	if err != nil {
+		return nil, E.Cause(err, "parse M5")
 	}
-	if infoData := deviceValues[tlv8.TypeInfo]; len(infoData) > 0 {
-		info, err := opack.Unmarshal(infoData)
-		if err != nil {
-			return nil, E.Cause(err, "decode M5 info")
-		}
-		r.logger.Debug("paired device info: ", fmt.Sprint(info))
-		infoMap, _ := info.(map[string]any)
-		record.AltIRK, _ = infoMap["altIRK"].([]byte)
-		record.DeviceName, _ = infoMap["name"].(string)
-		record.DeviceModel, _ = infoMap["model"].(string)
-		record.DeviceUDID, _ = infoMap["remotepairing_udid"].(string)
-	}
-	// idevice rejects altIRK values whose length is not 16 bytes
-	// (idevice 3854a5d, idevice/src/remote_pairing/peer_device.rs:47-54).
-	if len(record.AltIRK) != 16 {
-		return nil, E.New("pairing: M5: the device sent an altIRK of ", len(record.AltIRK), " bytes, expected 16")
-	}
-
-	m6, err := r.accessoryIdentity(&record, key)
+	m6, err := identityTLV(&record, key, accessorySignLabels, r.options.HostName)
 	if err != nil {
 		return nil, err
 	}
-	err = r.writeSetup(c,
+	err = write(
 		tlv8.Item{Type: tlv8.TypeEncryptedData, Value: setupCipher.Seal(nil, pairingNonce("PS-Msg06"), m6, nil)},
 		tlv8.Item{Type: tlv8.TypeState, Value: []byte{6}},
 	)
@@ -458,35 +402,6 @@ func (r *Responder) pairSetupSteps(c *conn, server *srpServer) (*Record, error) 
 	}
 	r.logger.Info("paired with ", record.DeviceName, " (", record.DeviceUDID, ")")
 	return &record, nil
-}
-
-func (r *Responder) accessoryIdentity(record *Record, key []byte) ([]byte, error) {
-	accessoryX, err := hkdf.Key(sha512.New, key, []byte("Pair-Setup-Accessory-Sign-Salt"), "Pair-Setup-Accessory-Sign-Info", 32)
-	if err != nil {
-		return nil, err
-	}
-	signed := slices.Concat(accessoryX, []byte(record.Identifier), record.PublicKey)
-	// Info keys and placeholder addresses match idevice PairableHost
-	// (idevice 3854a5d, idevice/src/remote_pairing/responder.rs:438-447).
-	info, err := opack.Marshal(map[string]any{
-		"altIRK":                      record.HostIRK,
-		"btAddr":                      "11:22:33:44:55:66",
-		"mac":                         []byte{0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-		"remotepairing_serial_number": "AAAAAAAAAAAA",
-		"accountID":                   record.Identifier,
-		"remotepairing_udid":          "",
-		"model":                       responderModel,
-		"name":                        r.options.HostName,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return tlv8.Encode(
-		tlv8.Item{Type: tlv8.TypeIdentifier, Value: []byte(record.Identifier)},
-		tlv8.Item{Type: tlv8.TypePublicKey, Value: record.PublicKey},
-		tlv8.Item{Type: tlv8.TypeSignature, Value: ed25519.Sign(record.PrivateKey, signed)},
-		tlv8.Item{Type: tlv8.TypeInfo, Value: info},
-	), nil
 }
 
 func (r *Responder) Close() error {

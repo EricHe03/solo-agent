@@ -68,13 +68,13 @@ func (s *Server) newMCP() (*mcp.Server, http.Handler) {
 	})
 }
 
-func (s *Server) serveMCP(w http.ResponseWriter, r *http.Request, authenticates bool) {
-	if authenticates {
+func (s *Server) serveMCP(w http.ResponseWriter, r *http.Request, credential *Credential) {
+	if credential != nil {
 		token, _, isBasic := r.BasicAuth()
 		if !isBasic {
 			token, _ = strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		}
-		if !s.authorized(token) {
+		if !credential.authorized(token) {
 			w.Header().Set("WWW-Authenticate", `Basic realm="swipt"`)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return

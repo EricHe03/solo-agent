@@ -44,6 +44,30 @@ struct SetupView: View {
     }
 }
 
+struct AutomatedSetupView: View {
+    static let isRequested = ProcessInfo.processInfo.arguments.contains("--setup")
+
+    let finished: () -> Void
+
+    var body: some View {
+        SetupPage("gearshape.2", Text("Setting Up Swipt")) {
+            ProgressView()
+                .controlSize(.large)
+        } actions: {
+        }
+        .task {
+            Task {
+                await SetupPermissions.request()
+                finished()
+            }
+            do {
+                try await Task.sleep(nanoseconds: 60_000_000_000)
+                finished()
+            } catch {}
+        }
+    }
+}
+
 struct LoopbackSetupView: View {
     let next: () -> Void
 

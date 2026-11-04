@@ -1,9 +1,70 @@
+import { styleText } from "node:util";
+
 import { timestampDate } from "@bufbuild/protobuf/wkt";
+import select from "@inquirer/select";
 
 import { LogLevel, LogLevelSchema } from "./proto/common_pb.js";
 import { ServiceStatus, ServiceStatusSchema } from "./proto/swiplets_pb.js";
 
 export class FalseResult extends Error {}
+
+export const interactive = (context) =>
+  context.options.device === undefined &&
+  context.options.team === undefined &&
+  process.stdin.isTTY &&
+  process.stderr.isTTY;
+
+export function choose(context, message, choices, failure) {
+  if (!interactive(context)) {
+    throw failure;
+  }
+  return select(
+    { message, choices },
+    { output: process.stderr, signal: context.signal },
+  );
+}
+
+const spinner = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
+
+export async function step(label, run, { transient = false } = {}) {
+  const stream = process.stderr;
+  if (!stream.isTTY) {
+    console.error(label);
+    return run(() => {});
+  }
+  const style = (format, text) => styleText(format, text, { stream });
+  const started = Date.now();
+  const elapsed = () => {
+    const seconds = Math.floor((Date.now() - started) / 1000);
+    return seconds > 0 ? style("dim", ` ${seconds}s`) : "";
+  };
+  const draw = (line) => stream.write(`\r\x1b[?7l\x1b[2K${line}\x1b[?7h`);
+  let detail = "";
+  let frame = 0;
+  const render = () => {
+    frame = (frame + 1) % spinner.length;
+    draw(
+      `${style("cyan", spinner[frame])} ${label}${detail && style("dim", `  ${detail}`)}${elapsed()}`,
+    );
+  };
+  stream.write("\x1b[?25l");
+  render();
+  const timer = setInterval(render, 80);
+  try {
+    const result = await run((text) => {
+      detail = text;
+    });
+    clearInterval(timer);
+    draw(transient ? "" : `${style("green", "✔")} ${label}${elapsed()}\n`);
+    return result;
+  } catch (error) {
+    clearInterval(timer);
+    draw(`${style("red", "✖")} ${label}${elapsed()}\n`);
+    throw error;
+  } finally {
+    stream.write("\x1b[?25h");
+  }
+}
 
 export const enumText = (schema, value, prefix) =>
   schema.value[value].name

@@ -18,10 +18,18 @@ import (
 
 const Port = 62078
 
-// go-ios opens CoreDeviceProxy through lockdownd, then exchanges CDTunnel
-// parameters over that connection (go-ios ca2c56d,
-// ios/tunnel/tunnel_lockdown.go:15-28; ios/tunnel/tunnel.go:266-305).
-const coreDeviceProxy = "com.apple.internal.devicecompute.CoreDeviceProxy"
+const (
+	// go-ios opens CoreDeviceProxy through lockdownd, then exchanges CDTunnel
+	// parameters over that connection (go-ios ca2c56d,
+	// ios/tunnel/tunnel_lockdown.go:15-28; ios/tunnel/tunnel.go:266-305).
+	CoreDeviceProxy = "com.apple.internal.devicecompute.CoreDeviceProxy"
+
+	// pymobiledevice3 reaches remotepairingdeviced's RPPairing control channel
+	// through this lockdownd service, where pair-setup needs no consent on the
+	// device (pymobiledevice3 9c33842,
+	// pymobiledevice3/remote/tunnel_service.py:1398-1431).
+	RemotePairing = "com.apple.dt.remotepairingdeviced.lockdown"
+)
 
 const progName = "swipt"
 
@@ -85,7 +93,7 @@ func GetValue(ctx context.Context, dial Dialer, key string) (any, error) {
 	return reply["Value"], nil
 }
 
-func DialCoreDeviceProxy(ctx context.Context, record *PairRecord, dial Dialer, logger logger.ContextLogger) (net.Conn, error) {
+func DialService(ctx context.Context, record *PairRecord, dial Dialer, service string, logger logger.ContextLogger) (net.Conn, error) {
 	tlsConfig := &tls.Config{
 		Certificates:       []tls.Certificate{record.Certificate},
 		InsecureSkipVerify: true,
@@ -121,29 +129,29 @@ func DialCoreDeviceProxy(ctx context.Context, record *PairRecord, dial Dialer, l
 		"Label":           progName,
 		"ProtocolVersion": "2",
 		"Request":         "StartService",
-		"Service":         coreDeviceProxy,
+		"Service":         service,
 	})
 	if err != nil {
-		return nil, E.Cause(err, "lockdown StartService ", coreDeviceProxy)
+		return nil, E.Cause(err, "lockdown StartService ", service)
 	}
 	if message, failed := reply["Error"]; failed {
-		return nil, E.New("lockdown StartService ", coreDeviceProxy, ": ", fmt.Sprint(message))
+		return nil, E.New("lockdown StartService ", service, ": ", fmt.Sprint(message))
 	}
 	port, _ := reply["Port"].(uint64)
 	if port == 0 || port > 65535 {
-		return nil, E.New("lockdown StartService ", coreDeviceProxy, ": no port in ", fmt.Sprint(reply))
+		return nil, E.New("lockdown StartService ", service, ": no port in ", fmt.Sprint(reply))
 	}
-	logger.Debug("started lockdown service ", coreDeviceProxy, " on port ", port)
+	logger.Debug("started lockdown service ", service, " on port ", port)
 	serviceConn, err := dial(ctx, uint16(port))
 	if err != nil {
-		return nil, E.Cause(err, "connect to ", coreDeviceProxy)
+		return nil, E.Cause(err, "connect to ", service)
 	}
 	if reply["EnableServiceSSL"] == true {
 		tlsConn := tls.Client(serviceConn, tlsConfig)
 		err = tlsConn.HandshakeContext(ctx)
 		if err != nil {
 			serviceConn.Close()
-			return nil, E.Cause(err, coreDeviceProxy, " TLS")
+			return nil, E.Cause(err, service, " TLS")
 		}
 		return tlsConn, nil
 	}

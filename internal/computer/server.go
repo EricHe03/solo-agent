@@ -32,13 +32,19 @@ const (
 )
 
 type Options struct {
-	Device  string
-	Version string
-	Logs    *log.Factory
-	Output  io.Writer
+	Device       string
+	Passcode     string
+	PasscodeType string
+	Version      string
+	Logs         *log.Factory
+	Output       io.Writer
 }
 
 func Run(ctx context.Context, options Options) error {
+	passcodeKind, err := passcodeType(options.PasscodeType)
+	if err != nil {
+		return err
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -86,6 +92,11 @@ func Run(ctx context.Context, options Options) error {
 		Observer:           observer{},
 		DiskImageDirectory: diskImages,
 	})
+	if options.Passcode != "" {
+		if err = connection.UpdateSettings(device.Settings{AutoUnlockPasscode: options.Passcode, AutoUnlockPasscodeType: passcodeKind}); err != nil {
+			return err
+		}
+	}
 	if err = connection.Start(); err != nil {
 		return err
 	}
@@ -113,7 +124,7 @@ func Run(ctx context.Context, options Options) error {
 	}
 	defer advertisement.Close()
 	served := make(chan error, 1)
-	go func() { served <- server.Serve(listener, "", false) }()
+	go func() { served <- server.Serve(listener, "", nil) }()
 	fmt.Fprintln(options.Output, "Device:", paired.Name, "("+paired.UDID+")")
 	fmt.Fprintln(options.Output, "Swipt API:", url())
 	fmt.Fprintln(options.Output, "MCP:", url()+api.MCPPath)
@@ -131,4 +142,17 @@ func Run(ctx context.Context, options Options) error {
 		options.Logs.NewLogger("api").Debug("stopped: ", err)
 	}
 	return nil
+}
+
+func passcodeType(name string) (device.PasscodeType, error) {
+	switch name {
+	case "", "pin":
+		return device.PasscodePIN, nil
+	case "numeric":
+		return device.PasscodeNumeric, nil
+	case "alphanumeric":
+		return device.PasscodeAlphanumeric, nil
+	default:
+		return 0, E.New("unknown passcode type ", name, "; it is pin, numeric or alphanumeric")
+	}
 }

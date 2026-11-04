@@ -149,6 +149,50 @@ jobs:
             build/metadata.json
             build/altstore
           if-no-files-found: error
+  build_server:
+    name: Build server (${{ matrix.cpu }})
+    runs-on: xcode-27
+    strategy:
+      matrix:
+        include:
+          - { arch: arm64, cpu: arm64 }
+          - { arch: amd64, cpu: x64 }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 1
+      - name: Select Xcode
+        run: .github/select_xcode.sh
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: go-mod-${{ hashFiles('go.sum') }}
+          restore-keys: go-mod-
+      - name: Cache Go build
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/go-build
+          key: go-build-server-darwin-${{ matrix.arch }}-${{ hashFiles('go.mod', 'go.sum', 'cmd/swipt-server/**', 'internal/**', '!internal/automation/runtime/**', '!**/*_test.go') }}
+          restore-keys: go-build-server-darwin-${{ matrix.arch }}-
+      - name: Build
+        run: go build -trimpath -ldflags "-s -w -buildid=" -o build/swipt-server-darwin-${{ matrix.cpu }} ./cmd/swipt-server
+        env:
+          CGO_ENABLED: "1"
+          GOOS: darwin
+          GOARCH: ${{ matrix.arch }}
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: swipt-server-darwin-${{ matrix.cpu }}
+          path: build/swipt-server-darwin-${{ matrix.cpu }}
+          if-no-files-found: error
   publish_packages:
     name: Publish packages
     if: github.ref == 'refs/heads/main'
@@ -156,11 +200,19 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    needs:
+      - build_server
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           fetch-depth: 0
+      - name: Download servers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: swipt-server-*
+          merge-multiple: true
+          path: build
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -176,7 +228,7 @@ jobs:
             PUBLISHED=$(npm view "@swipt/api@$CURRENT" gitHead 2> /dev/null || true)
             if [ "$PUBLISHED" = "$GITHUB_SHA" ]; then
               NUMBER=${CURRENT##*.}
-            elif [ -n "$PUBLISHED" ] && git cat-file -e "$PUBLISHED^{commit}" 2> /dev/null && git diff --quiet "$PUBLISHED" HEAD -- api cli; then
+            elif [ -n "$PUBLISHED" ] && git cat-file -e "$PUBLISHED^{commit}" 2> /dev/null && git diff --quiet "$PUBLISHED" HEAD -- api cli cmd/swipt-server internal go.mod go.sum; then
               echo "the packages are unchanged since $CURRENT"
               exit 0
             else
@@ -184,11 +236,20 @@ jobs:
             fi
           fi
           VERSION="$BASE-nightly.$NUMBER"
+          for cpu in arm64 x64; do
+            mkdir -p "build/server-darwin-$cpu"
+            install -m 755 "build/swipt-server-darwin-$cpu" "build/server-darwin-$cpu/swipt-server"
+            jq -n --arg cpu "$cpu" --arg version "$VERSION" '{name: "@swipt/server-darwin-\($cpu)", version: $version, license: "GPL-3.0-or-later",
+              repository: {type: "git", url: "https://github.com/swipt-automation/swipt.git", directory: "cmd/swipt-server"},
+              os: ["darwin"], cpu: [$cpu], bin: {"swipt-server": "swipt-server"}, files: ["swipt-server"], publishConfig: {access: "public"}}' \
+              > "build/server-darwin-$cpu/package.json"
+          done
+          PACKAGES="api build/server-darwin-arm64 build/server-darwin-x64 cli"
           for package in api cli; do
             npm version "$VERSION" --no-git-tag-version --prefix "$package"
           done
-          npm pkg set "peerDependencies.@swipt/api=$VERSION" --prefix cli
-          for package in api cli; do
+          npm pkg set "peerDependencies.@swipt/api=$VERSION" "optionalDependencies.@swipt/server-darwin-arm64=$VERSION" "optionalDependencies.@swipt/server-darwin-x64=$VERSION" --prefix cli
+          for package in $PACKAGES; do
             cp LICENSE "$package/"
             PACKAGE=$(node -p "require('./$package/package.json').name")
             if npm view "$PACKAGE@$VERSION" version > /dev/null 2>&1; then
@@ -197,7 +258,7 @@ jobs:
               npm publish "./$package" --tag nightly
             fi
           done
-          for package in api cli; do
+          for package in $PACKAGES; do
             PACKAGE=$(node -p "require('./$package/package.json').name")
             case "$(npm view "$PACKAGE@latest" version 2> /dev/null)" in
               *-*) npm dist-tag add "$PACKAGE@$VERSION" latest ;;
@@ -212,6 +273,7 @@ jobs:
     needs:
       - calculate_version
       - build_ios_ipa
+      - build_server
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
@@ -220,7 +282,7 @@ jobs:
       - name: Download builds
         uses: actions/download-artifact@v4
         with:
-          pattern: Swipt-*
+          pattern: "{Swipt-*,swipt-server-*}"
           merge-multiple: true
           path: build
       - name: Setup Go
@@ -240,7 +302,8 @@ jobs:
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" tag -a -f nightly -m "$BUILD_NUMBER" "$GITHUB_SHA"
           git push -f origin refs/tags/nightly
           gh release create "nightly-$BUILD_NUMBER" --draft --prerelease --target "$GITHUB_SHA" --title "Nightly build" --notes "$NOTES" \
-            build/Swipt.ipa build/Swipt-iOS.dSYMs.zip build/metadata.json build/altstore/altstore.json build/altstore/icon.png
+            build/Swipt.ipa build/Swipt-iOS.dSYMs.zip build/metadata.json build/altstore/altstore.json build/altstore/icon.png \
+            build/swipt-server-darwin-arm64 build/swipt-server-darwin-x64
           DRAFT=$(gh release view "nightly-$BUILD_NUMBER" --json apiUrl --jq .apiUrl)
           if PREVIOUS=$(gh release view nightly --json apiUrl --jq .apiUrl); then
             gh api -X DELETE "$PREVIOUS"

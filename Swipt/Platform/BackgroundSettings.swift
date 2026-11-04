@@ -22,7 +22,7 @@ final class BackgroundSettings {
 
     init() {
         isEnabled = store.value(Bool.self, for: Key.isEnabled) ?? true
-        mode = store.value(BackgroundMode.self, for: Key.mode) ?? .location
+        mode = store.value(BackgroundMode.self, for: Key.mode) ?? .audio
     }
 }
 

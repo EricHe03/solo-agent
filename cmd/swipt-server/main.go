@@ -18,7 +18,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var options computer.Options
+var (
+	options     computer.Options
+	pairOptions computer.PairOptions
+	pairOutput  string
+)
 
 func main() {
 	command := &cobra.Command{
@@ -28,7 +32,19 @@ func main() {
 		RunE:         run,
 		SilenceUsage: true,
 	}
-	command.Flags().StringVarP(&options.Device, "device", "d", os.Getenv("SWIPT_DEVICE"), "the device to serve, by name or UDID (SWIPT_DEVICE); needed when more than one is connected")
+	command.Flags().StringVarP(&options.Device, "device", "d", "", "the device to serve, by name or UDID; needed when more than one is connected")
+	command.Flags().StringVar(&options.Passcode, "passcode", "", "unlock device with this passcode")
+	command.Flags().StringVar(&options.PasscodeType, "passcode-type", "", "pin (4 or 6 digits, default), numeric or alphanumeric")
+	pairCommand := &cobra.Command{
+		Use:          "pair [-d NAME|UDID] [-o FILE]",
+		Short:        "Create a remote pairing record for Swipt",
+		Args:         cobra.NoArgs,
+		RunE:         runPair,
+		SilenceUsage: true,
+	}
+	pairCommand.Flags().StringVarP(&pairOptions.Device, "device", "d", "", "device to pair, by name or UDID; required when several are connected")
+	pairCommand.Flags().StringVarP(&pairOutput, "output", "o", "", "write record to FILE (default: stdout)")
+	command.AddCommand(pairCommand)
 	if err := command.Execute(); err != nil {
 		if errors.Is(err, context.Canceled) {
 			os.Exit(130)
@@ -48,6 +64,24 @@ func run(command *cobra.Command, _ []string) error {
 		command.SilenceErrors = true
 	}
 	return err
+}
+
+func runPair(command *cobra.Command, _ []string) error {
+	pairOptions.Logs = log.NewFactory(log.Options{Level: log.LevelInfo, PlatformWriter: writer{}})
+	ctx, stop := signal.NotifyContext(command.Context(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	record, err := computer.Pair(ctx, pairOptions)
+	if err != nil {
+		if errors.Is(err, context.Canceled) && ctx.Err() != nil {
+			command.SilenceErrors = true
+		}
+		return err
+	}
+	if pairOutput == "" {
+		_, err = command.OutOrStdout().Write(record)
+		return err
+	}
+	return os.WriteFile(pairOutput, record, 0o600)
 }
 
 func version() string {

@@ -72,12 +72,12 @@ private struct LocalNetworkView: View {
                     Toggle("Enabled", isOn: $settings.localAuthenticates)
                     if settings.localAuthenticates {
                         ValueRow(
-                            title: "Token", value: settings.token, isSecret: true,
+                            title: "Token", value: settings.localToken, isSecret: true,
                             random: ("Random Token", { DeveloperSettings.randomHex(32) })
                         ) { text in
                             let token = text.trimmingCharacters(in: .whitespacesAndNewlines)
                             if !token.isEmpty {
-                                settings.token = token
+                                settings.localToken = token
                             }
                         }
                     }
@@ -86,7 +86,7 @@ private struct LocalNetworkView: View {
                 if !hosts.isEmpty {
                     let selected = hosts.contains(host) ? host : hosts[0]
                     let address = "\(selected):\(settings.localPort)"
-                    let token = settings.localAuthenticates ? settings.token : nil
+                    let token = settings.localAuthenticates ? settings.localToken : nil
                     UsageSection(title: Text(verbatim: "Swipt API")) {
                         Picker("Host", selection: Binding(get: { selected }, set: { host = $0 })) {
                             ForEach(hosts, id: \.self) { host in
@@ -171,12 +171,12 @@ private struct CloudflareView: View {
                 .disabled(settings.isCloudflareEnabled)
                 Section("Authentication") {
                     ValueRow(
-                        title: "Token", value: settings.token, isSecret: true,
+                        title: "Token", value: settings.cloudflareToken, isSecret: true,
                         random: ("Random Token", { DeveloperSettings.randomHex(32) })
                     ) { text in
                         let token = text.trimmingCharacters(in: .whitespacesAndNewlines)
                         if !token.isEmpty {
-                            settings.token = token
+                            settings.cloudflareToken = token
                         }
                     }
                 }
@@ -185,11 +185,11 @@ private struct CloudflareView: View {
                     let address = { (revealed: Bool) in "\(maskedHost(hostname, revealed: revealed))\(settings.cloudflarePathPrefix)" }
                     UsageSection(title: Text(verbatim: "Swipt API")) {
                     } items: { revealed in
-                        apiUsage(scheme: "https", address: address(revealed), token: settings.token, revealed: revealed)
+                        apiUsage(scheme: "https", address: address(revealed), token: settings.cloudflareToken, revealed: revealed)
                     }
                     UsageSection(title: Text(verbatim: "MCP")) {
                     } items: { revealed in
-                        mcpUsage(scheme: "https", address: address(revealed), token: settings.token, revealed: revealed)
+                        mcpUsage(scheme: "https", address: address(revealed), token: settings.cloudflareToken, revealed: revealed)
                     }
                 }
             }

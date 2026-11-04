@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	TypeMethod        byte = 0x00
 	TypeIdentifier    byte = 0x01
 	TypeSalt          byte = 0x02
 	TypePublicKey     byte = 0x03

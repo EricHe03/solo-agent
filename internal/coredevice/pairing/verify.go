@@ -83,7 +83,7 @@ func (s *Session) verify(record *Record) error {
 	err = s.conn.writePlain(pairingDataEvent("verifyManualPairing", tlv8.Encode(
 		tlv8.Item{Type: tlv8.TypeState, Value: []byte{1}},
 		tlv8.Item{Type: tlv8.TypePublicKey, Value: ephemeral.PublicKey().Bytes()},
-	), true))
+	), true, ""))
 	if err != nil {
 		return E.Cause(err, "send pair-verify M1")
 	}
@@ -127,7 +127,7 @@ func (s *Session) verify(record *Record) error {
 	err = s.conn.writePlain(pairingDataEvent("verifyManualPairing", tlv8.Encode(
 		tlv8.Item{Type: tlv8.TypeState, Value: []byte{3}},
 		tlv8.Item{Type: tlv8.TypeEncryptedData, Value: encrypted},
-	), false))
+	), false, ""))
 	if err != nil {
 		return E.Cause(err, "send pair-verify M3")
 	}

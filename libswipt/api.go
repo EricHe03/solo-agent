@@ -20,26 +20,27 @@ const (
 const apiCloseGrace = time.Second
 
 type APIOptions struct {
-	Token                     string
-	LocalNetwork              bool
-	Port                      int32
-	LocalNetworkAuthenticates bool
-	Cloudflare                *CloudflareTunnel
-	CloudflarePath            string
+	LocalNetwork      bool
+	Port              int32
+	LocalNetworkToken string
+	Cloudflare        *CloudflareTunnel
+	CloudflarePath    string
+	CloudflareToken   string
 }
 
 type apiState struct {
-	server             *api.Server
-	local              net.Listener
-	localPort          int32
-	localAuthenticates bool
-	cloudflare         *CloudflareTunnel
-	tunnel             net.Listener
-	tunnelPath         string
+	server           *api.Server
+	local            net.Listener
+	localPort        int32
+	localCredential  *api.Credential
+	cloudflare       *CloudflareTunnel
+	tunnel           net.Listener
+	tunnelPath       string
+	tunnelCredential *api.Credential
 }
 
-func (p *Platform) serveAPI(state *apiState, listener net.Listener, prefix string, authenticates bool, name string) {
-	if err := state.server.Serve(listener, prefix, authenticates); err != nil {
+func (p *Platform) serveAPI(state *apiState, listener net.Listener, prefix string, credential *api.Credential, name string) {
+	if err := state.server.Serve(listener, prefix, credential); err != nil {
 		err = E.Cause(err, "api: serve on ", name)
 		p.logFactory.NewLogger("api").Error(err)
 		p.handler.OnAPIFailed(err.Error())
@@ -61,8 +62,8 @@ func (p *Platform) SetAPI(options *APIOptions) error {
 		}
 		return nil
 	}
-	if options.Token == "" {
-		return E.New("api: missing token")
+	if options.Cloudflare != nil && options.CloudflareToken == "" {
+		return E.New("cloudflare: missing token")
 	}
 	tunnelPath := strings.TrimSuffix(options.CloudflarePath, "/")
 	if options.Cloudflare != nil && tunnelPath != "" && !strings.HasPrefix(tunnelPath, "/") {
@@ -73,9 +74,10 @@ func (p *Platform) SetAPI(options *APIOptions) error {
 			Device: p.device.connection, Swiplets: p.host, Dialog: p.dialog, Logs: p.logFactory, Logger: p.logFactory.NewLogger("api"),
 			AppVersion: p.appVersion, AppBuild: p.appBuild, Shutdown: p.handler.OnShutdownRequested,
 		})}
+		state.tunnelCredential = state.server.NewCredential(options.CloudflareToken)
 		p.api = state
 	}
-	state.server.SetToken(options.Token)
+	state.tunnelCredential.SetToken(options.CloudflareToken)
 	if state.cloudflare != options.Cloudflare || state.tunnelPath != tunnelPath {
 		closeListener(state.tunnel)
 		state.cloudflare, state.tunnel, state.tunnelPath = options.Cloudflare, nil, tunnelPath
@@ -85,20 +87,26 @@ func (p *Platform) SetAPI(options *APIOptions) error {
 				return err
 			}
 			state.tunnel = listener
-			go p.serveAPI(state, listener, tunnelPath, true, "Cloudflare")
+			go p.serveAPI(state, listener, tunnelPath, state.tunnelCredential, "Cloudflare")
 		}
 	}
-	if !options.LocalNetwork || state.localPort != options.Port || state.localAuthenticates != options.LocalNetworkAuthenticates {
+	authenticates := options.LocalNetworkToken != ""
+	if !options.LocalNetwork || state.localPort != options.Port || (state.localCredential != nil) != authenticates {
 		closeListener(state.local)
-		state.local, state.localPort = nil, 0
+		state.local, state.localPort, state.localCredential = nil, 0, nil
 	}
 	if options.LocalNetwork && state.local == nil {
 		listener, err := net.Listen("tcp", net.JoinHostPort("", strconv.Itoa(int(options.Port))))
 		if err != nil {
 			return E.Cause(err, "api: listen on port ", options.Port)
 		}
-		state.local, state.localPort, state.localAuthenticates = listener, options.Port, options.LocalNetworkAuthenticates
-		go p.serveAPI(state, listener, "", options.LocalNetworkAuthenticates, "the local network")
+		state.local, state.localPort = listener, options.Port
+		if authenticates {
+			state.localCredential = state.server.NewCredential(options.LocalNetworkToken)
+		}
+		go p.serveAPI(state, listener, "", state.localCredential, "the local network")
+	} else if state.localCredential != nil {
+		state.localCredential.SetToken(options.LocalNetworkToken)
 	}
 	return nil
 }

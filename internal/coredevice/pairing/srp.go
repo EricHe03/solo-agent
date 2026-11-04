@@ -125,3 +125,42 @@ func (s *srpServer) Verify(clientPublicBytes, clientProof []byte) (key []byte, s
 	}
 	return nil, nil, E.New("pairing: SRP proof mismatch, the setup code is probably wrong")
 }
+
+type srpClient struct {
+	public *big.Int
+	key    []byte
+	proof  []byte
+}
+
+func newSRPClient(pin string, salt []byte, serverPublicBytes []byte) (*srpClient, error) {
+	serverPublic := new(big.Int).SetBytes(serverPublicBytes)
+	if serverPublic.Sign() == 0 || serverPublic.Cmp(srpPrime) >= 0 {
+		return nil, E.New("pairing: invalid SRP public key of ", len(serverPublicBytes), " bytes")
+	}
+	var private, public *big.Int
+	privateBytes := make([]byte, 32)
+	for {
+		rand.Read(privateBytes)
+		private = new(big.Int).SetBytes(privateBytes)
+		public = new(big.Int).Exp(srpGenerator, private, srpPrime)
+		if len(public.Bytes()) == srpLength {
+			break
+		}
+	}
+	x := srpPrivateKey(salt, pin)
+	base := new(big.Int).Exp(srpGenerator, x, srpPrime)
+	base.Mul(base, srpK).Sub(serverPublic, base).Mod(base, srpPrime)
+	exponent := new(big.Int).Mul(srpScrambler(public, serverPublic), x)
+	exponent.Add(exponent, private)
+	premaster := new(big.Int).Exp(base, exponent, srpPrime)
+	key := srpHash(premaster.Bytes())
+	return &srpClient{public: public, key: key, proof: srpClientProof(salt, public.Bytes(), serverPublicBytes, key)}, nil
+}
+
+func (c *srpClient) PublicKey() []byte {
+	return c.public.Bytes()
+}
+
+func (c *srpClient) VerifyServerProof(proof []byte) bool {
+	return subtle.ConstantTimeCompare(srpServerProof(c.PublicKey(), c.proof, c.key), proof) == 1
+}

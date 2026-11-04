@@ -9,6 +9,10 @@ RUNTIME_BUNDLE_INPUTS := $(shell find $(RUNTIME)/src $(RUNTIME)/patches -type f)
 lib: runtime
 	go run ./internal/cmd/build_libswipt
 
+.PHONY: server
+server:
+	go build -trimpath -o build/swipt-server ./cmd/swipt-server
+
 runtime:
 	bun install --frozen-lockfile
 	cd $(RUNTIME) && bun build.mjs

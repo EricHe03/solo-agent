@@ -8,11 +8,12 @@ final class DeveloperSettings {
     static let portRange = 1...65535
 
     private enum Key {
-        static let token = "developerToken"
         static let localNetworkEnabled = "developerLocalNetworkEnabled"
         static let localPort = "developerLocalPort"
         static let localAuthenticates = "developerLocalAuthenticates"
+        static let localToken = "developerLocalToken"
         static let cloudflareEnabled = "developerCloudflareEnabled"
+        static let cloudflareToken = "developerCloudflareToken"
         static let cloudflarePath = "developerCloudflarePath"
         static let cloudflareMode = "developerCloudflareMode"
         static let cloudflareAccount = "developerCloudflareAccount"
@@ -21,10 +22,6 @@ final class DeveloperSettings {
         static let cloudflareQuickTunnel = "developerCloudflareQuickTunnel"
         static let cloudflareQuickHostname = "developerCloudflareQuickHostname"
         static let cloudflareNamedTunnel = "developerCloudflareNamedTunnel"
-    }
-
-    var token: String {
-        didSet { store.set(token, for: Key.token) }
     }
 
     var isLocalNetworkEnabled: Bool {
@@ -37,6 +34,14 @@ final class DeveloperSettings {
 
     var localAuthenticates: Bool {
         didSet { store.set(localAuthenticates, for: Key.localAuthenticates) }
+    }
+
+    var localToken: String {
+        didSet { store.set(localToken, for: Key.localToken) }
+    }
+
+    var cloudflareToken: String {
+        didSet { store.set(cloudflareToken, for: Key.cloudflareToken) }
     }
 
     var isCloudflareEnabled: Bool {
@@ -78,12 +83,15 @@ final class DeveloperSettings {
     private let store = PreferenceStore.shared
 
     init() {
-        let storedToken = store.value(String.self, for: Key.token)
-        token = storedToken ?? Self.randomHex(32)
-        isLocalNetworkEnabled = store.value(Bool.self, for: Key.localNetworkEnabled) ?? false
+        let storedLocalToken = store.value(String.self, for: Key.localToken)
+        localToken = storedLocalToken ?? Self.randomHex(32)
+        let storedCloudflareToken = store.value(String.self, for: Key.cloudflareToken)
+        cloudflareToken = storedCloudflareToken ?? Self.randomHex(32)
+        let publishesLocalNetwork = ProcessInfo.processInfo.arguments.contains("--publish-local-network")
+        isLocalNetworkEnabled = publishesLocalNetwork || store.value(Bool.self, for: Key.localNetworkEnabled) ?? false
         let storedPort = store.value(Int.self, for: Key.localPort)
         localPort = storedPort ?? Int.random(in: 10000...49151)
-        localAuthenticates = store.value(Bool.self, for: Key.localAuthenticates) ?? true
+        localAuthenticates = store.value(Bool.self, for: Key.localAuthenticates) ?? false
         isCloudflareEnabled = store.value(Bool.self, for: Key.cloudflareEnabled) ?? false
         cloudflarePath = store.value(String.self, for: Key.cloudflarePath) ?? "/"
         cloudflareMode = store.value(CloudflareMode.self, for: Key.cloudflareMode) ?? .quickTunnel
@@ -93,8 +101,14 @@ final class DeveloperSettings {
         cloudflareQuickTunnel = store.value(String.self, for: Key.cloudflareQuickTunnel) ?? ""
         cloudflareQuickHostname = store.value(String.self, for: Key.cloudflareQuickHostname) ?? ""
         cloudflareNamedTunnel = store.value(String.self, for: Key.cloudflareNamedTunnel) ?? ""
-        if storedToken == nil {
-            store.set(token, for: Key.token)
+        if publishesLocalNetwork {
+            store.set(true, for: Key.localNetworkEnabled)
+        }
+        if storedLocalToken == nil {
+            store.set(localToken, for: Key.localToken)
+        }
+        if storedCloudflareToken == nil {
+            store.set(cloudflareToken, for: Key.cloudflareToken)
         }
         if storedPort == nil {
             store.set(localPort, for: Key.localPort)
