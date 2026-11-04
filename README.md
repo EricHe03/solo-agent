@@ -8,7 +8,7 @@
 
 ## Requirements
 
-- iOS 27; no jailbreak or TrollStore required (though sideloading is obviously necessary)
+- iOS 27
 
 ## Architecture
 
@@ -17,20 +17,28 @@
 - Swipt CLI: A client for the Swipt API that offers a more comprehensive set of features than MCP.
 - Swiplet: Apps that run within Swipt, built using the Swipt SDK and SwiftUI.
 
-## Installation
+## Documentation
 
-### App
+https://swipt.io
 
-Sideload the app by adding the source to SideStore or AltStore:
+## LICENSE
 
-```
-https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
-```
+```text
+Copyright (C) 2026 by nekohasekai <i@sekai.icu>
 
-Or download [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) and sideload it.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-### CLI
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-```shell
-npm install -g @swipt/cli
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+In addition, no derivative work may use the name or imply association
+with this application without prior consent.
 ```

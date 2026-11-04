@@ -7,7 +7,7 @@ retry() {
     cat "$errors" >&2
     # gh reports a 5xx with an empty JSON body as "unexpected end of JSON input".
     # uploads.github.com can answer 404 for a release that exists during an outage.
-    grep -qE 'HTTP 5[0-9]{2}|unexpected end of JSON input|returned error: 5[0-9]{2}|Internal Server Error|HTTP 404: Not Found \(https://uploads\.github\.com/' "$errors" || return "$code"
+    grep -qE 'HTTP 5[0-9]{2}|unexpected end of JSON input|returned error: 5[0-9]{2}|Internal Server Error|fatal error in commit_refs|HTTP 404: Not Found \(https://uploads\.github\.com/' "$errors" || return "$code"
     sleep 10
   done
   cat "$output"
