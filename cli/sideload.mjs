@@ -773,8 +773,20 @@ async function launch(device, id, args) {
     );
   } catch (error) {
     if (/trusted by the user/.test(error.message)) {
+      await step(`opening Settings on ${device.name}`, () =>
+        devicectl([
+          "device",
+          "process",
+          "launch",
+          "--device",
+          device.udid,
+          "--payload-url",
+          "prefs:root=General&path=ManagedConfigurationList",
+          "com.apple.Preferences",
+        ]),
+      );
       console.log(
-        `its developer is not trusted yet; run "swipt sideload install -d ${device.udid} --team ${id.slice(bundleId.length + 1)}" to trust it and open Swipt automatically, or trust it in Settings › General › VPN & Device Management on ${device.name}`,
+        `its developer is not trusted yet; trust it in the Settings page opened on ${device.name}, then open Swipt`,
       );
     } else if (/BSErrorCodeDescription = Locked/.test(error.message)) {
       console.log(`it opens once ${device.name} is unlocked`);
