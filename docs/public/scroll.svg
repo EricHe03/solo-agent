@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Modified from Twemoji 1f4dc (https://github.com/jdecked/twemoji). Copyright (c) 2022-present Jason Sofonia & Justine De Caires, Copyright (c) 2014-2021 Twitter. Licensed under CC BY 4.0: https://creativecommons.org/licenses/by/4.0/ -->
+  <g transform="translate(175 187) scale(18.0556)">
+    <path fill="#455A64" d="M32 0H10C7.791 0 6 1.791 6 4v24H4c-2.209 0-4 1.791-4 4s1.791 4 4 4h24c2.209 0 4-1.791 4-4V8c2.209 0 4-1.791 4-4s-1.791-4-4-4z"/>
+    <path fill="#263238" d="M8 10h24V8H10L8 7z"/>
+    <path fill="#78909C" d="M10 0C7.791 0 6 1.791 6 4v24.555C5.41 28.211 4.732 28 4 28c-2.209 0-4 1.791-4 4s1.791 4 4 4 4-1.791 4-4V7.445C8.59 7.789 9.268 8 10 8c2.209 0 4-1.791 4-4s-1.791-4-4-4z"/>
+    <g fill="#CFD8DC">
+      <path d="M12 4c0 1.104-.896 2-2 2s-2-.896-2-2 .896-2 2-2 2 .896 2 2M6 32c0 1.104-.896 2-2 2s-2-.896-2-2 .896-2 2-2 2 .896 2 2"/>
+      <rect x="10" y="14" width="14" height="2" rx="1"/>
+      <rect x="14" y="18" width="16" height="2" rx="1"/>
+      <rect x="14" y="22" width="13" height="2" rx="1"/>
+      <rect x="10" y="26" width="7" height="2" rx="1"/>
+    </g>
+  </g>
+</svg>

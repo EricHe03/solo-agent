@@ -1,0 +1,63 @@
+---
+title: Installation
+---
+
+## Overview
+
+Swipt is an automation platform.
+
+It currently supports only iPhones and iPads running **iOS 27** or later, and must be sideloaded.
+
+## Sideload with a Mac
+
+If you don’t want to install a standalone sideloading framework, we recommend the `sideload` tool built into the Swipt CLI.
+
+It signs and installs Swipt with Xcode, so it can:
+
+- Use the Apple Account you’re already signed in to, without asking you to sign in again.
+- Configure Swipt to use your Mac’s existing pairing with the device, without pairing again on the device.
+- Trust the free developer certificate and perform other initial setup on your device.
+
+In Terminal, run:
+
+```shell
+npm install -g @swipt/cli
+swipt sideload install
+```
+
+Then follow the prompts to choose the device to install on and the team to sign with.
+
+Swipt completes almost all of the setup automatically, but you still need to start the Loopback VPN. See [Setup](./setup.mdx).
+
+```shell
+swipt sideload update # Update Swipt or renew its expiration
+swipt sideload uninstall # Uninstall Swipt
+```
+
+## Without a Mac
+
+You can install Swipt with AltStore or another sideloading framework, or sideload it manually.
+
+<Tabs items={["AltStore source", "Manual"]}>
+  <Tab value="AltStore source">
+    Stable:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/latest/download/altstore.json
+    ```
+
+    Nightly:
+
+    ```text
+    https://github.com/swipt-automation/swipt/releases/download/nightly/altstore.json
+    ```
+
+  </Tab>
+  <Tab value="Manual">
+    - Stable: Download [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/latest/download/Swipt.ipa) from the [latest release](https://github.com/swipt-automation/swipt/releases/latest).
+    - Nightly: Download [Swipt.ipa](https://github.com/swipt-automation/swipt/releases/download/nightly/Swipt.ipa) from the [nightly release](https://github.com/swipt-automation/swipt/releases/tag/nightly).
+
+  </Tab>
+</Tabs>
+
+Follow the instructions in the app to complete [Setup](./setup.mdx).

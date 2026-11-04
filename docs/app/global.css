@@ -1,0 +1,21 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+#nd-subnav [data-header-body] > :last-child {
+  flex: none;
+}
+
+#nd-subnav [data-header-body] > button {
+  margin-inline-start: auto;
+  max-width: 15rem;
+}
