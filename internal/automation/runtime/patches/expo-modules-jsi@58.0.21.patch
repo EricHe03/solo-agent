@@ -1,0 +1,34 @@
+diff --git a/apple/scripts/build-swiftpm-app-phase.sh b/apple/scripts/build-swiftpm-app-phase.sh
+index f074e6b032310ff55ac3cdbc71c0826980305813..3d66256c3cb4990d30b38745a1a9a1c45a705004 100755
+--- a/apple/scripts/build-swiftpm-app-phase.sh
++++ b/apple/scripts/build-swiftpm-app-phase.sh
+@@ -22,14 +22,11 @@ case "${PLATFORM_NAME:-}" in
+     ;;
+ esac
+ 
+-# One per build folder, so Clean Build Folder rebuilds it and builds in different build folders
+-# never race. Every configuration in the folder shares it: build-xcframework.sh always builds
+-# Release.
+-JSI_ROOT="$OBJROOT/ExpoModulesJSI"
++JSI_ROOT="$SRCROOT/build/expo-modules-core/jsi"
+ 
+ # build-xcframework.sh reads headers from a CocoaPods-shaped Headers/Public tree. A SwiftPM app has
+ # no Pods, so stage one from React Native's source and the SwiftPM artifacts in build/xcframeworks.
+-STAGE="$JSI_ROOT/pods-stage"
++STAGE="$JSI_ROOT/pods-stage-$SLICE"
+ PUBLIC="$STAGE/Headers/Public"
+ XCFRAMEWORKS="$SRCROOT/build/xcframeworks"
+ REACT_HEADERS="$XCFRAMEWORKS/ReactNativeHeaders.xcframework/$SLICE/Headers"
+@@ -68,10 +65,10 @@ if [ ! -f "$PODSPEC" ] || [ "$(cat "$PODSPEC")" != "$PODSPEC_JSON" ]; then
+   printf '%s' "$PODSPEC_JSON" >"$PODSPEC"
+ fi
+ 
+-EXPO_CUSTOM_BUILD_ROOT="$JSI_ROOT/custom-build" PODS_ROOT="$STAGE" REACT_NATIVE_PATH="$RN_DIR" \
++EXPO_CUSTOM_BUILD_ROOT="$JSI_ROOT" PODS_ROOT="$STAGE" REACT_NATIVE_PATH="$RN_DIR" \
+   "$JSI_DIR/apple/scripts/build-xcframework.sh"
+ 
+-FRAMEWORK="$JSI_ROOT/custom-build/Products/ExpoModulesJSI.xcframework/$SLICE/ExpoModulesJSI.framework"
++FRAMEWORK="$JSI_ROOT/Products/ExpoModulesJSI.xcframework/$SLICE/ExpoModulesJSI.framework"
+ 
+ # The link: the ExpoModulesJSILink target of the generated ExpoModulesJSIHeaders package passes
+ # `-framework ExpoModulesJSI` to the app's link step, and BUILT_PRODUCTS_DIR is on its framework
