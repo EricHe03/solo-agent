@@ -15,8 +15,10 @@ jobs:
     name: Calculate version
     runs-on: ubuntu-latest
     outputs:
+      app_changed: ${{ steps.outputs.outputs.app_changed }}
       build_number: ${{ steps.outputs.outputs.build_number }}
       library_hash: ${{ steps.outputs.outputs.library_hash }}
+      packages_changed: ${{ steps.outputs.outputs.packages_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
@@ -27,14 +29,31 @@ jobs:
         run: |-
           source .github/github.sh
           PREVIOUS=0
+          APP_CHANGED=true
           if retry git fetch --depth=1 origin tag nightly; then
             PREVIOUS=$(git tag -l --format='%(contents:subject)' nightly)
+            RELEASED=$(curl -fsSL --retry 3 "https://github.com/$GITHUB_REPOSITORY/releases/download/nightly/metadata.json" | jq -r .build || true)
+            if [ "$GITHUB_EVENT_NAME" = push ] && [ "$RELEASED" = "$PREVIOUS" ] && git diff --quiet 'nightly^{commit}' HEAD -- . \
+              ':!.github' ':!cli' ':!cmd' ':!*.md' ':!LICENSE' ':!.gitignore' ':!.golangci.yml' ':!.prettierignore' ':!dev/strings.mjs' ':!*_test.go'; then
+              APP_CHANGED=false
+            fi
           fi
+          PACKAGE_PATHS=(api cli cmd/swipt-server internal go.mod go.sum ':!internal/automation/runtime' ':!internal/cmd' ':!*_test.go')
+          PACKAGES_CHANGED=true
+          PUBLISHED=$(npm view @swipt/api@nightly gitHead 2> /dev/null || true)
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ -n "$PUBLISHED" ] && git fetch --depth=1 origin "$PUBLISHED" 2> /dev/null \
+            && git diff --quiet "$PUBLISHED" HEAD -- "${PACKAGE_PATHS[@]}" && git diff --quiet 'nightly^{commit}' HEAD -- "${PACKAGE_PATHS[@]}"; then
+            PACKAGES_CHANGED=false
+          fi
+          echo "app_changed=$APP_CHANGED packages_changed=$PACKAGES_CHANGED"
+          echo "app_changed=$APP_CHANGED" >> "$GITHUB_OUTPUT"
+          echo "packages_changed=$PACKAGES_CHANGED" >> "$GITHUB_OUTPUT"
           echo "build_number=$((PREVIOUS + 1))"
           echo "build_number=$((PREVIOUS + 1))" >> "$GITHUB_OUTPUT"
           echo "library_hash=${{ hashFiles('go.mod', 'go.sum', 'libswipt/**', 'internal/**', '!internal/automation/runtime/**', '!internal/cmd/**', 'internal/cmd/build_libswipt/**', '!**/*_test.go') }}" >> "$GITHUB_OUTPUT"
   build_apple_library:
     name: Build Apple library
+    if: needs.calculate_version.outputs.app_changed == 'true'
     runs-on: xcode-27
     needs:
       - calculate_version
@@ -189,7 +208,10 @@ jobs:
           if-no-files-found: error
   build_server:
     name: Build server (${{ matrix.cpu }})
+    if: needs.calculate_version.outputs.app_changed == 'true' || needs.calculate_version.outputs.packages_changed == 'true'
     runs-on: xcode-27
+    needs:
+      - calculate_version
     strategy:
       matrix:
         include:
@@ -241,12 +263,13 @@ jobs:
           if-no-files-found: error
   publish_packages:
     name: Publish packages
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.calculate_version.outputs.packages_changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     needs:
+      - calculate_version
       - build_server
     steps:
       - name: Checkout
@@ -274,7 +297,7 @@ jobs:
             PUBLISHED=$(npm view "@swipt/api@$CURRENT" gitHead 2> /dev/null || true)
             if [ "$PUBLISHED" = "$GITHUB_SHA" ]; then
               NUMBER=${CURRENT##*.}
-            elif [ -n "$PUBLISHED" ] && git cat-file -e "$PUBLISHED^{commit}" 2> /dev/null && git diff --quiet "$PUBLISHED" HEAD -- api cli cmd/swipt-server internal go.mod go.sum; then
+            elif [ -n "$PUBLISHED" ] && git cat-file -e "$PUBLISHED^{commit}" 2> /dev/null && git diff --quiet "$PUBLISHED" HEAD -- api cli cmd/swipt-server internal go.mod go.sum ':!internal/automation/runtime' ':!internal/cmd' ':!*_test.go'; then
               echo "the packages are unchanged since $CURRENT"
               exit 0
             else
@@ -312,7 +335,7 @@ jobs:
           done
   publish_nightly:
     name: Publish nightly
-    if: github.ref == 'refs/heads/main' && !cancelled() && !failure()
+    if: github.ref == 'refs/heads/main' && !cancelled() && !failure() && needs.calculate_version.outputs.app_changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -357,14 +380,35 @@ jobs:
         env:
           BUILD_NUMBER: ${{ needs.calculate_version.outputs.build_number }}
           GH_TOKEN: ${{ github.token }}
+  move_nightly:
+    name: Move nightly
+    if: github.ref == 'refs/heads/main' && needs.calculate_version.outputs.app_changed != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+      - calculate_version
+      - build_server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 1
+      - name: Move tag
+        run: |-
+          source .github/github.sh
+          retry git fetch --depth=1 origin tag nightly
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" tag -a -f nightly -m "$(git tag -l --format='%(contents:subject)' nightly)" "$GITHUB_SHA"
+          retry git push -f origin refs/tags/nightly
   prune_caches:
     name: Prune caches
-    if: github.ref == 'refs/heads/main' && !cancelled()
+    if: github.ref == 'refs/heads/main' && !cancelled() && (needs.calculate_version.outputs.app_changed == 'true' || needs.calculate_version.outputs.packages_changed == 'true')
     runs-on: ubuntu-latest
     permissions:
       actions: write
       contents: read
     needs:
+      - calculate_version
       - build_ios_ipa
       - build_server
     steps:

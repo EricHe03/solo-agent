@@ -34,7 +34,9 @@ jobs:
             echo "nightly was updated during the release, run it again" >&2
             exit 1
           fi
-          RUN=$(retry gh run list --workflow build.yml --commit "$(git rev-parse 'nightly^{commit}')" --limit 1 --json databaseId --jq '.[0].databaseId')
+          COMMIT=$(git rev-parse 'nightly^{commit}')
+          RUN=$(retry gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=swipt-server-darwin-arm64&per_page=100" \
+            --jq "[.artifacts[] | select(.expired | not) | select(.workflow_run.head_sha == \"$COMMIT\")][0].workflow_run.id // empty")
           if [ -z "$RUN" ]; then
             echo "no build run found for nightly" >&2
             exit 1
