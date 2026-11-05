@@ -6,12 +6,14 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { label, sameName } from "./connection.mjs";
+import { tr } from "./i18n.mjs";
 import { choose, interactive, step } from "./output.mjs";
 
 const exec = promisify(execFile);
 
-const xcodeMissing =
-  "Xcode is missing; install it from the App Store, open it once, and select it with xcode-select";
+const xcodeMissing = tr(
+  "Xcode is missing; install it from the App Store, open it once, and select it with xcode-select",
+);
 
 export async function devicectl(args, { parse = false } = {}) {
   const output = parse
@@ -36,7 +38,9 @@ export async function devicectl(args, { parse = false } = {}) {
     }
     if (text.includes("4016")) {
       throw new Error(
-        "CoreDevice cannot reach the device while its loopback VPN is on; turn off Swipt's VPN on the device, then run this again",
+        tr(
+          "CoreDevice cannot reach the device while its loopback VPN is on; turn off Swipt's VPN on the device, then run this again",
+        ),
       );
     }
     throw new Error(text.trim() || `devicectl exited with ${error.code}`);
@@ -49,16 +53,17 @@ export async function devicectl(args, { parse = false } = {}) {
   return parsed;
 }
 
-const reachability =
-  "unlock the device and connect it with USB or the same network as this Mac";
+const reachability = tr(
+  "unlock the device and connect it with USB or the same network as this Mac",
+);
 
 const deviceLine = (device) =>
-  `  ${device.name}  ${device.udid}${device.offline ? "  (offline)" : ""}`;
+  `  ${device.name}  ${device.udid}${device.offline ? `  ${tr("(offline)")}` : ""}`;
 
 export async function coreDevice(context, { required = true, filter } = {}) {
   const given = context.options.device;
   const listed = await step(
-    "looking for devices",
+    tr("looking for devices"),
     () => devicectl(["list", "devices"], { parse: true }),
     { transient: true },
   );
@@ -82,25 +87,34 @@ export async function coreDevice(context, { required = true, filter } = {}) {
   }
   if (paired.length === 0) {
     throw new Error(
-      "no iOS device is paired with this Mac; connect one with USB, unlock it, and trust this Mac",
+      tr(
+        "no iOS device is paired with this Mac; connect one with USB, unlock it, and trust this Mac",
+      ),
     );
   }
   const offline = given && paired.find(named);
   if (matches.length === 0 && offline) {
-    throw new Error(`${offline.name} is offline; ${reachability}`);
+    throw new Error(
+      tr("{device} is offline; {hint}", {
+        device: offline.name,
+        hint: reachability,
+      }),
+    );
   }
   if (devices.length === 0) {
     throw new Error(
-      `every paired iOS device is offline; ${reachability}:\n${paired.map(deviceLine).join("\n")}`,
+      `${tr("every paired iOS device is offline; {hint}:", { hint: reachability })}\n${paired.map(deviceLine).join("\n")}`,
     );
   }
   const reason = !given
-    ? "choose a device with -d NAME|UDID"
+    ? tr("choose a device with -d NAME|UDID")
     : matches.length === 0
-      ? `no iOS device is named ${given}`
-      : `more than one iOS device is named ${given}; choose one by UDID`;
+      ? tr("no iOS device is named {name}", { name: given })
+      : tr("more than one iOS device is named {name}; choose one by UDID", {
+          name: given,
+        });
   const failure = new Error(
-    `${reason}; paired iOS devices:\n${paired.map(deviceLine).join("\n")}`,
+    `${tr("{reason}; paired iOS devices:", { reason })}\n${paired.map(deviceLine).join("\n")}`,
   );
   if (matches.length === 0) {
     throw failure;
@@ -111,7 +125,7 @@ export async function coreDevice(context, { required = true, filter } = {}) {
       : matches;
   return choose(
     context,
-    "Choose a device",
+    tr("Choose a device"),
     choices.map((device) => ({
       name: `${device.name}  ${device.udid}`,
       short: device.name,

@@ -10,18 +10,20 @@ import { ValueSchema, timestampFromMs } from "@bufbuild/protobuf/wkt";
 
 import { UsageError, unauthenticated } from "./client.mjs";
 import { attach } from "./connection.mjs";
+import { tr } from "./i18n.mjs";
 import { Ignorer, relativePath } from "./ignore.mjs";
 import {
   columns,
   dateTime,
-  enumText,
   printLog,
   printScriptError,
+  serviceEnabledText,
+  serviceStatusText,
   serviceText,
 } from "./output.mjs";
 import { buildProject, loadProject } from "./project.mjs";
 import { LogLevel } from "./proto/common_pb.js";
-import { ServiceStatus, ServiceStatusSchema } from "./proto/swiplets_pb.js";
+import { ServiceStatus } from "./proto/swiplets_pb.js";
 
 const uploadChunk = 256 << 10;
 const rebuildDelay = 300;
@@ -63,7 +65,7 @@ export const logs = (context) =>
     const levels = ["error", "warn", "info", "debug"];
     const index = levels.indexOf(options.level);
     if (index < 0) {
-      throw new UsageError("--level is error, warn, info or debug");
+      throw new UsageError(tr("--level is error, warn, info or debug"));
     }
     const request = {
       follow: options.follow,
@@ -87,7 +89,7 @@ export const logs = (context) =>
 export const stop = (context) =>
   session(context, async (client) => {
     await client.system.shutdown({}, { signal: context.signal });
-    console.log("stopped");
+    console.log(tr("stopped"));
   });
 
 function readInput(value) {
@@ -107,17 +109,14 @@ function readInput(value) {
   try {
     return fromJson(ValueSchema, JSON.parse(data));
   } catch (error) {
-    throw new UsageError(`--input is not JSON: ${error.message}`);
+    throw new UsageError(
+      tr("--input is not JSON: {error}", { error: error.message }),
+    );
   }
 }
 
-const serviceStatus = (state) =>
-  state.status === ServiceStatus.UNSPECIFIED
-    ? "stopped"
-    : enumText(ServiceStatusSchema, state.status, "SERVICE_STATUS_");
-
 const notInstalled = (id) =>
-  new Error(`there is no swiplet ${JSON.stringify(id)}`);
+  new Error(tr("there is no swiplet {id}", { id: JSON.stringify(id) }));
 
 export const list = (context) =>
   session(context, async (client) => {
@@ -129,8 +128,8 @@ export const list = (context) =>
       let service = "";
       let status = "";
       if (swiplet.service) {
-        service = swiplet.service.enabled ? "enabled" : "disabled";
-        status = serviceStatus(swiplet.service);
+        service = serviceEnabledText(swiplet.service.enabled);
+        status = serviceStatusText(swiplet.service.status);
         if (swiplet.service.error) {
           status += `: ${swiplet.service.error.name}: ${swiplet.service.error.message}`;
         }
@@ -146,7 +145,14 @@ export const list = (context) =>
     });
     console.log(
       columns([
-        ["ID", "TITLE", "VERSION", "ACTIONS", "SERVICE", "STATUS"],
+        [
+          tr("ID"),
+          tr("TITLE"),
+          tr("VERSION"),
+          tr("ACTIONS"),
+          tr("SERVICE"),
+          tr("STATUS"),
+        ],
         ...rows,
       ]),
     );
@@ -164,24 +170,40 @@ export const show = (context) =>
     }
     console.log(swiplet.id, JSON.stringify(swiplet.title), swiplet.version);
     if (swiplet.hasUi) {
-      console.log("ui: yes");
+      console.log(tr("ui: yes"));
     }
     if (swiplet.service) {
-      console.log(`service: ${serviceText(swiplet.id, swiplet.service)}`);
+      console.log(
+        tr("service: {status}", {
+          status: serviceText(swiplet.id, swiplet.service),
+        }),
+      );
     }
     for (const action of swiplet.actions) {
       console.log();
       console.log(
-        `action ${action.name} ${JSON.stringify(action.title)}${action.exposedToShortcuts ? " (shortcuts)" : ""}`,
+        action.exposedToShortcuts
+          ? tr("action {name} {title} (Shortcuts)", {
+              name: action.name,
+              title: JSON.stringify(action.title),
+            })
+          : tr("action {name} {title}", {
+              name: action.name,
+              title: JSON.stringify(action.title),
+            }),
       );
       if (action.description !== "") {
         console.log(`  ${action.description}`);
       }
       if (action.inputSchema) {
-        console.log(`  input: ${indented(action.inputSchema)}`);
+        console.log(
+          `  ${tr("input: {schema}", { schema: indented(action.inputSchema) })}`,
+        );
       }
       if (action.outputSchema) {
-        console.log(`  output: ${indented(action.outputSchema)}`);
+        console.log(
+          `  ${tr("output: {schema}", { schema: indented(action.outputSchema) })}`,
+        );
       }
     }
   });
@@ -249,7 +271,7 @@ export const remove = (context) =>
       { swipletId: context.args[0] },
       { signal: context.signal },
     );
-    console.log("removed", context.args[0]);
+    console.log(tr("removed {name}", { name: context.args[0] }));
   });
 
 const isLocal = (name) => {
@@ -309,7 +331,7 @@ class FileSink {
 }
 
 const printSaved = (target, count) =>
-  console.error(`saved ${count} file(s) to ${target}`);
+  console.error(tr("saved {count} file(s) to {path}", { count, path: target }));
 
 const dataCommands = (target) => ({
   list: (context) =>
@@ -339,7 +361,8 @@ const dataCommands = (target) => ({
     session(context, async (client) => {
       const {
         id,
-        where,
+        wholeDirectory,
+        subdirectory,
         args: [given],
       } = target(context.args);
       const output = context.options.output ?? "";
@@ -350,8 +373,8 @@ const dataCommands = (target) => ({
       const directory = () =>
         new UsageError(
           requested === ""
-            ? `${JSON.stringify(given)} names ${where}; save it with --output DIRECTORY`
-            : `${JSON.stringify(requested)} is a directory in ${where}; save it with --output DIRECTORY`,
+            ? wholeDirectory(JSON.stringify(given))
+            : subdirectory(JSON.stringify(requested)),
         );
       const relativeTo = (name) =>
         name.slice(requested.length).replace(/^\//, "");
@@ -476,13 +499,31 @@ const dataCommands = (target) => ({
 
 export const swipletData = dataCommands(([id, ...args]) => ({
   id,
-  where: `the data directory of ${id}`,
+  wholeDirectory: (name) =>
+    tr(
+      "{path} names the data directory of {swiplet}; save it with --output DIRECTORY",
+      { path: name, swiplet: id },
+    ),
+  subdirectory: (name) =>
+    tr(
+      "{path} is a directory in the data directory of {swiplet}; save it with --output DIRECTORY",
+      { path: name, swiplet: id },
+    ),
   args,
 }));
 
 export const replData = dataCommands((args) => ({
   id: "@repl",
-  where: "the data directory of the REPL",
+  wholeDirectory: (name) =>
+    tr(
+      "{path} names the data directory of the REPL; save it with --output DIRECTORY",
+      { path: name },
+    ),
+  subdirectory: (name) =>
+    tr(
+      "{path} is a directory in the data directory of the REPL; save it with --output DIRECTORY",
+      { path: name },
+    ),
   args,
 }));
 
@@ -504,15 +545,21 @@ async function deploy(client, archive, signal) {
 
 const printDeployed = (deployed, toStdout) =>
   (toStdout ? console.log : console.error)(
-    deployed.replaced ? "replaced" : "installed",
-    deployed.swiplet.id,
-    deployed.swiplet.version,
+    deployed.replaced
+      ? tr("replaced {id} {version}", {
+          id: deployed.swiplet.id,
+          version: deployed.swiplet.version,
+        })
+      : tr("installed {id} {version}", {
+          id: deployed.swiplet.id,
+          version: deployed.swiplet.version,
+        }),
   );
 
 export async function install(context) {
   const [archive] = context.args;
   if (!fs.existsSync(archive)) {
-    throw new Error(`there is no archive at ${archive}`);
+    throw new Error(tr("there is no archive at {path}", { path: archive }));
   }
   await session(context, async (client) =>
     printDeployed(await deploy(client, archive, context.signal), true),
@@ -588,13 +635,16 @@ export async function develop(context) {
       built = await buildProject(root);
     } catch (error) {
       if (!inner.aborted) {
-        console.error("error:", error.message);
+        console.error(tr("error: {message}", { message: error.message }));
       }
       return;
     }
     if (built.digest === deployed) {
       console.error(
-        `built in ${elapsed(started)}; it came out as deployed, so nothing was deployed`,
+        tr(
+          "built in {elapsed}; it came out as deployed, so nothing was deployed",
+          { elapsed: elapsed(started) },
+        ),
       );
       return;
     }
@@ -613,7 +663,10 @@ export async function develop(context) {
     deployed = built.digest;
     printDeployed(result, false);
     console.error(
-      `built and deployed in ${elapsed(started)}; watching ${root}`,
+      tr("built and deployed in {elapsed}; watching {directory}", {
+        elapsed: elapsed(started),
+        directory: root,
+      }),
     );
   };
   const watch = () =>
@@ -689,7 +742,9 @@ function readScript([first, ...args]) {
   }
   if (args.length > 0) {
     throw new UsageError(
-      `${JSON.stringify(first)} is not a file, and CODE takes no ARG`,
+      tr("{argument} is not a file, and CODE takes no ARG", {
+        argument: JSON.stringify(first),
+      }),
     );
   }
   return { code: first, args, program: false, file: "input.js" };

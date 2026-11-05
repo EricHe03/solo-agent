@@ -10,6 +10,7 @@ import vm from "node:vm";
 import { transformAsync } from "@babel/core";
 import { build } from "esbuild";
 
+import { tr } from "./i18n.mjs";
 import { loadEnvironment, metro } from "./metro.mjs";
 
 const { version } = JSON.parse(
@@ -80,12 +81,14 @@ export function loadProject(root) {
   const config = manifest.swiplet ?? {};
   if (typeof config.id !== "string" || !idPattern.test(config.id)) {
     throw new Error(
-      '"swiplet.id" in package.json must be 1 to 128 lowercase letters, digits, dots, underscores and hyphens starting with a letter or a digit',
+      tr(
+        '"swiplet.id" in package.json must be 1 to 128 lowercase letters, digits, dots, underscores and hyphens starting with a letter or a digit',
+      ),
     );
   }
   if (typeof config.name !== "string" || config.name === "") {
     throw new Error(
-      '"swiplet.name" in package.json must be a non-empty string',
+      tr('"swiplet.name" in package.json must be a non-empty string'),
     );
   }
   const localizedNames = config.localizedNames ?? {};
@@ -95,12 +98,18 @@ export function loadProject(root) {
     !Object.values(localizedNames).every((name) => typeof name === "string")
   ) {
     throw new Error(
-      '"swiplet.localizedNames" in package.json must map languages to names',
+      tr(
+        '"swiplet.localizedNames" in package.json must map languages to names',
+      ),
     );
   }
   for (const field of ["description", "updateURL"]) {
     if (config[field] !== undefined && typeof config[field] !== "string") {
-      throw new Error(`"swiplet.${field}" in package.json must be a string`);
+      throw new Error(
+        tr('"{field}" in package.json must be a string', {
+          field: `swiplet.${field}`,
+        }),
+      );
     }
   }
   if (
@@ -108,7 +117,7 @@ export function loadProject(root) {
     (!Number.isInteger(config.versionCode) || config.versionCode < 1)
   ) {
     throw new Error(
-      '"swiplet.versionCode" in package.json must be a positive integer',
+      tr('"swiplet.versionCode" in package.json must be a positive integer'),
     );
   }
   const entry = (name) =>
@@ -133,7 +142,10 @@ const typeImport = (extension) => ({
       return {
         errors: [
           {
-            text: `the interface imports ${path.basename(extension)} at run time; import its type with \`import type\``,
+            text: tr(
+              "the interface imports {file} at run time; import its type with `import type`",
+              { file: path.basename(extension) },
+            ),
           },
         ],
       };
@@ -232,7 +244,7 @@ async function bundle(project) {
   }
   if (out.app === "" && out.extension === "") {
     throw new Error(
-      'package.json names neither "swiplet.app" nor "swiplet.extension"',
+      tr('package.json names neither "swiplet.app" nor "swiplet.extension"'),
     );
   }
   return out;
@@ -247,7 +259,10 @@ function describeExtension(source) {
   const loading = (name) => {
     const fail = () => {
       throw new Error(
-        `${name} is used while extension.js loads; use it inside run or an action`,
+        tr(
+          "{name} is used while extension.js loads; use it inside run or an action",
+          { name },
+        ),
       );
     };
     const get = (_, key) =>
@@ -271,17 +286,26 @@ function describeExtension(source) {
     "@swipt/api/file-system": {
       get dataDirectory() {
         throw new Error(
-          "dataDirectory is used while extension.js loads; use it inside run or an action",
+          tr(
+            "{name} is used while extension.js loads; use it inside run or an action",
+            { name: "dataDirectory" },
+          ),
         );
       },
       get cacheDirectory() {
         throw new Error(
-          "cacheDirectory is used while extension.js loads; use it inside run or an action",
+          tr(
+            "{name} is used while extension.js loads; use it inside run or an action",
+            { name: "cacheDirectory" },
+          ),
         );
       },
       get assets() {
         throw new Error(
-          "assets is used while extension.js loads; use it inside run or an action",
+          tr(
+            "{name} is used while extension.js loads; use it inside run or an action",
+            { name: "assets" },
+          ),
         );
       },
     },
@@ -299,10 +323,11 @@ function describeExtension(source) {
       SQLiteStatement: loading("SQLiteStatement"),
       SQLiteTaggedQuery: loading("SQLiteTaggedQuery"),
       SQLiteSession: loading("SQLiteSession"),
-      openDatabaseSync: () => loading("the database"),
-      openDatabaseAsync: () => Promise.resolve(loading("the database")),
-      deserializeDatabaseSync: () => loading("the database"),
-      deserializeDatabaseAsync: () => Promise.resolve(loading("the database")),
+      openDatabaseSync: () => loading(tr("the database")),
+      openDatabaseAsync: () => Promise.resolve(loading(tr("the database"))),
+      deserializeDatabaseSync: () => loading(tr("the database")),
+      deserializeDatabaseAsync: () =>
+        Promise.resolve(loading(tr("the database"))),
       deleteDatabaseSync: () => {},
       deleteDatabaseAsync: () => Promise.resolve(),
       backupDatabaseSync: () => {},
@@ -332,20 +357,24 @@ function describeExtension(source) {
       },
       SQLiteProvider: () => {
         throw new Error(
-          "SQLiteProvider renders React, so it works only in the swiplet interface",
+          tr(
+            "SQLiteProvider renders React, so it works only in the swiplet interface",
+          ),
         );
       },
       useSQLiteContext: () => {
         throw new Error(
-          "useSQLiteContext renders React, so it works only in the swiplet interface",
+          tr(
+            "useSQLiteContext renders React, so it works only in the swiplet interface",
+          ),
         );
       },
     },
     "expo-sqlite/kv-store": {
       SQLiteStorage: loading("SQLiteStorage"),
-      AsyncStorage: loading("the storage"),
-      Storage: loading("the storage"),
-      default: loading("the storage"),
+      AsyncStorage: loading(tr("the storage")),
+      Storage: loading(tr("the storage")),
+      default: loading(tr("the storage")),
     },
     get "expo-sqlite/localStorage/install"() {
       context.localStorage = loading("localStorage");
@@ -417,7 +446,10 @@ function describeExtension(source) {
     (specifier) => {
       if (!Object.hasOwn(modules, specifier)) {
         throw new Error(
-          `Swipt doesn't provide "${specifier}" to extensions; bundle it into extension.js`,
+          tr(
+            'Swipt doesn\'t provide "{module}" to extensions; bundle it into extension.js',
+            { module: specifier },
+          ),
         );
       }
       return modules[specifier];
@@ -430,7 +462,7 @@ function describeExtension(source) {
   ];
   if (definition === undefined) {
     throw new Error(
-      "the extension's default export is not the result of defineExtension",
+      tr("the extension's default export is not the result of defineExtension"),
     );
   }
   const schema = (name, value, side) => {
@@ -440,7 +472,10 @@ function describeExtension(source) {
     const converter = value?.["~standard"]?.jsonSchema;
     if (typeof converter?.[side] !== "function") {
       throw new Error(
-        `the ${side} schema of the action ${JSON.stringify(name)} doesn't implement Standard JSON Schema; use a library that does, such as Zod 4`,
+        tr(
+          "the {side} schema of the action {action} doesn't implement Standard JSON Schema; use a library that does, such as Zod 4",
+          { side, action: JSON.stringify(name) },
+        ),
       );
     }
     return converter[side]({ target: "draft-2020-12" });
@@ -448,7 +483,11 @@ function describeExtension(source) {
   const actions = Object.entries(definition.actions ?? {}).map(
     ([name, action]) => {
       if (typeof action?.title !== "string" || action.title === "") {
-        throw new Error(`the action ${JSON.stringify(name)} needs a title`);
+        throw new Error(
+          tr("the action {action} needs a title", {
+            action: JSON.stringify(name),
+          }),
+        );
       }
       const expose = action.expose ?? [];
       if (
@@ -456,7 +495,9 @@ function describeExtension(source) {
         !expose.every((caller) => caller === "shortcuts")
       ) {
         throw new Error(
-          `the action ${JSON.stringify(name)} can only expose itself to "shortcuts"`,
+          tr('the action {action} can only expose itself to "shortcuts"', {
+            action: JSON.stringify(name),
+          }),
         );
       }
       return {
@@ -531,7 +572,11 @@ export async function buildProject(root) {
     const target = path.join(folder, "assets", name);
     if (fs.existsSync(target)) {
       throw new Error(
-        `${path.relative(root, source)} and ${path.join("assets", name)} would both be assets/${name} in the swiplet`,
+        tr("{source} and {asset} would both be assets/{name} in the swiplet", {
+          source: path.relative(root, source),
+          asset: path.join("assets", name),
+          name,
+        }),
       );
     }
     fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -577,7 +622,11 @@ function loadSource(root) {
   const config = manifest.source ?? {};
   for (const field of ["name", "image", "url"]) {
     if (config[field] !== undefined && typeof config[field] !== "string") {
-      throw new Error(`"source.${field}" in package.json must be a string`);
+      throw new Error(
+        tr('"{field}" in package.json must be a string', {
+          field: `source.${field}`,
+        }),
+      );
     }
   }
   const localizedNames = config.localizedNames ?? {};
@@ -587,7 +636,7 @@ function loadSource(root) {
     !Object.values(localizedNames).every((name) => typeof name === "string")
   ) {
     throw new Error(
-      '"source.localizedNames" in package.json must map languages to names',
+      tr('"source.localizedNames" in package.json must map languages to names'),
     );
   }
   if (
@@ -597,7 +646,9 @@ function loadSource(root) {
         typeof config.icon.color !== "string"))
   ) {
     throw new Error(
-      '"source.icon" in package.json must have a symbol and may have a color',
+      tr(
+        '"source.icon" in package.json must have a symbol and may have a color',
+      ),
     );
   }
   let prefix;
@@ -607,7 +658,9 @@ function loadSource(root) {
         config.url.endsWith("/") ? config.url : `${config.url}/`,
       );
     } catch {
-      throw new Error('"source.url" in package.json is not an absolute URL');
+      throw new Error(
+        tr('"source.url" in package.json is not an absolute URL'),
+      );
     }
   }
   const workspaces = Array.isArray(manifest.workspaces)
@@ -631,7 +684,10 @@ function workspaceSwiplets(source) {
       const built = path.join(source.root, directory, "dist", `${id}.swiplet`);
       if (!fs.existsSync(built)) {
         throw new Error(
-          `${path.relative(source.root, built)} is missing; build ${directory} first`,
+          tr("{file} is missing; build {directory} first", {
+            file: path.relative(source.root, built),
+            directory,
+          }),
         );
       }
       files.push(built);
@@ -665,7 +721,9 @@ export function sourceCommand(root, given) {
       : workspaceSwiplets(source);
   if (files.length === 0) {
     throw new Error(
-      "package.json lists no workspaces with swiplets; name the swiplets to list",
+      tr(
+        "package.json lists no workspaces with swiplets; name the swiplets to list",
+      ),
     );
   }
   const swiplets = new Map();
@@ -673,7 +731,11 @@ export function sourceCommand(root, given) {
     const { id } = read.manifest;
     if (swiplets.has(id)) {
       throw new Error(
-        `${id} is both ${swiplets.get(id).file} and ${read.file}`,
+        tr("{id} is both {first} and {second}", {
+          id,
+          first: swiplets.get(id).file,
+          second: read.file,
+        }),
       );
     }
     swiplets.set(id, read);
@@ -836,7 +898,7 @@ const quote = (value) =>
 export function createCommand(directory) {
   const root = path.resolve(directory);
   if (fs.existsSync(root) && fs.readdirSync(root).length > 0) {
-    throw new Error(`${directory} is not empty`);
+    throw new Error(tr("{directory} is not empty", { directory }));
   }
   for (const [file, template] of Object.entries(templates)) {
     fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });

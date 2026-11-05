@@ -2,11 +2,28 @@ import { styleText } from "node:util";
 
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import select from "@inquirer/select";
+import stringWidth from "string-width";
 
+import { tr } from "./i18n.mjs";
 import { LogLevel, LogLevelSchema } from "./proto/common_pb.js";
-import { ServiceStatus, ServiceStatusSchema } from "./proto/swiplets_pb.js";
+import { ServiceStatus } from "./proto/swiplets_pb.js";
 
 export class FalseResult extends Error {}
+
+export const selectTheme = {
+  style: {
+    keysHelpTip: () =>
+      [
+        [`↑↓`, tr("navigate")],
+        [`⏎`, tr("select")],
+      ]
+        .map(
+          ([key, action]) =>
+            `${styleText("bold", key)} ${styleText("dim", action)}`,
+        )
+        .join(styleText("dim", " • ")),
+  },
+};
 
 export const interactive = (context) =>
   context.options.device === undefined &&
@@ -19,7 +36,7 @@ export function choose(context, message, choices, failure) {
     throw failure;
   }
   return select(
-    { message, choices },
+    { message, choices, theme: selectTheme },
     { output: process.stderr, signal: context.signal },
   );
 }
@@ -66,16 +83,10 @@ export async function step(label, run, { transient = false } = {}) {
   }
 }
 
-export const enumText = (schema, value, prefix) =>
-  schema.value[value].name
-    .slice(prefix.length)
-    .toLowerCase()
-    .replaceAll("_", " ");
-
 const levelName = (level) =>
   level === LogLevel.UNSPECIFIED
     ? "info"
-    : enumText(LogLevelSchema, level, "LOG_LEVEL_");
+    : LogLevelSchema.value[level].name.slice("LOG_LEVEL_".length).toLowerCase();
 
 const pad = (value, width) => String(value).padStart(width, "0");
 
@@ -93,14 +104,16 @@ export function columns(rows) {
   const widths = [];
   for (const row of rows) {
     row.forEach((cell, index) => {
-      widths[index] = Math.max(widths[index] ?? 0, cell.length);
+      widths[index] = Math.max(widths[index] ?? 0, stringWidth(cell));
     });
   }
   return rows
     .map((row) =>
       row
         .map((cell, index) =>
-          index === row.length - 1 ? cell : cell.padEnd(widths[index] + 2),
+          index === row.length - 1
+            ? cell
+            : cell + " ".repeat(widths[index] + 2 - stringWidth(cell)),
         )
         .join("")
         .trimEnd(),
@@ -120,7 +133,7 @@ export const failureText = (failure) =>
   ].join("\n");
 
 export function printScriptError(failure) {
-  console.error(`error: ${failureText(failure)}`);
+  console.error(tr("error: {message}", { message: failureText(failure) }));
   return new FalseResult();
 }
 
@@ -134,12 +147,29 @@ export function printLog(entry, toStdout) {
   );
 }
 
+const serviceStatuses = {
+  [ServiceStatus.UNSPECIFIED]: tr("stopped"),
+  [ServiceStatus.STOPPED]: tr("stopped"),
+  [ServiceStatus.STARTING]: tr("starting"),
+  [ServiceStatus.RUNNING]: tr("running"),
+  [ServiceStatus.FAILED]: tr("failed"),
+};
+
+export const serviceEnabledText = (enabled) =>
+  enabled ? tr("enabled") : tr("disabled");
+
+export const serviceStatusText = (status) => serviceStatuses[status];
+
 export function serviceText(id, state) {
-  let text = state?.enabled ? "enabled" : "disabled";
-  text += `, ${state && state.status !== ServiceStatus.UNSPECIFIED ? enumText(ServiceStatusSchema, state.status, "SERVICE_STATUS_") : "stopped"}`;
-  if (state?.since) {
-    text += ` since ${clockTime(state.since)}`;
-  }
+  const enabled = serviceEnabledText(state?.enabled);
+  const status = serviceStatuses[state?.status ?? ServiceStatus.UNSPECIFIED];
+  let text = state?.since
+    ? tr("{enabled}, {status} since {time}", {
+        enabled,
+        status,
+        time: clockTime(state.since),
+      })
+    : tr("{enabled}, {status}", { enabled, status });
   if (state?.error) {
     text += `: ${failureText(state.error)}`;
   }

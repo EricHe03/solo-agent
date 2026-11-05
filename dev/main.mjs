@@ -6,6 +6,7 @@ import { attach } from "@swipt/cli/connection.mjs";
 import { apps, coreDevice, devicectl } from "@swipt/cli/coredevice.mjs";
 
 import { buildExpoModulesCore } from "./expo-modules-core.mjs";
+import { syncLocales } from "./strings.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = path.join(
@@ -166,6 +167,10 @@ const commands = [
     "install [-d NAME|UDID]",
     "Run make lib build_ios, install and launch the app on the device, and check the installed build",
   ],
+  [
+    "strings",
+    "Check cli/locales against the strings of the CLI and remove the stale ones",
+  ],
 ];
 
 const usage = `usage: bun dev COMMAND
@@ -185,6 +190,9 @@ async function main() {
       break;
     case "install":
       await installApp(options);
+      break;
+    case "strings":
+      syncLocales(path.join(root, "cli"));
       break;
     default:
       console.log(usage);

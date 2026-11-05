@@ -7,11 +7,11 @@ import { setTimeout as sleep } from "node:timers/promises";
 import Bonjour from "bonjour-service";
 
 import { Code, RpcError, UsageError, open } from "./client.mjs";
-import { columns, enumText } from "./output.mjs";
+import { tr } from "./i18n.mjs";
+import { columns } from "./output.mjs";
 import {
   DeviceConnectionProblem,
-  DeviceConnectionProblemSchema,
-  DeviceConnectionStateSchema,
+  DeviceConnectionState,
 } from "./proto/common_pb.js";
 
 const browseLimit = 1500;
@@ -63,13 +63,13 @@ function parseURL(text) {
   try {
     parsed = new URL(text.includes("://") ? text : `http://${text}`);
   } catch {
-    throw new UsageError(`${text} is not a URL`);
+    throw new UsageError(tr("{text} is not a URL", { text }));
   }
   if (
     parsed.hostname === "" ||
     (parsed.protocol !== "http:" && parsed.protocol !== "https:")
   ) {
-    throw new UsageError(`${text} is not an http or https URL`);
+    throw new UsageError(tr("{text} is not an http or https URL", { text }));
   }
   let token;
   try {
@@ -152,7 +152,10 @@ async function discover(signal, stored, until) {
 }
 
 const requiresToken = (found) =>
-  `${found.name} requires a token: swipt device add ${withToken(found.url)}`;
+  tr("{device} requires a token: swipt device add {url}", {
+    device: found.name,
+    url: withToken(found.url),
+  });
 
 export async function attach(context) {
   const given = context.options.device;
@@ -171,7 +174,9 @@ export async function attach(context) {
       ).find((it) => sameName(it.name, name));
       if (!found) {
         throw new Error(
-          `there is no device ${name}; "swipt device list" lists them`,
+          tr('there is no device {device}; "swipt device list" lists them', {
+            device: name,
+          }),
         );
       }
       if (found.authenticates) {
@@ -192,12 +197,16 @@ export async function attach(context) {
         throw new Error(locked.map(requiresToken).join("\n"));
       }
       throw new Error(
-        'there is no device; turn on Swipt › Developer › Local Network, or connect one with "swipt device add URL"',
+        tr(
+          'there is no device; turn on Swipt › Developer › Local Network, or connect one with "swipt device add URL"',
+        ),
       );
     }
     if (names.length > 1) {
       throw new Error(
-        `there is more than one device: ${names.join(", ")}; choose one with -d`,
+        tr("there is more than one device: {devices}; choose one with -d", {
+          devices: names.join(", "),
+        }),
       );
     }
     device = parseURL(stored[names[0]]);
@@ -206,17 +215,38 @@ export async function attach(context) {
   return open(device);
 }
 
+const connectionStates = {
+  [DeviceConnectionState.UNSPECIFIED]: tr("unspecified"),
+  [DeviceConnectionState.STOPPED]: tr("stopped"),
+  [DeviceConnectionState.CONNECTING]: tr("connecting"),
+  [DeviceConnectionState.PREPARING]: tr("preparing"),
+  [DeviceConnectionState.RUNNING]: tr("running"),
+  [DeviceConnectionState.FAILED]: tr("failed"),
+};
+
+const connectionProblems = {
+  [DeviceConnectionProblem.UNREACHABLE]: tr("unreachable"),
+  [DeviceConnectionProblem.PAIRING_REJECTED]: tr("pairing rejected"),
+  [DeviceConnectionProblem.DEVELOPER_MODE_OFF]: tr("developer mode off"),
+  [DeviceConnectionProblem.DISK_IMAGE_MISSING]: tr("disk image missing"),
+  [DeviceConnectionProblem.DISK_IMAGE_MOUNT_FAILED]: tr(
+    "disk image mount failed",
+  ),
+  [DeviceConnectionProblem.DEVICE_UNSUPPORTED]: tr("device unsupported"),
+  [DeviceConnectionProblem.SCREEN_IN_USE]: tr("screen in use"),
+  [DeviceConnectionProblem.VPN_PEER_ADDRESS_MISSING]: tr(
+    "VPN peer address missing",
+  ),
+  [DeviceConnectionProblem.OTHER]: tr("other"),
+};
+
 function connectionText(connection) {
-  let text = enumText(
-    DeviceConnectionStateSchema,
-    connection?.state ?? 0,
-    "DEVICE_CONNECTION_STATE_",
-  );
+  let text = connectionStates[connection?.state ?? 0];
   if (
     connection &&
     connection.problem !== DeviceConnectionProblem.UNSPECIFIED
   ) {
-    text += `, ${enumText(DeviceConnectionProblemSchema, connection.problem, "DEVICE_CONNECTION_PROBLEM_")}`;
+    text += `, ${connectionProblems[connection.problem]}`;
   }
   if (connection?.message) {
     text += `: ${connection.message}`;
@@ -227,16 +257,20 @@ function connectionText(connection) {
 async function probe(url, signal) {
   try {
     const info = await open(parseURL(url)).system.getInfo({}, { signal });
-    return [
-      `${info.appVersion} (${info.appBuild})`,
-      connectionText(info.deviceConnection),
-    ];
+    return {
+      cells: [
+        `${info.appVersion} (${info.appBuild})`,
+        connectionText(info.deviceConnection),
+      ],
+    };
   } catch (error) {
-    return [
-      error instanceof RpcError && error.code === Code.Unauthenticated
-        ? "requires a token"
-        : "offline",
-    ];
+    if (error instanceof RpcError && error.code === Code.Unauthenticated) {
+      return { cells: [tr("requires a token")] };
+    }
+    return {
+      cells: [tr("offline")],
+      failure: signal.aborted ? undefined : error.message,
+    };
   }
 }
 
@@ -250,19 +284,33 @@ export async function list({ signal }) {
   const names = Object.keys(stored).sort((a, b) => a.localeCompare(b));
   if (names.length === 0) {
     console.error(
-      'no device publishes Swipt on the local network; turn on Swipt › Developer › Local Network, or connect one with "swipt device add URL"',
+      tr(
+        'no device publishes Swipt on the local network; turn on Swipt › Developer › Local Network, or connect one with "swipt device add URL"',
+      ),
     );
     return;
   }
   const late = AbortSignal.any([signal, AbortSignal.timeout(browseLimit)]);
-  const rows = await Promise.all(
-    names.map(async (name) => [
+  const probed = await Promise.all(
+    names.map(async (name) => ({
       name,
-      parseURL(stored[name]).url,
       ...(await (probes.get(stored[name]) ?? probe(stored[name], late))),
-    ]),
+    })),
   );
-  console.log(columns(rows));
+  console.log(
+    columns(
+      probed.map(({ name, cells }) => [
+        name,
+        parseURL(stored[name]).url,
+        ...cells,
+      ]),
+    ),
+  );
+  for (const { name, failure } of probed) {
+    if (failure !== undefined) {
+      console.error(`${name}: ${failure}`);
+    }
+  }
 }
 
 export async function add(context) {
@@ -280,16 +328,16 @@ export async function add(context) {
   }
   stored[name] = context.args[0];
   save(stored);
-  console.log("added", name);
+  console.log(tr("added {device}", { device: name }));
 }
 
 export function remove({ args }) {
   const stored = load();
   const name = storedName(stored, label(args[0]));
   if (name === undefined) {
-    throw new Error(`there is no device ${args[0]}`);
+    throw new Error(tr("there is no device {device}", { device: args[0] }));
   }
   delete stored[name];
   save(stored);
-  console.log("removed", name);
+  console.log(tr("removed {name}", { name }));
 }

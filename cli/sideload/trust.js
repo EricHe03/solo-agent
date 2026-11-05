@@ -1,4 +1,6 @@
-const [id, mode, unlock] = args;
+const [encodedMessages, id, mode, unlock] = args;
+const messages = JSON.parse(encodedMessages);
+const filled = (message, value) => message.replace(/\{\w+\}/, () => value);
 const name = "Swipt";
 const settings = "com.apple.Preferences";
 const springboard = "com.apple.springboard";
@@ -51,7 +53,6 @@ async function answerPrompt() {
   const alert = await sheet();
   const buttons = alert?.findAll({ role: "button" }) ?? [];
   if (alert?.label?.includes(name) && [2, 3].includes(buttons.length)) {
-    console.debug("answering a permission alert");
     // The location alert shows an icon and lists Allow Once first; the cellular
     // data alert of China mainland devices shows none and lists Wi-Fi and
     // cellular first (iPhone18,2, iOS 27.2 24B115).
@@ -63,7 +64,6 @@ async function answerPrompt() {
 
 async function launch() {
   try {
-    console.debug(`launching ${name}`);
     await device.launchApplication(id, { restart: true });
     return null;
   } catch (error) {
@@ -171,7 +171,7 @@ async function allowDeveloper(row) {
 }
 
 async function trust(developer) {
-  console.debug(`trusting ${developer} in Settings`);
+  console.debug(filled(messages.trusting, developer));
   const page = { label: new RegExp(escaped(developer)) };
   for (const row of await openDeviceManagement(developer)) {
     const until = Date.now() + 3_000;
@@ -205,7 +205,7 @@ async function waitForUnlock() {
       }
     }
     if (!announced) {
-      console.debug("unlock the device to continue");
+      console.debug(messages.unlockToContinue);
       announced = true;
     }
   }
@@ -220,7 +220,7 @@ async function finishSetup() {
         identifier: "setup-finished",
       });
       if (finished !== null) {
-        console.log(`${name} is running`);
+        console.log(filled(messages.running, name));
         return;
       }
     }
@@ -234,7 +234,7 @@ async function main() {
     return;
   }
   if (unlock === "passcode") {
-    console.debug("unlocking the device");
+    console.debug(messages.unlocking);
     await device.unlock();
   } else if (unlock === "wait") {
     await waitForUnlock();
@@ -243,7 +243,7 @@ async function main() {
   const developer = await launch();
   if (developer !== null) {
     await trust(developer);
-    console.log(`${developer} is trusted`);
+    console.log(filled(messages.trusted, developer));
   }
 }
 

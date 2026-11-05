@@ -5,12 +5,13 @@ import { parseArgs } from "node:util";
 import { Code, RpcError, UsageError } from "./client.mjs";
 import * as connection from "./connection.mjs";
 import * as device from "./device.mjs";
+import { tr } from "./i18n.mjs";
 import { FalseResult } from "./output.mjs";
 import { buildProject, createCommand, sourceCommand } from "./project.mjs";
 import * as sideload from "./sideload.mjs";
 
 const globalOptions = {
-  help: { type: "boolean", short: "h", help: "help" },
+  help: { type: "boolean", short: "h", help: tr("help") },
 };
 
 const deviceOption = {
@@ -18,7 +19,7 @@ const deviceOption = {
     type: "string",
     short: "d",
     value: "NAME|URL",
-    help: "the device to use",
+    help: tr("the device to use"),
   },
 };
 
@@ -27,12 +28,12 @@ const sideloadOptions = {
     type: "string",
     short: "d",
     value: "NAME|UDID",
-    help: "device paired with this Mac",
+    help: tr("device paired with this Mac"),
   },
   team: {
     type: "string",
     value: "ID",
-    help: "team ID, required if more than one",
+    help: tr("team ID, required if more than one"),
   },
 };
 
@@ -41,23 +42,23 @@ const passcodeOptions = (help) => ({
   "passcode-type": {
     type: "string",
     value: "TYPE",
-    help: "pin (4 or 6 digits, default), numeric or alphanumeric",
+    help: tr("pin (4 or 6 digits, default), numeric or alphanumeric"),
   },
 });
 
 const nightlyOption = {
-  nightly: { type: "boolean", help: "use nightly build" },
+  nightly: { type: "boolean", help: tr("use nightly build") },
 };
 
 const setupOptions = {
   "no-setup": {
     type: "boolean",
-    help: "do not pair Swipt, trust its developer or publish its API",
+    help: tr("do not pair Swipt, trust its developer or publish its API"),
   },
-  "no-setup-pair": { type: "boolean", help: "do not pair Swipt" },
+  "no-setup-pair": { type: "boolean", help: tr("do not pair Swipt") },
   "no-setup-api": {
     type: "boolean",
-    help: "do not publish the API to the local network",
+    help: tr("do not publish the API to the local network"),
   },
 };
 
@@ -84,7 +85,10 @@ function parseDuration(text, option) {
     const match = /^(\d+(?:\.\d*)?|\.\d+)(ns|us|µs|ms|s|m|h)/.exec(rest);
     if (!match) {
       throw new UsageError(
-        `invalid argument ${JSON.stringify(text)} for ${option}: it is a duration such as 30s or 1m30s`,
+        tr(
+          "invalid argument {value} for {option}: it is a duration such as 30s or 1m30s",
+          { value: JSON.stringify(text), option },
+        ),
       );
     }
     total += Number(match[1]) * durationUnits[match[2]];
@@ -99,7 +103,10 @@ function parseCount(text, option) {
   }
   if (!/^\d+$/.test(text) || Number(text) > 0xffffffff) {
     throw new UsageError(
-      `invalid argument ${JSON.stringify(text)} for ${option}: it is a number`,
+      tr("invalid argument {value} for {option}: it is a number", {
+        value: JSON.stringify(text),
+        option,
+      }),
     );
   }
   return Number(text);
@@ -109,49 +116,55 @@ const dataCommands = (operand, files) => {
   const before = operand === "" ? 0 : 1;
   return {
     name: "data",
-    short: `Manage the files in the data directory of ${operand === "" ? "the REPL" : "a swiplet"}`,
+    short:
+      operand === ""
+        ? tr("Manage the files in the data directory of the REPL")
+        : tr("Manage the files in the data directory of a swiplet"),
     commands: [
       {
         name: "list",
         use: `list ${operand}[PATH]`,
-        short: "List data files",
+        short: tr("List data files"),
         args: [before, before + 1],
         options: {
-          recursive: { type: "boolean", help: "include subdirectories" },
+          recursive: { type: "boolean", help: tr("include subdirectories") },
         },
         run: files.list,
       },
       {
         name: "read",
         use: `read ${operand}PATH`,
-        short: "Read a data file or directory",
+        short: tr("Read a data file or directory"),
         args: [before + 1, before + 1],
         options: {
-          output: { type: "string", value: "PATH", help: "destination" },
+          output: { type: "string", value: "PATH", help: tr("destination") },
         },
         run: files.read,
       },
       {
         name: "write",
         use: `write ${operand}PATH [FILE | -]`,
-        short: "Write a data file",
+        short: tr("Write a data file"),
         args: [before + 1, before + 2],
         run: files.write,
       },
       {
         name: "remove",
         use: `remove ${operand}PATH`,
-        short: "Remove a data file",
+        short: tr("Remove a data file"),
         args: [before + 1, before + 1],
         options: {
-          recursive: { type: "boolean", help: "include directory contents" },
+          recursive: {
+            type: "boolean",
+            help: tr("include directory contents"),
+          },
         },
         run: files.remove,
       },
       {
         name: "clear",
         use: `clear ${operand}`.trimEnd(),
-        short: "Remove every data file, keeping the data directory",
+        short: tr("Remove every data file, keeping the data directory"),
         args: [before, before],
         run: files.clear,
       },
@@ -162,19 +175,19 @@ const dataCommands = (operand, files) => {
 const commands = [
   {
     name: "project",
-    short: "Make, build and deploy swiplet projects",
+    short: tr("Make, build and deploy swiplet projects"),
     commands: [
       {
         name: "create",
         use: "create DIRECTORY",
-        short: "Make a swiplet project in a new or empty directory",
+        short: tr("Make a swiplet project in a new or empty directory"),
         args: [1, 1],
         run: ({ args }) => createCommand(args[0]),
       },
       {
         name: "build",
         use: "build [PROJECT]",
-        short: "Bundle the project into dist/<swiplet.id>.swiplet",
+        short: tr("Bundle the project into dist/<swiplet.id>.swiplet"),
         args: [0, 1],
         run: async ({ args }) => {
           const { archive } = await buildProject(path.resolve(args[0] ?? "."));
@@ -184,15 +197,14 @@ const commands = [
       {
         name: "source",
         use: "source [SWIPLET...]",
-        short:
-          'Gather the built swiplets of this directory\'s workspaces, or the given ones, into dist/ with a swiplets.json described by "source" in package.json',
+        short: tr("Collect the built swiplets into dist/ with a swiplets.json"),
         args: [0, Infinity],
         run: ({ args }) => sourceCommand(process.cwd(), args),
       },
       {
         name: "deploy",
         use: "deploy [PROJECT]",
-        short: "Build the project and install it on the device",
+        short: tr("Build the project and install it on the device"),
         args: [0, 1],
         options: deviceOption,
         run: device.deployProject,
@@ -200,11 +212,11 @@ const commands = [
       {
         name: "develop",
         use: "develop [PROJECT]",
-        short: "Build, install and follow a swiplet project as it changes",
+        short: tr("Build, install and follow a swiplet project as it changes"),
         args: [0, 1],
         options: {
           ...deviceOption,
-          "no-logs": { type: "boolean", help: "without logs" },
+          "no-logs": { type: "boolean", help: tr("without logs") },
         },
         run: device.develop,
       },
@@ -212,55 +224,58 @@ const commands = [
   },
   {
     name: "device",
-    short: "Manage the devices and read their logs",
+    short: tr("Manage the devices and read their logs"),
     commands: [
       {
         name: "list",
-        short: "List the devices, adding the ones found on the local network",
+        short: tr(
+          "List the devices, adding the ones found on the local network",
+        ),
         args: [0, 0],
         run: connection.list,
       },
       {
         name: "add",
         use: "add URL",
-        short:
+        short: tr(
           "Add a device by its URL; needed when it is remote or requires a token",
+        ),
         args: [1, 1],
         run: connection.add,
       },
       {
         name: "remove",
         use: "remove NAME",
-        short: "Forget a device",
+        short: tr("Forget a device"),
         args: [1, 1],
         run: connection.remove,
       },
       {
         name: "stop",
-        short: "Stop the Swipt server",
+        short: tr("Stop the Swipt server"),
         args: [0, 0],
         options: deviceOption,
         run: device.stop,
       },
       {
         name: "logs",
-        short: "Print the logs",
+        short: tr("Print the logs"),
         args: [0, 0],
         options: {
           ...deviceOption,
-          follow: { type: "boolean", help: "follow new entries" },
+          follow: { type: "boolean", help: tr("follow new entries") },
           tail: {
             type: "string",
             value: "COUNT",
-            help: "number of past entries (default 100)",
+            help: tr("number of past entries (default 100)"),
           },
-          since: { type: "string", value: "DURATION", help: "maximum age" },
+          since: { type: "string", value: "DURATION", help: tr("maximum age") },
           level: {
             type: "string",
             value: "LEVEL",
-            help: "minimum level (default info)",
+            help: tr("minimum level (default info)"),
           },
-          swiplet: { type: "string", value: "ID", help: "swiplet ID" },
+          swiplet: { type: "string", value: "ID", help: tr("swiplet ID") },
         },
         parse: (options) => ({
           ...options,
@@ -274,74 +289,78 @@ const commands = [
   },
   {
     name: "swiplet",
-    short: "Manage the swiplets on the device",
+    short: tr("Manage the swiplets on the device"),
     options: deviceOption,
     commands: [
       {
         name: "list",
-        short: "List the swiplets",
+        short: tr("List the swiplets"),
         args: [0, 0],
         run: device.list,
       },
       {
         name: "show",
         use: "show ID",
-        short: "Show a swiplet",
+        short: tr("Show a swiplet"),
         args: [1, 1],
         run: device.show,
       },
       {
         name: "install",
         use: "install ARCHIVE",
-        short: "Install a swiplet archive",
+        short: tr("Install a swiplet archive"),
         args: [1, 1],
         run: device.install,
       },
       {
         name: "remove",
         use: "remove ID",
-        short: "Remove a swiplet",
+        short: tr("Remove a swiplet"),
         args: [1, 1],
         run: device.remove,
       },
       {
         name: "call",
         use: "call ID ACTION",
-        short: "Call a swiplet action",
+        short: tr("Call a swiplet action"),
         args: [2, 2],
         options: {
           input: {
             type: "string",
             value: "JSON",
-            help: "input JSON, @FILE or -",
+            help: tr("input JSON, @FILE or -"),
           },
         },
         run: device.call,
       },
       {
         name: "service",
-        short: "Manage swiplet services",
+        short: tr("Manage swiplet services"),
         commands: [
           {
             name: "enable",
             use: "enable ID",
-            short: "Turn on a swiplet service",
+            short: tr("Turn on a swiplet service"),
             args: [1, 1],
-            options: { watch: { type: "boolean", help: "watch the state" } },
+            options: {
+              watch: { type: "boolean", help: tr("watch the state") },
+            },
             run: device.setService(true),
           },
           {
             name: "disable",
             use: "disable ID",
-            short: "Turn off a swiplet service",
+            short: tr("Turn off a swiplet service"),
             args: [1, 1],
-            options: { watch: { type: "boolean", help: "watch the state" } },
+            options: {
+              watch: { type: "boolean", help: tr("watch the state") },
+            },
             run: device.setService(false),
           },
           {
             name: "watch",
             use: "watch [ID]",
-            short: "Watch swiplet services",
+            short: tr("Watch swiplet services"),
             args: [0, 1],
             run: device.serviceWatch,
           },
@@ -352,21 +371,20 @@ const commands = [
   },
   {
     name: "repl",
-    short: "Run JavaScript in the REPL session on the device",
+    short: tr("Run JavaScript in the REPL session on the device"),
     options: deviceOption,
     commands: [
       {
         name: "run",
         use: "run [CODE | FILE [ARG...] | - [ARG...]]",
-        short: "Run a JavaScript expression or program on the device",
+        short: tr("Run a JavaScript expression or program on the device"),
         description: [
-          "The first argument is FILE when it names an existing file and CODE otherwise; options go before FILE or -, and every argument after it is an ARG, verbatim.",
-          "CODE is an expression; its completion value, awaited if it is a promise, is printed in inspect format: strings quoted, and values with their own toString, which include accessibility snapshots and screen recordings, as that string.",
-          "FILE, or standard input given as - or no argument, is a program; only its console output and thrown error are printed, and the global args holds its ARGs.",
-          'Top-level await is available, and top-level bindings persist across runs until "swipt repl reset".',
-          "An image given to show(), or as the completion value of CODE, is saved as a PNG file and printed as its path.",
-          'The globals are accessibility, input, device, screen, image, dialog, dataDirectory, show and sleep; import declarations and import() load the modules that swiplets get from Swipt; "swipt repl api" declares both.',
-          'dataDirectory, which also holds the expo-sqlite databases, is the directory that "swipt repl data" manages.',
+          tr(
+            "The first argument is FILE when it names an existing file and CODE otherwise; options go before it.",
+          ),
+          tr(
+            "CODE is an expression whose value is printed. FILE, or standard input given as - or no argument, is a program, and only its console output is printed.",
+          ),
         ],
         args: [0, Infinity],
         passthrough: device.isProgram,
@@ -374,20 +392,22 @@ const commands = [
           output: {
             type: "string",
             value: "DIRECTORY",
-            help: "image directory (default: a new temporary directory)",
+            help: tr("image directory (default: a new temporary directory)"),
           },
         },
         run: device.run,
       },
       {
         name: "reset",
-        short: "Reset the session",
+        short: tr("Reset the session"),
         args: [0, 0],
         run: device.reset,
       },
       {
         name: "api",
-        short: "Print the TypeScript declarations of the globals and modules",
+        short: tr(
+          "Print the TypeScript declarations of the globals and modules",
+        ),
         args: [0, 0],
         run: device.api,
       },
@@ -396,15 +416,15 @@ const commands = [
   },
   {
     name: "sideload",
-    short: "Sideload Swipt, signed by Xcode",
+    short: tr("Sideload Swipt"),
     options: sideloadOptions,
     commands: [
       {
         name: "install",
-        short: "Install latest release",
+        short: tr("Install Swipt"),
         args: [0, 0],
         options: {
-          ...passcodeOptions("set up auto-unlock with this passcode"),
+          ...passcodeOptions(tr("set up auto-unlock with this passcode")),
           ...nightlyOption,
           ...setupOptions,
         },
@@ -412,10 +432,10 @@ const commands = [
       },
       {
         name: "update",
-        short: "Renew signing if needed and update to latest release",
+        short: tr("Update or renew Swipt"),
         args: [0, 0],
         options: {
-          ...passcodeOptions("unlock device with this passcode"),
+          ...passcodeOptions(tr("unlock device with this passcode")),
           ...nightlyOption,
           ...setupOptions,
         },
@@ -423,7 +443,7 @@ const commands = [
       },
       {
         name: "uninstall",
-        short: "Remove Swipt",
+        short: tr("Remove Swipt"),
         args: [0, 0],
         run: sideload.uninstall,
       },
@@ -431,7 +451,7 @@ const commands = [
   },
   {
     name: "version",
-    short: "Print the version",
+    short: tr("Print the version"),
     args: [0, 0],
     run: device.printVersion,
   },
@@ -439,7 +459,7 @@ const commands = [
 
 const root = {
   name: "swipt",
-  short: "Operate a device through Swipt",
+  short: tr("Swipt CLI"),
   commands,
 };
 
@@ -464,7 +484,11 @@ function usage(trail) {
   const name = trail.map((it) => it.name).join(" ");
   const lines = [command.short, ""];
   if (command.commands) {
-    lines.push(`usage: ${name} COMMAND`, "", "commands:");
+    lines.push(
+      tr("usage: {usage}", { usage: `${name} COMMAND` }),
+      "",
+      tr("commands:"),
+    );
     lines.push(
       ...columns(
         command.commands.map((child) => [
@@ -475,10 +499,12 @@ function usage(trail) {
     );
   } else {
     lines.push(
-      `usage: ${trail
-        .slice(0, -1)
-        .map((it) => it.name)
-        .join(" ")} ${command.use ?? command.name}`.replace(/ +/g, " "),
+      tr("usage: {usage}", {
+        usage: `${trail
+          .slice(0, -1)
+          .map((it) => it.name)
+          .join(" ")} ${command.use ?? command.name}`.replace(/ +/g, " "),
+      }),
     );
   }
   if (command.description) {
@@ -488,7 +514,7 @@ function usage(trail) {
     ...trail.reduce((found, it) => ({ ...found, ...it.options }), {}),
     ...globalOptions,
   };
-  lines.push("", "options:");
+  lines.push("", tr("options:"));
   lines.push(
     ...columns(
       Object.entries(options).map(([option, it]) => [
@@ -529,12 +555,15 @@ function resolve(argv) {
       if (help || loose.values.help || current !== root || argv.length === 0) {
         return { trail, help: true };
       }
-      throw new UsageError("a command is missing");
+      throw new UsageError(tr("a command is missing"));
     }
     const found = current.commands.find((it) => it.name === word);
     if (!found) {
       throw new UsageError(
-        `unknown command ${JSON.stringify(word)} for ${JSON.stringify(trail.map((it) => it.name).join(" "))}`,
+        tr("unknown command {name} for {parent}", {
+          name: JSON.stringify(word),
+          parent: JSON.stringify(trail.map((it) => it.name).join(" ")),
+        }),
       );
     }
     trail.push(found);
@@ -563,7 +592,10 @@ function resolve(argv) {
     throw new UsageError(
       option === undefined
         ? error.message
-        : `${option} is not an option of ${JSON.stringify(trail.map((it) => it.name).join(" "))}`,
+        : tr("{option} is not an option of {command}", {
+            option,
+            command: JSON.stringify(trail.map((it) => it.name).join(" ")),
+          }),
     );
   }
   if (parsed.values.help) {
@@ -575,13 +607,22 @@ function resolve(argv) {
     (args.length < command.args[0] || args.length > command.args[1])
   ) {
     const [least, most] = command.args;
-    const expected =
+    throw new UsageError(
       least === most
-        ? `${least} arg(s)`
+        ? tr("accepts {count} arg(s), received {received}", {
+            count: least,
+            received: args.length,
+          })
         : most === Infinity
-          ? `at least ${least} arg(s)`
-          : `between ${least} and ${most} arg(s)`;
-    throw new UsageError(`accepts ${expected}, received ${args.length}`);
+          ? tr("accepts at least {count} arg(s), received {received}", {
+              count: least,
+              received: args.length,
+            })
+          : tr(
+              "accepts between {least} and {count} arg(s), received {received}",
+              { least, count: most, received: args.length },
+            ),
+    );
   }
   return { trail, help, args, values: parsed.values };
 }
@@ -595,22 +636,32 @@ function printError(error, target, operation) {
     switch (error.code) {
       case Code.Unavailable:
         exit = 5;
-        message = `Swipt at ${target.url} is unreachable: ${message}`;
+        message = tr("Swipt at {url} is unreachable: {message}", {
+          url: target.url,
+          message,
+        });
         break;
       case Code.Unauthenticated:
-        message += `; connect with the URL from Swipt › Developer: swipt device add ${connection.withToken(target.url)}`;
+        message = tr(
+          "{message}; connect with the URL from Swipt › Developer: swipt device add {url}",
+          { message, url: connection.withToken(target.url) },
+        );
         break;
       case Code.Unimplemented:
-        message = `Swipt at ${target.url} does not have this command; update Swipt`;
+        message = tr(
+          "Swipt at {url} does not have this command; update Swipt",
+          { url: target.url },
+        );
         break;
     }
   }
   console.error(
-    "error:",
-    operation === undefined ? message : `${operation}: ${message}`,
+    tr("error: {message}", {
+      message: operation === undefined ? message : `${operation}: ${message}`,
+    }),
   );
   if (exit === 2) {
-    console.error('run "swipt help" for usage');
+    console.error(tr('run "swipt help" for usage'));
   }
   return exit;
 }

@@ -10,6 +10,7 @@
 
 - `bun dev install [-d NAME|UDID]` - Build Swipt, install it on the device, launch it, and check the installed build
 - `bun dev frameworks` - Build ExpoModulesCore and install the React Native frameworks
+- `bun dev strings` - Check cli/locales against the strings of the CLI and remove the stale ones
 - `make lib` - Build the SDK runtime and libswipt
 - `make build_ios` / `make build_macos` - Build the Debug app into build/DerivedData
 - `make runtime_bundle` - Bundle the Swiplet UI runtime

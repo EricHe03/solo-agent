@@ -19,7 +19,14 @@ import {
   devicectl,
   provisioningProfiles,
 } from "./coredevice.mjs";
-import { choose, interactive, printScriptError, step } from "./output.mjs";
+import { language, tr } from "./i18n.mjs";
+import {
+  choose,
+  interactive,
+  printScriptError,
+  selectTheme,
+  step,
+} from "./output.mjs";
 import { LogLevel } from "./proto/common_pb.js";
 
 const exec = promisify(execFile);
@@ -45,7 +52,10 @@ function passcodeOf(options) {
   const type = options["passcode-type"] ?? "pin";
   if (!passcodeTypes.includes(type)) {
     throw new UsageError(
-      `invalid argument ${JSON.stringify(type)} for --passcode-type: it is ${passcodeTypes.join(", ")}`,
+      tr("invalid argument {value} for --passcode-type: it is {types}", {
+        value: JSON.stringify(type),
+        types: passcodeTypes.join(", "),
+      }),
     );
   }
   const passcode = options.passcode;
@@ -55,14 +65,18 @@ function passcodeOf(options) {
   const digits = /^\d+$/.test(passcode);
   if (type === "pin" && !(digits && [4, 6].includes(passcode.length))) {
     throw new UsageError(
-      "a pin passcode is 4 or 6 digits; a custom one needs --passcode-type numeric or alphanumeric",
+      tr(
+        "a pin passcode is 4 or 6 digits; a custom one needs --passcode-type numeric or alphanumeric",
+      ),
     );
   }
   if (type === "numeric" && !digits) {
-    throw new UsageError("a numeric passcode is digits only");
+    throw new UsageError(tr("a numeric passcode is digits only"));
   }
   if (!/^[\x20-\x7e]{1,64}$/.test(passcode)) {
-    throw new UsageError("a passcode is up to 64 printable ASCII characters");
+    throw new UsageError(
+      tr("a passcode is up to 64 printable ASCII characters"),
+    );
   }
   return { passcode, type };
 }
@@ -233,13 +247,21 @@ function explain(output, team) {
     ),
   ].join("; ");
   if (/No Accounts?\b/.test(output)) {
-    return `Xcode has no account for team ${team}; sign in with its Apple Account at ${accountsHint}`;
+    return tr(
+      "Xcode has no account for team {team}; sign in with its Apple Account at {accounts}",
+      { team, accounts: accountsHint },
+    );
   }
   if (/signing certificate|certificateType/i.test(output)) {
-    return `Xcode could not make a development certificate for team ${team}; add one at ${accountsHint} › Manage Certificates (${errors})`;
+    return tr(
+      "Xcode could not make a development certificate for team {team}; add one at {accounts} › Manage Certificates ({errors})",
+      { team, accounts: accountsHint, errors },
+    );
   }
   if (/requires Xcode|xcode-select/.test(output)) {
-    return "xcodebuild needs Xcode; install it and select it with xcode-select";
+    return tr(
+      "xcodebuild needs Xcode; install it and select it with xcode-select",
+    );
   }
   return errors || output.trim();
 }
@@ -300,7 +322,7 @@ async function provision(work, id, team, device, update) {
       await running;
     } catch (error) {
       if (error.code === "ENOENT") {
-        throw new Error("xcodebuild is missing; install Xcode");
+        throw new Error(tr("xcodebuild is missing; install Xcode"));
       }
       if (typeof error.code !== "number") {
         throw error;
@@ -324,7 +346,6 @@ async function provision(work, id, team, device, update) {
       ),
       { force: true },
     );
-    update("renewing the profile");
     await build();
   }
   const certificates = path.join(work, "certificate");
@@ -489,11 +510,12 @@ const teamChoice = ({ id, name }) => ({
   value: id,
 });
 
-const installHint = '; install it with "swipt sideload install"';
-
-async function sideloadedDevices(devices, hint = "") {
+async function sideloadedDevices(
+  devices,
+  missing = tr("Swipt is not sideloaded on any online iOS device"),
+) {
   const sideloaded = await step(
-    "looking for Swipt on the devices",
+    tr("looking for Swipt on the devices"),
     () =>
       Promise.all(
         devices.map((device) =>
@@ -510,7 +532,7 @@ async function sideloadedDevices(devices, hint = "") {
   );
   const found = devices.filter((_, index) => sideloaded[index]);
   if (found.length === 0) {
-    throw new Error(`Swipt is not sideloaded on any online iOS device${hint}`);
+    throw new Error(missing);
   }
   return found;
 }
@@ -518,7 +540,7 @@ async function sideloadedDevices(devices, hint = "") {
 async function locate(context, device, fresh = false) {
   const { options } = context;
   const listed = await step(
-    `reading apps on ${device.name}`,
+    tr("checking Swipt on {device}", { device: device.name }),
     () => apps(device.udid),
     { transient: true },
   );
@@ -531,7 +553,10 @@ async function locate(context, device, fresh = false) {
   if (options.team !== undefined) {
     if (!teamPattern.test(options.team)) {
       throw new UsageError(
-        `invalid argument ${JSON.stringify(options.team)} for --team: it is the 10-character team ID shown in ${accountsHint}`,
+        tr(
+          "invalid argument {value} for --team: it is the 10-character team ID shown in {accounts}",
+          { value: JSON.stringify(options.team), accounts: accountsHint },
+        ),
       );
     }
     return {
@@ -547,10 +572,10 @@ async function locate(context, device, fresh = false) {
     }));
     const team = await choose(
       context,
-      "Choose a team",
+      tr("Choose a team"),
       teams.map(teamChoice),
       new Error(
-        `Swipt is sideloaded on ${device.name} by more than one team; choose one with --team ID:\n${teamList(teams)}`,
+        `${tr("Swipt is sideloaded on {device} by more than one team; choose one with --team ID:", { device: device.name })}\n${teamList(teams)}`,
       ),
     );
     return { team, current: found.find((app) => app.team === team) };
@@ -560,8 +585,14 @@ async function locate(context, device, fresh = false) {
     if (teams.length === 0) {
       throw new Error(
         xcodeSignedIn()
-          ? `Xcode has no development certificate; add one at ${accountsHint} › Manage Certificates, or choose a team with --team ID`
-          : `Xcode has no account; sign in at ${accountsHint}, or choose a team with --team ID`,
+          ? tr(
+              "Xcode has no development certificate; add one at {accounts} › Manage Certificates, or choose a team with --team ID",
+              { accounts: accountsHint },
+            )
+          : tr(
+              "Xcode has no account; sign in at {accounts}, or choose a team with --team ID",
+              { accounts: accountsHint },
+            ),
       );
     }
     const team =
@@ -569,9 +600,11 @@ async function locate(context, device, fresh = false) {
         ? teams[0].id
         : await choose(
             context,
-            "Choose a team",
+            tr("Choose a team"),
             teams.map(teamChoice),
-            new Error(`choose a team with --team ID:\n${teamList(teams)}`),
+            new Error(
+              `${tr("choose a team with --team ID:")}\n${teamList(teams)}`,
+            ),
           );
     return { team, current: undefined };
   }
@@ -583,7 +616,7 @@ const buildText = (app) => `Swipt ${app.version} (${app.bundleVersion})`;
 async function signingPeriod(device, id, team) {
   const names = [id, "*"].map((it) => `iOS Team Provisioning Profile: ${it}`);
   const profiles = await step(
-    `reading the signing on ${device.name}`,
+    tr("checking Swipt on {device}", { device: device.name }),
     () => provisioningProfiles(device.udid),
     { transient: true },
   );
@@ -602,22 +635,48 @@ async function signingPeriod(device, id, team) {
     });
 }
 
-const dateText = (time) => new Date(time).toLocaleString();
+function expirationText(time) {
+  const hours = (time - Date.now()) / 3_600_000;
+  const days = Math.round(hours / 24);
+  const [value, unit] =
+    hours < 24
+      ? [Math.max(Math.round(hours), 1), "hour"]
+      : days < 7
+        ? [days, "day"]
+        : days < 30
+          ? [Math.round(days / 7), "week"]
+          : days < 365
+            ? [Math.round(days / 30), "month"]
+            : [Math.round(days / 365), "year"];
+  return new Intl.RelativeTimeFormat(language)
+    .format(value, unit)
+    .replace(/(\d)(\p{Script=Han})/gu, "$1 $2");
+}
 
 async function askPasscode(context) {
   const type = await select(
     {
-      message:
+      message: tr(
         "Set up auto-unlock? Swipt can then unlock this device by itself",
+      ),
+      theme: selectTheme,
       choices: [
-        { name: "4 or 6 digit passcode", short: "4 or 6 digits", value: "pin" },
-        { name: "Custom numeric passcode", short: "numeric", value: "numeric" },
         {
-          name: "Custom alphanumeric passcode",
-          short: "alphanumeric",
+          name: tr("4 or 6 digit passcode"),
+          short: tr("4 or 6 digits"),
+          value: "pin",
+        },
+        {
+          name: tr("Custom numeric passcode"),
+          short: tr("numeric"),
+          value: "numeric",
+        },
+        {
+          name: tr("Custom alphanumeric passcode"),
+          short: tr("alphanumeric"),
           value: "alphanumeric",
         },
-        { name: "No Thanks", value: null },
+        { name: tr("No Thanks"), value: null },
       ],
     },
     { output: process.stderr, signal: context.signal },
@@ -630,11 +689,12 @@ async function askPasscode(context) {
     options(
       await password(
         {
-          message: "Device passcode",
+          message: tr("Device passcode"),
+          theme: { i18n: { maskedText: tr("[input is masked]") } },
           validate(passcode) {
             try {
               passcodeOf(options(passcode));
-              return passcode !== "" || "enter the passcode";
+              return passcode !== "" || tr("enter the passcode");
             } catch (error) {
               return error.message;
             }
@@ -650,13 +710,29 @@ async function deploy(context, onlyNewer) {
   const device = await coreDevice(
     context,
     onlyNewer
-      ? { filter: (devices) => sideloadedDevices(devices, installHint) }
+      ? {
+          filter: (devices) =>
+            sideloadedDevices(
+              devices,
+              tr(
+                'Swipt is not sideloaded on any online iOS device; install it with "swipt sideload install"',
+              ),
+            ),
+        }
       : undefined,
   );
   const { team, current } = await locate(context, device, !onlyNewer);
   if (current === undefined && onlyNewer) {
     throw new Error(
-      `Swipt is not sideloaded on ${device.name}${team === undefined ? "" : ` by team ${team}`}${installHint}`,
+      team === undefined
+        ? tr(
+            'Swipt is not sideloaded on {device}; install it with "swipt sideload install"',
+            { device: device.name },
+          )
+        : tr(
+            'Swipt is not sideloaded on {device} by team {team}; install it with "swipt sideload install"',
+            { device: device.name, team },
+          ),
     );
   }
   const passcode =
@@ -668,7 +744,7 @@ async function deploy(context, onlyNewer) {
       ? await askPasscode(context)
       : passcodeOf(context.options);
   const release = await step(
-    "checking the latest release",
+    tr("checking the latest release"),
     () => findRelease(context.options.nightly, context.signal),
     { transient: true },
   );
@@ -678,7 +754,26 @@ async function deploy(context, onlyNewer) {
     const signing = await signingPeriod(device, id, team);
     if (installed >= release.build && !expiresSoon(signing)) {
       console.log(
-        `${buildText(current)} on ${device.name} is ${installed === release.build ? `already ${release.tag}` : `newer than ${release.tag} (${release.build})`}; its signing expires ${dateText(signing.expiration)}`,
+        installed === release.build
+          ? tr(
+              "{build} on {device} is already {release}; its signing expires {expiration}",
+              {
+                build: buildText(current),
+                device: device.name,
+                release: release.tag,
+                expiration: expirationText(signing.expiration),
+              },
+            )
+          : tr(
+              "{build} on {device} is newer than {release} ({releaseBuild}); its signing expires {expiration}",
+              {
+                build: buildText(current),
+                device: device.name,
+                release: release.tag,
+                releaseBuild: release.build,
+                expiration: expirationText(signing.expiration),
+              },
+            ),
       );
       if (
         !context.options["no-setup"] &&
@@ -691,31 +786,45 @@ async function deploy(context, onlyNewer) {
     }
     if (installed > release.build) {
       throw new Error(
-        `${buildText(current)} on ${device.name} needs new signing, but ${release.tag} (${release.build}) is older; use --nightly, or downgrade with "swipt sideload install"`,
+        tr(
+          '{build} on {device} needs new signing, but {release} ({releaseBuild}) is older; use --nightly, or downgrade with "swipt sideload install"',
+          {
+            build: buildText(current),
+            device: device.name,
+            release: release.tag,
+            releaseBuild: release.build,
+          },
+        ),
       );
     }
   }
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "swipt-sideload-"));
   try {
     const signing = await step(
-      `signing ${id} with team ${team} through Xcode`,
+      tr("preparing signing for Swipt with team {team} through Xcode", {
+        team: xcodeTeams().find((it) => it.id === team)?.name ?? team,
+      }),
       (update) => provision(work, id, team, device, update),
     );
     const ipa = path.join(work, "Swipt.ipa");
     await step(
-      `downloading Swipt ${release.version} (${release.build}) from ${release.tag}`,
+      tr("downloading Swipt {version} ({build}) from {release}", {
+        version: release.version,
+        build: release.build,
+        release: release.tag,
+      }),
       (update) => download(release.ipa, ipa, context.signal, update),
     );
-    const app = await step("re-signing Swipt", async (update) => {
+    const app = await step(tr("re-signing Swipt"), async (update) => {
       const unpacked = await unpack(ipa, work);
       await resign(unpacked, id, signing, update);
       return unpacked;
     });
-    await step(`installing on ${device.name}`, () =>
+    await step(tr("installing on {device}", { device: device.name }), () =>
       devicectl(["device", "install", "app", "--device", device.udid, app]),
     );
     if (current === undefined && passcode !== undefined) {
-      await step("setting up auto-unlock", () =>
+      await step(tr("setting up auto-unlock"), () =>
         setUpAutoUnlock(device, id, work, passcode),
       );
     }
@@ -725,17 +834,29 @@ async function deploy(context, onlyNewer) {
   const result = (await locate({ options: { team } }, device)).current;
   if (result === undefined || Number(result.bundleVersion) !== release.build) {
     throw new Error(
-      `${device.name} ${result === undefined ? `does not list ${id}` : `has ${buildText(result)}`} after the install`,
+      result === undefined
+        ? `${device.name} does not list ${id} after the install`
+        : `${device.name} has ${buildText(result)} after the install`,
     );
   }
-  const action =
-    current === undefined
-      ? "installed"
-      : Number(current.bundleVersion) === release.build
-        ? "re-signed"
-        : "updated";
+  const expiration = expirationText(
+    (await signingPeriod(device, id, team)).expiration,
+  );
   console.log(
-    `${buildText(result)} is ${action} on ${device.name}; its signing expires ${dateText((await signingPeriod(device, id, team)).expiration)}`,
+    current === undefined
+      ? tr(
+          "{build} is installed on {device}; its signing expires {expiration}",
+          { build: buildText(result), device: device.name, expiration },
+        )
+      : Number(current.bundleVersion) === release.build
+        ? tr(
+            "{build} is re-signed on {device}; its signing expires {expiration}",
+            { build: buildText(result), device: device.name, expiration },
+          )
+        : tr(
+            "{build} is updated on {device}; its signing expires {expiration}",
+            { build: buildText(result), device: device.name, expiration },
+          ),
   );
   if (context.options["no-setup"]) {
     await launch(device, id);
@@ -768,7 +889,11 @@ async function openConfigured(context, device, id, passcode) {
     if (error.message !== serverHint) {
       throw error;
     }
-    console.error(`${serverHint}; its developer is not trusted automatically`);
+    console.error(
+      tr("{hint}; its developer is not trusted automatically", {
+        hint: serverHint,
+      }),
+    );
     await launch(
       device,
       id,
@@ -779,28 +904,35 @@ async function openConfigured(context, device, id, passcode) {
 
 async function launch(device, id, args) {
   try {
-    await step(`opening Swipt on ${device.name}`, () =>
+    await step(tr("opening Swipt on {device}", { device: device.name }), () =>
       devicectl(launchCommand(device, id, args)),
     );
   } catch (error) {
     if (/trusted by the user/.test(error.message)) {
-      await step(`opening Settings on ${device.name}`, () =>
-        devicectl([
-          "device",
-          "process",
-          "launch",
-          "--device",
-          device.udid,
-          "--payload-url",
-          "prefs:root=General&path=ManagedConfigurationList",
-          "com.apple.Preferences",
-        ]),
+      await step(
+        tr("opening Settings on {device}", { device: device.name }),
+        () =>
+          devicectl([
+            "device",
+            "process",
+            "launch",
+            "--device",
+            device.udid,
+            "--payload-url",
+            "prefs:root=General&path=ManagedConfigurationList",
+            "com.apple.Preferences",
+          ]),
       );
       console.log(
-        `its developer is not trusted yet; trust it in the Settings page opened on ${device.name}, then open Swipt`,
+        tr(
+          "its developer is not trusted yet; trust it in the Settings page opened on {device}, then open Swipt",
+          { device: device.name },
+        ),
       );
     } else if (/BSErrorCodeDescription = Locked/.test(error.message)) {
-      console.log(`it opens once ${device.name} is unlocked`);
+      console.log(
+        tr("it opens once {device} is unlocked", { device: device.name }),
+      );
     } else {
       throw error;
     }
@@ -811,8 +943,19 @@ export const install = (context) => deploy(context, false);
 
 export const update = (context) => deploy(context, true);
 
-const serverHint =
-  'swipt-server is missing; install it with "npm install -g @swipt/cli --include=optional"';
+const serverHint = tr(
+  'swipt-server is missing; install it with "npm install -g @swipt/cli --include=optional"',
+);
+
+const trustMessages = JSON.stringify({
+  unlockToContinue: tr("unlock the device to continue"),
+  unlocking: tr("unlocking the device"),
+  trusting: tr("trusting {developer} in Settings", {
+    developer: "{developer}",
+  }),
+  running: tr("{app} is running", { app: "{app}" }),
+  trusted: tr("{developer} is trusted", { developer: "{developer}" }),
+});
 
 const deviceNotListedExit = 3;
 
@@ -910,7 +1053,7 @@ async function hasPairing(device, id) {
 
 async function pair(device, id) {
   const paired = await step(
-    `checking the pairing of ${device.name}`,
+    tr("checking Swipt on {device}", { device: device.name }),
     () => hasPairing(device, id),
     { transient: true },
   );
@@ -920,40 +1063,48 @@ async function pair(device, id) {
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "swipt-pairing-"));
   let warning;
   try {
-    await step(`pairing with ${device.name}`, async () => {
-      const record = path.join(work, pairingFile);
-      try {
-        await exec(await serverPath(), [
-          "pair",
-          "-d",
-          device.udid,
-          "-o",
-          record,
-        ]);
-      } catch (error) {
-        if (typeof error.code === "number") {
-          warning = `pairing failed, so Swipt pairs in Settings instead: ${error.stderr.trim()}`;
-        } else if (error.code === "ENOENT") {
-          warning = `${serverHint}; Swipt pairs in Settings instead`;
+    await step(
+      tr("pairing with {device}", { device: device.name }),
+      async () => {
+        const record = path.join(work, pairingFile);
+        try {
+          await exec(await serverPath(), [
+            "pair",
+            "-d",
+            device.udid,
+            "-o",
+            record,
+          ]);
+        } catch (error) {
+          if (typeof error.code === "number") {
+            warning = tr(
+              "pairing failed, so Swipt pairs in Settings instead: {error}",
+              { error: error.stderr.trim() },
+            );
+          } else if (error.code === "ENOENT") {
+            warning = tr("{hint}; Swipt pairs in Settings instead", {
+              hint: serverHint,
+            });
+          }
+          throw error;
         }
-        throw error;
-      }
-      await devicectl([
-        "device",
-        "copy",
-        "to",
-        "--device",
-        device.udid,
-        "--source",
-        record,
-        "--destination",
-        pairingPath,
-        "--domain-type",
-        "appDataContainer",
-        "--domain-identifier",
-        id,
-      ]);
-    });
+        await devicectl([
+          "device",
+          "copy",
+          "to",
+          "--device",
+          device.udid,
+          "--source",
+          record,
+          "--destination",
+          pairingPath,
+          "--domain-type",
+          "appDataContainer",
+          "--domain-identifier",
+          id,
+        ]);
+      },
+    );
   } catch (error) {
     if (warning === undefined) {
       throw error;
@@ -1022,73 +1173,75 @@ async function trustAndOpen(context, device, id, passcode) {
   const lines = [];
   let failure;
   try {
-    await step(`opening Swipt on ${device.name}`, async (update) => {
-      update("starting swipt-server");
-      const unlock =
-        passcode !== undefined
-          ? "passcode"
-          : process.stderr.isTTY
-            ? "wait"
-            : "";
-      let server;
-      let url;
-      while (url === undefined) {
-        server = await serve(device.udid, passcode, context.signal);
-        try {
-          url = await server.url;
-        } catch (error) {
-          if (error.exitCode !== deviceNotListedExit || unlock !== "wait") {
-            throw error;
-          }
-          update(`waiting for usbmuxd to list ${device.name}`);
-        }
-      }
-      try {
-        const client = open({ url, token: "" });
-        const run = async (args) => {
-          for await (const response of client.repl.execute(
-            {
-              code: fs.readFileSync(
-                new URL("sideload/trust.js", import.meta.url),
-                "utf8",
-              ),
-              args,
-              program: true,
-            },
-            { signal: context.signal },
-          )) {
-            switch (response.part.case) {
-              case "console": {
-                const output = response.part.value;
-                if (output.level === LogLevel.DEBUG) {
-                  update(output.text);
-                } else {
-                  lines.push(output);
-                }
-                break;
-              }
-              case "error":
-                failure = response.part.value;
-                break;
+    await step(
+      tr("opening Swipt on {device}", { device: device.name }),
+      async (update) => {
+        const unlock =
+          passcode !== undefined
+            ? "passcode"
+            : process.stderr.isTTY
+              ? "wait"
+              : "";
+        let server;
+        let url;
+        while (url === undefined) {
+          server = await serve(device.udid, passcode, context.signal);
+          try {
+            url = await server.url;
+          } catch (error) {
+            if (error.exitCode !== deviceNotListedExit || unlock !== "wait") {
+              throw error;
             }
+            update(tr("waiting for {device}", { device: device.name }));
           }
-          if (failure) {
-            throw new Error(failure.message);
-          }
-        };
-        await run([id, "trust", unlock]);
-        update("opening Swipt");
-        await devicectl(
-          launchCommand(device, id, [
-            setupArgument,
-            ...(context.options["no-setup-api"] ? [] : [publishArgument]),
-          ]),
-        );
-        await run([id, "prompts"]);
-      } finally {
-        await server.stop();
-      }
-    });
+        }
+        try {
+          const client = open({ url, token: "" });
+          const run = async (args) => {
+            for await (const response of client.repl.execute(
+              {
+                code: fs.readFileSync(
+                  new URL("sideload/trust.js", import.meta.url),
+                  "utf8",
+                ),
+                args: [trustMessages, ...args],
+                program: true,
+              },
+              { signal: context.signal },
+            )) {
+              switch (response.part.case) {
+                case "console": {
+                  const output = response.part.value;
+                  if (output.level === LogLevel.DEBUG) {
+                    update(output.text);
+                  } else {
+                    lines.push(output);
+                  }
+                  break;
+                }
+                case "error":
+                  failure = response.part.value;
+                  break;
+              }
+            }
+            if (failure) {
+              throw new Error(failure.message);
+            }
+          };
+          await run([id, "trust", unlock]);
+          update("");
+          await devicectl(
+            launchCommand(device, id, [
+              setupArgument,
+              ...(context.options["no-setup-api"] ? [] : [publishArgument]),
+            ]),
+          );
+          await run([id, "prompts"]);
+        } finally {
+          await server.stop();
+        }
+      },
+    );
   } catch (error) {
     if (failure === undefined) {
       throw error;
@@ -1107,7 +1260,10 @@ async function trustAndOpen(context, device, id, passcode) {
       /\bdevice is locked\b/.test(failure.message)
     ) {
       throw new Error(
-        `${device.name}: ${failure.message}; unlock it or pass --passcode, then run this again`,
+        tr(
+          "{device}: {message}; unlock it or pass --passcode, then run this again",
+          { device: device.name, message: failure.message },
+        ),
       );
     }
     throw printScriptError(failure);
@@ -1119,10 +1275,15 @@ export async function uninstall(context) {
   const { team, current } = await locate(context, device);
   if (current === undefined) {
     throw new Error(
-      `Swipt is not sideloaded on ${device.name}${team === undefined ? "" : ` by team ${team}`}`,
+      team === undefined
+        ? tr("Swipt is not sideloaded on {device}", { device: device.name })
+        : tr("Swipt is not sideloaded on {device} by team {team}", {
+            device: device.name,
+            team,
+          }),
     );
   }
-  await step(`removing Swipt from ${device.name}`, () =>
+  await step(tr("removing Swipt from {device}", { device: device.name }), () =>
     devicectl([
       "device",
       "uninstall",
@@ -1132,5 +1293,10 @@ export async function uninstall(context) {
       current.bundleIdentifier,
     ]),
   );
-  console.log(`removed ${buildText(current)} from ${device.name}`);
+  console.log(
+    tr("removed {build} from {device}", {
+      build: buildText(current),
+      device: device.name,
+    }),
+  );
 }

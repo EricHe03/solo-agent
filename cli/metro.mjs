@@ -7,6 +7,8 @@ import { transformAsync } from "@babel/core";
 import { loadProjectEnv } from "@expo/env";
 import { imageSize } from "image-size";
 
+import { tr } from "./i18n.mjs";
+
 const require = createRequire(import.meta.url);
 const cliDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -123,7 +125,10 @@ function requireContext({ types: t, template }) {
       }
     }
     throw call.buildCodeFrameError(
-      `argument ${index + 1} of require.context must be ${expected}`,
+      tr("argument {index} of require.context must be {expected}", {
+        index: index + 1,
+        expected,
+      }),
     );
   };
   const pattern = (call, index) => {
@@ -133,7 +138,10 @@ function requireContext({ types: t, template }) {
     }
     if (!t.isRegExpLiteral(node)) {
       throw call.buildCodeFrameError(
-        `argument ${index + 1} of require.context must be a regular expression literal`,
+        tr(
+          "argument {index} of require.context must be a regular expression literal",
+          { index: index + 1 },
+        ),
       );
     }
     return new RegExp(node.pattern, node.flags.replace(/[gy]/g, ""));
@@ -160,7 +168,7 @@ function requireContext({ types: t, template }) {
             call,
             0,
             undefined,
-            "a string",
+            tr("a string"),
             (value) => typeof value === "string",
           ),
         );
@@ -168,7 +176,7 @@ function requireContext({ types: t, template }) {
           call,
           1,
           true,
-          "a boolean",
+          tr("a boolean"),
           (value) => typeof value === "boolean",
         );
         const filter = pattern(call, 2);
@@ -176,7 +184,7 @@ function requireContext({ types: t, template }) {
           call,
           3,
           "sync",
-          `one of ${contextModes.join(", ")}`,
+          tr("one of {values}", { values: contextModes.join(", ") }),
           (value) => contextModes.includes(value),
         );
         const entries = contextFiles(directory, recursive)
@@ -292,7 +300,10 @@ function checkWorklets(root) {
   const { version: expected } = require("react-native-worklets/package.json");
   if (version !== expected) {
     throw new Error(
-      `the project has react-native-worklets ${version}, but Swipt runs ${expected}; install react-native-worklets@${expected} or remove it`,
+      tr(
+        "the project has react-native-worklets {version}, but Swipt runs {expected}; install react-native-worklets@{expected} or remove it",
+        { version, expected },
+      ),
     );
   }
 }
