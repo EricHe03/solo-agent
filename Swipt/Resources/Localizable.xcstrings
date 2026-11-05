@@ -22903,306 +22903,306 @@
         }
       }
     },
-    "Enter the pairing code shown here." : {
+    "Enter the pairing code shown in the Live Activity." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "أدخل رمز الإقران المعروض هنا."
+            "value" : "أدخل رمز الإقران المعروض في النشاط المباشر."
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Въведете кода за сдвояване, показан тук."
+            "value" : "Въведете кода за сдвояване, показан в Активността на живо."
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "এখানে দেখানো পেয়ারিং কোডটি লিখুন।"
+            "value" : "লাইভ অ্যাক্টিভিটিতে দেখানো পেয়ারিং কোডটি লিখুন।"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Introdueix el codi d’enllaç que es mostra aquí."
+            "value" : "Introdueix el codi d’enllaç que es mostra a l’activitat en directe."
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zadejte párovací kód zobrazený zde."
+            "value" : "Zadejte párovací kód zobrazený v živé aktivitě."
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skriv den parringskode, der vises her."
+            "value" : "Skriv den parringskode, der vises i liveaktiviteten."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gib den hier angezeigten Kopplungscode ein."
+            "value" : "Gib den in der Live-Aktivität angezeigten Kopplungscode ein."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Εισαγάγετε τον κωδικό ζευγοποίησης που εμφανίζεται εδώ."
+            "value" : "Εισαγάγετε τον κωδικό ζευγοποίησης που εμφανίζεται στη Ζωντανή δραστηριότητα."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Introduce el código de enlace que se muestra aquí."
+            "value" : "Introduce el código de enlace que se muestra en la actividad en directo."
           }
         },
         "es-419" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ingresa el código de enlace que se muestra aquí."
+            "value" : "Ingresa el código de enlace que se muestra en la actividad en vivo."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Syötä tässä näkyvä parinmuodostuskoodi."
+            "value" : "Syötä liveseurannassa näkyvä parinmuodostuskoodi."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saisissez le code de jumelage affiché ici."
+            "value" : "Saisissez le code de jumelage affiché dans l’activité en direct."
           }
         },
         "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Entrez le code de jumelage affiché ici."
+            "value" : "Entrez le code de jumelage affiché dans l’événement en direct."
           }
         },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "અહીં બતાવેલો પેરિંગ કોડ દાખલ કરો."
+            "value" : "લાઇવ ઍક્ટિવિટીમાં બતાવેલો પેરિંગ કોડ દાખલ કરો."
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "יש להזין את קוד הקישור שמוצג כאן."
+            "value" : "יש להזין את קוד הקישור שמוצג בפעילות בזמן אמת."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "यहाँ दिखाया गया पेयरिंग कोड दर्ज करें।"
+            "value" : "लाइव ऐक्टिविटी में दिखाया गया पेयरिंग कोड दर्ज करें।"
           }
         },
         "hr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unesite ovdje prikazani kôd za uparivanje."
+            "value" : "Unesite kôd za uparivanje prikazan u aktivnosti uživo."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Adja meg az itt megjelenő párosítási kódot."
+            "value" : "Adja meg az élő tevékenységben megjelenő párosítási kódot."
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Masukkan kode pemasangan yang ditampilkan di sini."
+            "value" : "Masukkan kode pemasangan yang ditampilkan di Aktivitas Langsung."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inserisci il codice di abbinamento mostrato qui."
+            "value" : "Inserisci il codice di abbinamento mostrato nell’attività in tempo reale."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ここに表示されているペアリングコードを入力します。"
+            "value" : "ライブアクティビティに表示されているペアリングコードを入力します。"
           }
         },
         "kk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Мұнда көрсетілген жұптау кодын енгізіңіз."
+            "value" : "Нақты уақыттағы әрекетте көрсетілген жұптау кодын енгізіңіз."
           }
         },
         "kn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ಇಲ್ಲಿ ತೋರಿಸಿರುವ ಪೇರಿಂಗ್ ಕೋಡ್ ಅನ್ನು ನಮೂದಿಸಿ."
+            "value" : "ಲೈವ್ ಚಟುವಟಿಕೆಯಲ್ಲಿ ತೋರಿಸಿರುವ ಪೇರಿಂಗ್ ಕೋಡ್ ಅನ್ನು ನಮೂದಿಸಿ."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "여기에 표시된 페어링 코드를 입력하십시오."
+            "value" : "실시간 현황에 표시된 페어링 코드를 입력하십시오."
           }
         },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Įveskite čia rodomą susiejimo kodą."
+            "value" : "Įveskite tiesioginėje veikloje rodomą susiejimo kodą."
           }
         },
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ഇവിടെ കാണിക്കുന്ന പെയറിങ് കോഡ് നൽകൂ."
+            "value" : "തത്സമയ പ്രവർത്തനത്തിൽ കാണിക്കുന്ന പെയറിങ് കോഡ് നൽകൂ."
           }
         },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "येथे दाखवलेला पेअरिंग कोड एंटर करा."
+            "value" : "लाइव्ह ॲक्टिव्हिटीमध्ये दाखवलेला पेअरिंग कोड एंटर करा."
           }
         },
         "ms" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Masukkan kod pasangan yang ditunjukkan di sini."
+            "value" : "Masukkan kod pasangan yang ditunjukkan dalam Aktiviti Langsung."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skriv inn sammenkoblingskoden som vises her."
+            "value" : "Skriv inn sammenkoblingskoden som vises i oppdateringen i sanntid."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Voer de koppelcode in die hier wordt weergegeven."
+            "value" : "Voer de koppelcode in die in de live activiteit wordt weergegeven."
           }
         },
         "or" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ଏଠାରେ ଦେଖାଯାଉଥିବା ପେୟାରିଂ କୋଡ୍ ଲେଖନ୍ତୁ।"
+            "value" : "ଲାଇଭ୍ କାର୍ଯ‍୍ୟକଳାପରେ ଦେଖାଯାଉଥିବା ପେୟାରିଂ କୋଡ୍ ଲେଖନ୍ତୁ।"
           }
         },
         "pa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ਇੱਥੇ ਦਿਖਾਇਆ ਗਿਆ ਜੋੜਾਬੱਧ ਕਰਨ ਦਾ ਕੋਡ ਦਾਖ਼ਲ ਕਰੋ।"
+            "value" : "ਲਾਈਵ ਗਤੀਵਿਧੀ ਵਿੱਚ ਦਿਖਾਇਆ ਗਿਆ ਜੋੜਾਬੱਧ ਕਰਨ ਦਾ ਕੋਡ ਦਾਖ਼ਲ ਕਰੋ।"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wprowadź wyświetlany tutaj kod parowania."
+            "value" : "Wprowadź kod parowania wyświetlany w wydarzeniu na żywo."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Digite o código de emparelhamento mostrado aqui."
+            "value" : "Digite o código de emparelhamento mostrado na Atividade ao Vivo."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Introduza o código de emparelhamento que aparece aqui."
+            "value" : "Introduza o código de emparelhamento que aparece na atividade em tempo real."
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Introduceți codul de asociere afișat aici."
+            "value" : "Introduceți codul de asociere afișat în activitatea live."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Введите показанный здесь код создания пары."
+            "value" : "Введите код создания пары, показанный в Эфире активности."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zadajte párovací kód, ktorý sa zobrazí tu."
+            "value" : "Zadajte párovací kód zobrazený v aktivite naživo."
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vnesite kodo za seznanjanje, prikazano tukaj."
+            "value" : "Vnesite kodo za seznanjanje, prikazano v aktivnosti v živo."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ange parkopplingskoden som visas här."
+            "value" : "Ange parkopplingskoden som visas i liveaktiviteten."
           }
         },
         "ta" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "இங்கே காட்டப்படும் இணைசேர்ப்புக் குறியீட்டை உள்ளிடவும்."
+            "value" : "நேரலைச் செயல்பாட்டில் காட்டப்படும் இணைசேர்ப்புக் குறியீட்டை உள்ளிடவும்."
           }
         },
         "te" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ఇక్కడ చూపబడే పెయిరింగ్ కోడ్‌ను నమోదు చేయండి."
+            "value" : "లైవ్ యాక్టివిటీలో చూపబడే పెయిరింగ్ కోడ్‌ను నమోదు చేయండి."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ป้อนรหัสจับคู่ที่แสดงอยู่ที่นี่"
+            "value" : "ป้อนรหัสจับคู่ที่แสดงอยู่ในกิจกรรมสด"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Burada gösterilen eşleme kodunu girin."
+            "value" : "Canlı Etkinlik’te gösterilen eşleme kodunu girin."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Введіть код створення пари, показаний тут."
+            "value" : "Введіть код створення пари, показаний у Дії наживо."
           }
         },
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "یہاں دکھایا گیا پیئرنگ کوڈ درج کریں۔"
+            "value" : "لائیو سرگرمی میں دکھایا گیا پیئرنگ کوڈ درج کریں۔"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nhập mã ghép đôi hiển thị tại đây."
+            "value" : "Nhập mã ghép đôi hiển thị trong Hoạt động trực tiếp."
           }
         },
         "zh-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請輸入此處顯示的配對碼。"
+            "value" : "請輸入「即時動態」中顯示的配對碼。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "输入此处显示的配对码。"
+            "value" : "输入实时活动中显示的配对码。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "輸入此處顯示的配對碼。"
+            "value" : "輸入「即時動態」中顯示的配對碼。"
           }
         }
       }

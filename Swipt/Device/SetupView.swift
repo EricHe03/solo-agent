@@ -22,12 +22,15 @@ struct SetupView: View {
             NavigationStack(path: $path) {
                 PairingSetupView { path.append(.loopback) }
                     .navigationDestination(for: SetupStep.self) { step in
-                        switch step {
-                        case .loopback:
-                            LoopbackSetupView { path.append(.autoUnlock) }
-                        case .autoUnlock:
-                            AutoUnlockSetupView {}
+                        Group {
+                            switch step {
+                            case .loopback:
+                                LoopbackSetupView { path.append(.autoUnlock) }
+                            case .autoUnlock:
+                                AutoUnlockSetupView {}
+                            }
                         }
+                        .navigationBarBackButtonHidden(true)
                     }
             }
             .onAppear {

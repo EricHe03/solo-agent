@@ -258,6 +258,16 @@ extension View {
     }
 
     @ViewBuilder
+    func bottomBarCompat<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        if #available(iOS 26, macOS 26, *) {
+            scrollEdgeEffectStyle(.hard, for: .bottom)
+                .safeAreaBar(edge: .bottom, content: content)
+        } else {
+            safeAreaInset(edge: .bottom, content: content)
+        }
+    }
+
+    @ViewBuilder
     func glassButtonStyleCompat() -> some View {
         if #available(iOS 26, macOS 26, *) {
             buttonStyle(.glass)

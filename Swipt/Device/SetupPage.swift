@@ -43,7 +43,7 @@ struct SetupPage<Content: View, Actions: View>: View {
                 .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
         }
-        .safeAreaInset(edge: .bottom) {
+        .bottomBarCompat {
             VStack(spacing: 8) {
                 actions
             }

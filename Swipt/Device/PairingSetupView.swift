@@ -20,10 +20,10 @@ struct PairingSetupView: View {
                 description: Text("Swipt needs to pair with this device to connect to its developer services.")
             ) {
                 PairingGuideView(hostName: session.hostName)
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 10) {
                     SetupStepLine(number: 1, text: Text("Go to Settings › Privacy & Security › Developer Mode."))
                     SetupStepLine(number: 2, text: Text("Tap “\("Pair with \(session.hostName)")”."))
-                    SetupStepLine(number: 3, text: Text("Enter the pairing code shown here."))
+                    SetupStepLine(number: 3, text: Text("Enter the pairing code shown in the Live Activity."))
                 }
                 switch session.state {
                 case .code(let pin):
@@ -41,7 +41,6 @@ struct PairingSetupView: View {
                     SetupSecondaryButton(title: Text("Import Pairing File…")) { isPickingFile = true }
                 }
             }
-            .navigationBarBackButtonHidden(session.isInProgress)
             .fileImporter(isPresented: $isPickingFile, allowedContentTypes: [.item]) { result in
                 if case .success(let url) = result {
                     importFile(url)
