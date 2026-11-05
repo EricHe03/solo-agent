@@ -17,6 +17,7 @@ import {
 const browseLimit = 1500;
 const browseRequery = 300;
 const publishLimit = 10_000;
+const answerLimit = 5000;
 
 const storeFile = path.join(
   process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config"),
@@ -136,6 +137,50 @@ export async function findPublished(name, signal) {
     publishLimit,
   );
   return found.find(matches);
+}
+
+export async function runningSwipt(name, signal) {
+  const wanted = label(name);
+  const stored = load();
+  await discover(signal, stored, (services) =>
+    services.some((it) => sameName(it.name, wanted)),
+  );
+  const known = storedName(stored, wanted);
+  if (known === undefined) {
+    return undefined;
+  }
+  const client = open(parseURL(stored[known]));
+  try {
+    await client.system.getInfo(
+      {},
+      { signal: AbortSignal.any([signal, AbortSignal.timeout(answerLimit)]) },
+    );
+  } catch (error) {
+    if (signal.aborted || !(error instanceof RpcError)) {
+      throw error;
+    }
+    return undefined;
+  }
+  return client;
+}
+
+export async function tryUnlock(client, signal) {
+  try {
+    for await (const response of client.repl.execute(
+      { code: "await device.unlock()", args: [], program: false },
+      { signal },
+    )) {
+      if (response.part.case === "error") {
+        return response.part.value.message;
+      }
+    }
+  } catch (error) {
+    if (signal.aborted || !(error instanceof RpcError)) {
+      throw error;
+    }
+    return error.message;
+  }
+  return undefined;
 }
 
 async function discover(signal, stored, until) {

@@ -2,8 +2,9 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { attach } from "@swipt/cli/connection.mjs";
+import { runningSwipt, tryUnlock } from "@swipt/cli/connection.mjs";
 import { apps, coreDevice, devicectl } from "@swipt/cli/coredevice.mjs";
+import { launchUnlocking } from "@swipt/cli/sideload.mjs";
 
 import { buildExpoModulesCore } from "./expo-modules-core.mjs";
 import { syncLocales } from "./strings.mjs";
@@ -17,6 +18,7 @@ const bundleId = "io.nekohasekai.swipt";
 
 const interrupt = new AbortController();
 process.on("SIGINT", () => interrupt.abort());
+process.env.PATH = `${path.join(root, "build")}${path.delimiter}${process.env.PATH}`;
 
 function run(command, args, env) {
   const result = spawnSync(command, args, {
@@ -51,55 +53,10 @@ const frameworks = () => {
   }
 };
 
-const infoOf = async (client) => {
-  try {
-    return await client.system.getInfo(
-      {},
-      {
-        signal: AbortSignal.any([interrupt.signal, AbortSignal.timeout(5000)]),
-      },
-    );
-  } catch (error) {
-    if (interrupt.signal.aborted) {
-      throw error;
-    }
-    return undefined;
-  }
-};
-
-async function unlock(client) {
-  for await (const response of client.repl.execute(
-    { code: "await device.unlock()", args: [], program: false },
-    { signal: interrupt.signal },
-  )) {
-    if (response.part.case === "error") {
-      throw new Error(
-        `the device was not unlocked: ${response.part.value.message}`,
-      );
-    }
-  }
-}
-
-async function swipt(name) {
-  try {
-    const client = await attach({
-      options: { device: label(name) },
-      target: { url: "" },
-      signal: interrupt.signal,
-    });
-    return (await infoOf(client)) === undefined ? undefined : client;
-  } catch (error) {
-    if (interrupt.signal.aborted) {
-      throw error;
-    }
-    return undefined;
-  }
-}
-
 async function installApp(options) {
   const device = await coreDevice({ options }, { required: false });
   const stamp = String(Math.floor(Date.now() / 1000));
-  run("make", ["lib", "build_ios"], {
+  run("make", ["lib", "server", "build_ios"], {
     XCODEBUILD_FLAGS: [
       process.env.XCODEBUILD_FLAGS,
       `CURRENT_PROJECT_VERSION=${stamp}`,
@@ -108,20 +65,12 @@ async function installApp(options) {
       .join(" "),
   });
 
-  const client = await swipt(device.name);
+  const client = await runningSwipt(device.name, interrupt.signal);
   if (client !== undefined) {
-    await unlock(client).catch(() => {});
+    await tryUnlock(client, interrupt.signal);
   }
   await devicectl(["device", "install", "app", "--device", device.udid, app]);
-  await devicectl([
-    "device",
-    "process",
-    "launch",
-    "--terminate-existing",
-    "--device",
-    device.udid,
-    bundleId,
-  ]);
+  await launchUnlocking(device, bundleId, [], interrupt.signal);
 
   const installed = (await apps(device.udid)).filter(
     (app) => app.bundleIdentifier === bundleId,
@@ -165,7 +114,7 @@ const commands = [
   ],
   [
     "install [-d NAME|UDID]",
-    "Run make lib build_ios, install and launch the app on the device, and check the installed build",
+    "Run make lib server build_ios, install and launch the app on the device, and check the installed build",
   ],
   [
     "strings",
@@ -178,7 +127,7 @@ const usage = `usage: bun dev COMMAND
 commands:
 ${commands.map(([use, help]) => `  ${use.padEnd(26)}${help}`).join("\n")}
 
-install picks the paired iOS device that -d names by CoreDevice name or UDID, or the only one; when Swipt answers on it, it unlocks the device first.
+install picks the paired iOS device that -d names by CoreDevice name or UDID, or the only one; when Swipt answers on it, it unlocks the device first; otherwise a locked device is unlocked with the passcode saved in Swipt.
 install fails when the build number installed on the device differs from the one just built.`;
 
 async function main() {

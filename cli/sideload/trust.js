@@ -193,21 +193,11 @@ async function trust(developer) {
 }
 
 async function waitForUnlock() {
-  let announced = false;
-  for (;;) {
-    try {
-      if (!(await device.locked.get())) {
-        return;
-      }
-    } catch (error) {
-      if (error.name !== "UnavailableError") {
-        throw error;
-      }
+  for await (const locked of device.locked.values()) {
+    if (!locked) {
+      return;
     }
-    if (!announced) {
-      console.debug(messages.unlockToContinue);
-      announced = true;
-    }
+    console.debug(messages.unlockToContinue);
   }
 }
 
