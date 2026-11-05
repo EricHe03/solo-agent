@@ -40,6 +40,11 @@ const sideloadedPattern = new RegExp(
 
 const accountsHint = "Xcode › Settings › Accounts";
 const xcodeProfiles = "Library/Developer/Xcode/UserData/Provisioning Profiles";
+const downloads = path.join(
+  process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"),
+  "swipt",
+  "sideload",
+);
 
 const expiresSoon = ({ creation, expiration }) =>
   expiration - Date.now() < (expiration - creation) / 2;
@@ -134,10 +139,10 @@ async function findRelease(nightly, signal) {
     if (!found) {
       throw new Error(`release ${release.tag_name} has no ${name}`);
     }
-    return found.url;
+    return found;
   };
   const metadata = await (
-    await github(asset("metadata.json"), "application/octet-stream", signal)
+    await github(asset("metadata.json").url, "application/octet-stream", signal)
   ).json();
   return {
     tag: release.tag_name,
@@ -846,15 +851,26 @@ async function deploy(context, onlyNewer) {
       }),
       (update) => provision(work, id, team, device, update),
     );
-    const ipa = path.join(work, "Swipt.ipa");
-    await step(
-      tr("downloading Swipt {version} ({build}) from {release}", {
-        version: release.version,
-        build: release.build,
-        release: release.tag,
-      }),
-      (update) => download(release.ipa, ipa, context.signal, update),
-    );
+    const name = `Swipt-${release.ipa.id}.ipa`;
+    const ipa = path.join(downloads, name);
+    if (!fs.existsSync(ipa)) {
+      fs.mkdirSync(downloads, { recursive: true });
+      const partial = `${ipa}.download`;
+      await step(
+        tr("downloading Swipt {version} ({build}) from {release}", {
+          version: release.version,
+          build: release.build,
+          release: release.tag,
+        }),
+        (update) => download(release.ipa.url, partial, context.signal, update),
+      );
+      fs.renameSync(partial, ipa);
+      for (const entry of fs.readdirSync(downloads)) {
+        if (entry !== name) {
+          fs.rmSync(path.join(downloads, entry), { force: true });
+        }
+      }
+    }
     const app = await step(tr("re-signing Swipt"), async (update) => {
       const unpacked = await unpack(ipa, work);
       await resign(unpacked, id, signing, update);
