@@ -350,7 +350,7 @@ nonisolated final class Frame: @unchecked Sendable {
 
 nonisolated final class ScreenFeed: NSObject, LibSwiptScreenSinkProtocol, @unchecked Sendable {
     static let shared = ScreenFeed()
-    static let linger: Double = 10
+    static let linger: Double = 1
     static let firstFrameLimit: Double = 5
 
     private let queue = DispatchQueue(label: "io.nekohasekai.swipt.graphics.screen", qos: .userInteractive)
