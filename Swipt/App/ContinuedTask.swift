@@ -6,6 +6,7 @@ import os
 
 final class ContinuedTask {
     nonisolated private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Swipt", category: "background")
+    private static let unitsPerStep: Int64 = 1000
 
     var onExpire: (() -> Void)?
 
@@ -13,6 +14,7 @@ final class ContinuedTask {
 
     private let identifier: String
     private var task: BGTask?
+    private var heartbeat: Timer?
     private var isFinished = false
     private var succeeded = false
     private var title = ""
@@ -67,8 +69,12 @@ final class ContinuedTask {
     }
 
     func setProgress(completed: Int64, total: Int64) {
-        self.completed = completed
-        self.total = total
+        self.completed = completed * Self.unitsPerStep
+        self.total = total * Self.unitsPerStep
+        reportProgress()
+    }
+
+    private func reportProgress() {
         if #available(iOS 26, *), let task = task as? BGContinuedProcessingTask {
             task.progress.totalUnitCount = total
             task.progress.completedUnitCount = completed
@@ -80,6 +86,8 @@ final class ContinuedTask {
         isFinished = true
         succeeded = success
         onExpire = nil
+        heartbeat?.invalidate()
+        heartbeat = nil
         if let task {
             task.setTaskCompleted(success: success)
             self.task = nil
@@ -99,8 +107,14 @@ final class ContinuedTask {
             DispatchQueue.main.async { self?.expire() }
         }
         task.updateTitle(title, subtitle: subtitle)
-        task.progress.totalUnitCount = total
-        task.progress.completedUnitCount = completed
+        reportProgress()
+        heartbeat = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.completed += 1
+                self.reportProgress()
+            }
+        }
     }
 
     private func expire() {

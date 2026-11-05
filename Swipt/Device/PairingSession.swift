@@ -73,7 +73,7 @@ final class PairingSession {
         responder.start()
         state = .waiting
         let continuedTask = ContinuedTask(kind: "pairing")
-        continuedTask.onExpire = { [weak self] in self?.backgroundTimeRanOut() }
+        continuedTask.onExpire = { [weak self] in self?.cancel() }
         continuedTask.submit(title: String(localized: "Pair in Settings"), subtitle: settingsPath)
         self.continuedTask = continuedTask
         continuedTask.setProgress(completed: 1, total: 3)
