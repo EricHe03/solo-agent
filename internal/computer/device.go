@@ -21,29 +21,11 @@ import (
 
 const connectionUSB = "USB"
 
+var ErrDeviceNotListed = E.New("device not listed by usbmuxd")
+
 type pairedDevice struct {
 	UDID string
 	Name string
-}
-
-func listDevices(ctx context.Context) ([]pairedDevice, error) {
-	devices, err := usbmuxd.ListDevices(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var paired []pairedDevice
-	for _, found := range preferUSB(devices) {
-		value, err := lockdown.GetValue(ctx, dialer(found.ID), "DeviceName")
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil, err
-			}
-			continue
-		}
-		name, _ := value.(string)
-		paired = append(paired, pairedDevice{UDID: found.UDID, Name: name})
-	}
-	return paired, nil
 }
 
 func preferUSB(devices []usbmuxd.Device) []usbmuxd.Device {
@@ -67,9 +49,27 @@ func dialer(id uint64) lockdown.Dialer {
 }
 
 func chooseDevice(ctx context.Context, given string) (pairedDevice, error) {
-	devices, err := listDevices(ctx)
+	listed, err := usbmuxd.ListDevices(ctx)
 	if err != nil {
 		return pairedDevice{}, err
+	}
+	var devices []pairedDevice
+	var unread []error
+	for _, found := range preferUSB(listed) {
+		value, err := lockdown.GetValue(ctx, dialer(found.ID), "DeviceName")
+		if err != nil {
+			if ctx.Err() != nil {
+				return pairedDevice{}, err
+			}
+			err = E.Cause(err, "read the name of ", found.UDID)
+			if strings.EqualFold(found.UDID, given) {
+				return pairedDevice{}, err
+			}
+			unread = append(unread, err)
+			continue
+		}
+		name, _ := value.(string)
+		devices = append(devices, pairedDevice{UDID: found.UDID, Name: name})
 	}
 	if given != "" {
 		devices = common.Filter(devices, func(it pairedDevice) bool {
@@ -80,10 +80,13 @@ func chooseDevice(ctx context.Context, given string) (pairedDevice, error) {
 	case 1:
 		return devices[0], nil
 	case 0:
-		if given != "" {
-			return pairedDevice{}, E.New("no device named ", given, " is connected to this Mac")
+		if len(unread) > 0 {
+			return pairedDevice{}, E.Errors(unread...)
 		}
-		return pairedDevice{}, E.New("no device is connected to this Mac")
+		if given != "" {
+			return pairedDevice{}, E.Extend(ErrDeviceNotListed, given)
+		}
+		return pairedDevice{}, ErrDeviceNotListed
 	}
 	names := common.Map(devices, func(it pairedDevice) string { return it.Name + " (" + it.UDID + ")" })
 	return pairedDevice{}, E.New("more than one device is connected to this Mac: ", strings.Join(names, ", "), "; choose one with -d NAME|UDID")

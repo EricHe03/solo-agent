@@ -18,6 +18,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const exitDeviceNotListed = 3
+
 var (
 	options     computer.Options
 	pairOptions computer.PairOptions
@@ -48,6 +50,9 @@ func main() {
 	if err := command.Execute(); err != nil {
 		if errors.Is(err, context.Canceled) {
 			os.Exit(130)
+		}
+		if errors.Is(err, computer.ErrDeviceNotListed) {
+			os.Exit(exitDeviceNotListed)
 		}
 		os.Exit(1)
 	}

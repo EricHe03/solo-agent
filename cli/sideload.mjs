@@ -39,6 +39,8 @@ const expiresSoon = ({ creation, expiration }) =>
 
 const passcodeTypes = ["pin", "numeric", "alphanumeric"];
 
+const plistValueMissing = /No value at that key path/;
+
 function passcodeOf(options) {
   const type = options["passcode-type"] ?? "pin";
   if (!passcodeTypes.includes(type)) {
@@ -361,17 +363,23 @@ async function resign(app, id, signing, update) {
   let permitted;
   try {
     permitted = JSON.parse(
-      execFileSync("plutil", [
-        "-extract",
-        "BGTaskSchedulerPermittedIdentifiers",
-        "json",
-        "-o",
-        "-",
-        info,
-      ]),
+      execFileSync(
+        "plutil",
+        [
+          "-extract",
+          "BGTaskSchedulerPermittedIdentifiers",
+          "json",
+          "-o",
+          "-",
+          info,
+        ],
+        { stdio: "pipe" },
+      ),
     );
-  } catch {
-    permitted = undefined;
+  } catch (error) {
+    if (!plistValueMissing.test(error.stderr)) {
+      throw error;
+    }
   }
   if (permitted !== undefined) {
     execFileSync("plutil", [
@@ -456,14 +464,17 @@ function xcodeSignedIn() {
             "com.apple.dt.Xcode",
             "-",
           ]),
-          stdio: ["pipe", "pipe", "ignore"],
+          stdio: "pipe",
           encoding: "utf8",
         },
       ),
     );
     return Object.values(lists).some((accounts) => accounts.length > 0);
-  } catch {
-    return false;
+  } catch (error) {
+    if (plistValueMissing.test(error.stderr)) {
+      return false;
+    }
+    throw error;
   }
 }
 
@@ -803,6 +814,8 @@ export const update = (context) => deploy(context, true);
 const serverHint =
   'swipt-server is missing; install it with "npm install -g @swipt/cli --include=optional"';
 
+const deviceNotListedExit = 3;
+
 async function serverPath() {
   const root = path.dirname(import.meta.dirname);
   if (fs.existsSync(path.join(root, "cmd/swipt-server"))) {
@@ -819,7 +832,10 @@ async function serverPath() {
       ),
       "swipt-server",
     );
-  } catch {
+  } catch (error) {
+    if (error.code !== "MODULE_NOT_FOUND") {
+      throw error;
+    }
     return "swipt-server";
   }
   return fs.existsSync(packaged) ? packaged : "swipt-server";
@@ -871,31 +887,25 @@ async function setUpAutoUnlock(device, id, work, passcode) {
   ]);
 }
 
-const pairingDirectory = "Library/Application Support";
 const pairingFile = "PairingRecord.plist";
+const pairingPath = `Library/Application Support/${pairingFile}`;
 
 async function hasPairing(device, id) {
-  try {
-    const { result } = await devicectl(
-      [
-        "device",
-        "info",
-        "files",
-        "--device",
-        device.udid,
-        "--domain-type",
-        "appDataContainer",
-        "--domain-identifier",
-        id,
-        "--subdirectory",
-        pairingDirectory,
-      ],
-      { parse: true },
-    );
-    return result.files.some((file) => file.name === pairingFile);
-  } catch {
-    return false;
-  }
+  const { result } = await devicectl(
+    [
+      "device",
+      "info",
+      "files",
+      "--device",
+      device.udid,
+      "--domain-type",
+      "appDataContainer",
+      "--domain-identifier",
+      id,
+    ],
+    { parse: true },
+  );
+  return result.files.some((file) => file.relativePath === pairingPath);
 }
 
 async function pair(device, id) {
@@ -937,7 +947,7 @@ async function pair(device, id) {
         "--source",
         record,
         "--destination",
-        `${pairingDirectory}/${pairingFile}`,
+        pairingPath,
         "--domain-type",
         "appDataContainer",
         "--domain-identifier",
@@ -982,8 +992,11 @@ async function serve(udid, passcode, signal) {
     );
     exited.then((code) =>
       reject(
-        new Error(
-          `swipt-server exited with ${code ?? "a signal"}${logs.trim() === "" ? "" : `: ${logs.trim()}`}`,
+        Object.assign(
+          new Error(
+            `swipt-server exited with ${code ?? "a signal"}${logs.trim() === "" ? "" : `: ${logs.trim()}`}`,
+          ),
+          { exitCode: code },
         ),
       ),
     );
@@ -1011,7 +1024,12 @@ async function trustAndOpen(context, device, id, passcode) {
   try {
     await step(`opening Swipt on ${device.name}`, async (update) => {
       update("starting swipt-server");
-      const waiting = passcode === undefined && process.stderr.isTTY;
+      const unlock =
+        passcode !== undefined
+          ? "passcode"
+          : process.stderr.isTTY
+            ? "wait"
+            : "";
       let server;
       let url;
       while (url === undefined) {
@@ -1019,15 +1037,10 @@ async function trustAndOpen(context, device, id, passcode) {
         try {
           url = await server.url;
         } catch (error) {
-          if (!/is connected to this Mac/.test(error.message)) {
+          if (error.exitCode !== deviceNotListedExit || unlock !== "wait") {
             throw error;
           }
-          if (!waiting) {
-            throw new Error(
-              `${device.name} is not reachable; unlock it or pass --passcode, then run this again`,
-            );
-          }
-          update("unlock the device to continue");
+          update(`waiting for usbmuxd to list ${device.name}`);
         }
       }
       try {
@@ -1063,8 +1076,7 @@ async function trustAndOpen(context, device, id, passcode) {
             throw new Error(failure.message);
           }
         };
-        const runArguments = (mode) => [id, mode, waiting ? "wait" : ""];
-        await run(runArguments("trust"));
+        await run([id, "trust", unlock]);
         update("opening Swipt");
         await devicectl(
           launchCommand(device, id, [
@@ -1072,7 +1084,7 @@ async function trustAndOpen(context, device, id, passcode) {
             ...(context.options["no-setup-api"] ? [] : [publishArgument]),
           ]),
         );
-        await run(runArguments("prompts"));
+        await run([id, "prompts"]);
       } finally {
         await server.stop();
       }
@@ -1089,11 +1101,13 @@ async function trustAndOpen(context, device, id, passcode) {
     }
   }
   if (failure) {
-    if (/\bdevice is locked\b/.test(failure.message)) {
+    if (
+      passcode === undefined &&
+      failure.name === "UnavailableError" &&
+      /\bdevice is locked\b/.test(failure.message)
+    ) {
       throw new Error(
-        passcode === undefined
-          ? `${device.name} is locked; unlock it or pass --passcode, then run this again`
-          : `${device.name} did not unlock; check --passcode and --passcode-type, then run this again`,
+        `${device.name}: ${failure.message}; unlock it or pass --passcode, then run this again`,
       );
     }
     throw printScriptError(failure);

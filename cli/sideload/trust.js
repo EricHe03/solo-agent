@@ -1,4 +1,4 @@
-const [id, mode, waitsForUnlock] = args;
+const [id, mode, unlock] = args;
 const name = "Swipt";
 const settings = "com.apple.Preferences";
 const springboard = "com.apple.springboard";
@@ -233,9 +233,10 @@ async function main() {
     await finishSetup();
     return;
   }
-  console.debug("unlocking the device");
-  await device.unlock().catch(() => {});
-  if (waitsForUnlock === "wait") {
+  if (unlock === "passcode") {
+    console.debug("unlocking the device");
+    await device.unlock();
+  } else if (unlock === "wait") {
     await waitForUnlock();
   }
   await answerPrompt();
