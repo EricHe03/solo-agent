@@ -119,8 +119,9 @@ private final class SwipletRuntime: SwiptHostDelegate {
             guard let self else { return }
             SwiptHostModule.bind(appContext, to: self)
         }
+        // defaultConfiguration returns nil when React Native is built without the dev menu.
         factory.rootViewFactory.initializeReactHost(
-            launchOptions: nil, bundleConfiguration: factory.bundleConfiguration, devMenuConfiguration: .default())
+            launchOptions: nil, bundleConfiguration: factory.bundleConfiguration, devMenuConfiguration: RCTDevMenuConfiguration.default() ?? RCTDevMenuConfiguration())
         modules = factory.rootViewFactory.reactHost?.value(forKey: "moduleRegistry") as? RCTModuleRegistry
     }
 
