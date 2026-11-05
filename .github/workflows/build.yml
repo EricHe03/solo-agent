@@ -328,7 +328,7 @@ jobs:
       - name: Download builds
         uses: actions/download-artifact@v4
         with:
-          pattern: "{Swipt-*,swipt-server-*}"
+          pattern: Swipt-*
           merge-multiple: true
           path: build
       - name: Setup Go
@@ -349,8 +349,7 @@ jobs:
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" tag -a -f nightly -m "$BUILD_NUMBER" "$GITHUB_SHA"
           retry git push -f origin refs/tags/nightly
           DRAFT=$(retry create_draft nightly-draft --prerelease --target "$GITHUB_SHA" --title "Nightly build" --notes "$NOTES" \
-            build/Swipt.ipa build/Swipt-iOS.dSYMs.zip build/metadata.json build/altstore/altstore.json build/altstore/icon.png \
-            build/swipt-server-darwin-arm64 build/swipt-server-darwin-x64)
+            build/Swipt.ipa build/Swipt-iOS.dSYMs.zip build/metadata.json build/altstore/altstore.json build/altstore/icon.png)
           if PREVIOUS=$(retry gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" --jq .url); then
             retry delete "$PREVIOUS"
           fi
