@@ -482,7 +482,11 @@ func (e *engine) startOperation(arguments []jsc.Value) (any, error) {
 			err = E.Extend(device.ErrDisconnected, "the connection dropped during ", name)
 		}
 		if slices.Contains(timelineOperations, name) && e.host.timeline.active() {
-			event := TimelineEvent{Time: started.UnixMilli(), Type: "operation", Name: name, Arguments: args, DurationMs: float64(time.Since(started).Microseconds()) / 1000}
+			arguments := args
+			if strings.HasPrefix(name, "accessibility.") {
+				arguments = call.recorded
+			}
+			event := TimelineEvent{Time: started.UnixMilli(), Type: "operation", Name: name, Arguments: arguments, DurationMs: float64(time.Since(started).Microseconds()) / 1000}
 			if err != nil {
 				event.Error = Message(err)
 			}

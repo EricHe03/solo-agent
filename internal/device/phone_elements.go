@@ -130,16 +130,17 @@ func (p *Phone) element(c *conn, ref string) (*PhoneNode, error) {
 	return node, nil
 }
 
-func (p *Phone) Perform(ctx context.Context, ref, name string) error {
+func (p *Phone) Perform(ctx context.Context, ref, name string) (Aim, error) {
 	c, ctx, done, err := p.begin(ctx)
 	if err != nil {
-		return err
+		return Aim{}, err
 	}
 	defer done()
 	geometry, err := c.readGeometry(ctx)
 	if err != nil {
-		return err
+		return Aim{}, err
 	}
+	started := time.Now()
 	s := &axSession{phone: p, conn: c, geometry: geometry}
 	err = c.ax.do(ctx, true, 0, func(ctx context.Context, client *accessibility.RemoteClient) error {
 		s.client = client
@@ -147,11 +148,13 @@ func (p *Phone) Perform(ctx context.Context, ref, name string) error {
 		if err != nil {
 			return err
 		}
+		s.target = Aim{Element: describeElement(node.AX)}
 		return s.perform(ctx, node, name)
 	})
+	p.connection.trace(started, "perform.element", s.target.String()+", "+name, time.Since(started))
 	if s.acted {
 		c.events.publish(Event{Kind: EventInput})
 		c.front.acted()
 	}
-	return err
+	return s.target, err
 }

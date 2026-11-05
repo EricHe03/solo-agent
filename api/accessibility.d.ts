@@ -124,7 +124,6 @@ export declare function find(
   options?: FindOptions,
 ): Promise<AccessibilityElement | null>;
 export interface ElementOptions extends CallOptions {
-  /** Omitted or 0 tries once; a positive number or Infinity keeps checking until a tap would reach the element, and fails at the limit. */
   readonly timeoutMs?: number;
 }
 

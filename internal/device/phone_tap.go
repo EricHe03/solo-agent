@@ -10,13 +10,34 @@ import (
 	"github.com/swipt-automation/swipt/internal/coredevice/accessibility"
 )
 
-func (p *Phone) Tap(ctx context.Context, ref string, timeout time.Duration) error {
+// UIKit drops touches during a presentation while the accessibility hit test
+// already reaches the element: an alert took them 450 to 500 ms after the tap
+// that presented it, and the animation count reached zero about 100 ms later;
+// after a launch it reached zero as late as 1.23 s (iPad17,1, iPadOS 27.3
+// 24C5037i). The count covers every animation of the process, so a repeating
+// one must not hold a tap back for long.
+const animationLimit = 1500 * time.Millisecond
+
+type Aim struct {
+	Element string
+	Point   Point
+	Secure  bool
+}
+
+func (a Aim) String() string {
+	if a.Point == (Point{}) {
+		return a.Element
+	}
+	return a.Element + " at " + pointText(a.Point)
+}
+
+func (p *Phone) Tap(ctx context.Context, ref string, timeout time.Duration) (Aim, error) {
 	return p.aimed(ctx, ref, timeout, "tap", func(ctx context.Context, s *axSession, _ *PhoneNode, at Point) error {
 		return s.tap(ctx, at, 1, 0)
 	})
 }
 
-func (p *Phone) SetText(ctx context.Context, ref, text string, timeout time.Duration) error {
+func (p *Phone) SetText(ctx context.Context, ref, text string, timeout time.Duration) (Aim, error) {
 	return p.aimed(ctx, ref, timeout, "setText", func(ctx context.Context, s *axSession, node *PhoneNode, at Point) error {
 		return s.setText(ctx, node, at, text)
 	})
@@ -25,31 +46,32 @@ func (p *Phone) SetText(ctx context.Context, ref, text string, timeout time.Dura
 // aimed runs act on the element once a tap at the point it answers would reach
 // it, checking again while the element is moving, disabled or behind another
 // one, until the timeout; a negative timeout waits forever and zero checks once.
-func (p *Phone) aimed(ctx context.Context, ref string, timeout time.Duration, name string, act func(ctx context.Context, s *axSession, node *PhoneNode, at Point) error) error {
+func (p *Phone) aimed(ctx context.Context, ref string, timeout time.Duration, name string, act func(ctx context.Context, s *axSession, node *PhoneNode, at Point) error) (Aim, error) {
 	c, ctx, done, err := p.begin(ctx)
 	if err != nil {
-		return err
+		return Aim{}, err
 	}
 	defer done()
 	if err = p.requireScreen(ctx, c); err != nil {
-		return err
+		return Aim{}, err
 	}
 	geometry, err := c.readGeometry(ctx)
 	if err != nil {
-		return err
+		return Aim{}, err
 	}
 	grant, err := p.connection.input.acquire(ctx, c)
 	if err != nil {
-		return err
+		return Aim{}, err
 	}
 	defer grant.release()
-	s := &axSession{phone: p, conn: c, geometry: geometry, grant: grant}
+	started := time.Now()
+	s := &axSession{phone: p, conn: c, geometry: geometry, grant: grant, settled: started.Add(animationLimit)}
 	var deadline time.Time
 	if timeout >= 0 {
-		deadline = time.Now().Add(timeout)
+		deadline = started.Add(timeout)
 	}
-	started := time.Now()
 	var delay time.Duration
+	var waited string
 	for attempt := 1; ; attempt++ {
 		var pending string
 		err = c.ax.do(ctx, true, 0, func(ctx context.Context, client *accessibility.RemoteClient) error {
@@ -63,36 +85,54 @@ func (p *Phone) aimed(ctx context.Context, ref string, timeout time.Duration, na
 				pending = reason
 				return err
 			}
+			s.target.Point = at
 			return act(ctx, s, node, at)
 		})
 		if err != nil || pending == "" {
-			p.connection.trace(started, name+".element", "attempt "+strconv.Itoa(attempt), time.Since(started))
+			detail := s.target.String() + ", attempt " + strconv.Itoa(attempt)
+			if waited != "" {
+				detail += ", after " + waited
+			}
+			p.connection.trace(started, name+".element", detail, time.Since(started))
 			break
 		}
+		waited = pending
 		delay = min(max(delay*2, pollFirst), pollLongest)
-		if !deadline.IsZero() && time.Now().Add(delay).After(deadline) {
+		if s.animating {
+			delay = pollFirst
+		}
+		if !s.animating && !deadline.IsZero() && time.Now().Add(delay).After(deadline) {
 			p.connection.trace(started, name+".refused", pending, time.Since(started))
 			if timeout == 0 {
-				return E.Extend(ErrTimeout, pending)
+				return s.target, E.Extend(ErrTimeout, pending)
 			}
-			return E.Extend(ErrTimeout, pending, "; gave up after ", timeout)
+			return s.target, E.Extend(ErrTimeout, pending, "; gave up after ", timeout)
 		}
 		if err = sleep(ctx, delay); err != nil {
-			return err
+			return s.target, err
+		}
+		if s.stale {
+			if _, err = p.read(ctx, c, SnapshotOptions{}); err != nil {
+				return s.target, err
+			}
 		}
 	}
 	if s.acted {
 		c.events.publish(Event{Kind: EventInput})
 		c.front.acted()
 	}
-	return err
+	return s.target, err
 }
 
 func (s *axSession) aim(ctx context.Context, target *PhoneNode) (Point, string, error) {
 	name := describeElement(target.AX)
-	switch {
-	case !target.HasFrame():
+	s.target = Aim{Element: name, Point: target.Point, Secure: target.AX.Secure()}
+	s.animating, s.stale = false, false
+	if !target.HasFrame() {
 		return Point{}, "", E.New(name, " has no position on the screen; perform one of its actions instead")
+	}
+	s.stale = true
+	switch {
 	case !target.AX.Enabled:
 		return Point{}, name + " is disabled", nil
 	case !target.Shown():
@@ -100,11 +140,13 @@ func (s *axSession) aim(ctx context.Context, target *PhoneNode) (Point, string, 
 	case target.Covered:
 		return Point{}, name + " is covered", nil
 	}
+	s.stale = false
 	at := target.Point
 	batch := &accessibility.Batch{}
 	mapped := batch.Mapped(target.AX)
 	attributes := batch.Attributes(target.AX)
 	hit := batch.HitTest(s.geometry.digitizer(at))
+	animating := batch.AnimationsInProgress(target.AX)
 	if err := s.client.Run(ctx, batch); err != nil {
 		return Point{}, "", err
 	}
@@ -119,6 +161,12 @@ func (s *axSession) aim(ctx context.Context, target *PhoneNode) (Point, string, 
 		return Point{}, name + " is disabled", nil
 	case previous != nil && !nearFrame(attributes.Value.Frame, previous):
 		return Point{}, name + " is moving", nil
+	}
+	name = describeElement(attributes.Value)
+	s.target.Element, s.target.Secure = name, attributes.Value.Secure()
+	if animating.Code == 0 && animating.Value && time.Now().Before(s.settled) {
+		s.animating = true
+		return Point{}, name + " is animating", nil
 	}
 	if fresh := attributes.Value.Frame; fresh != nil {
 		if rect := target.space.rect(*fresh); !rect.Empty() && !rect.Contains(at) {

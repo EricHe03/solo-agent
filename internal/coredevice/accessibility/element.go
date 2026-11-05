@@ -43,25 +43,26 @@ const attributeUserTestingSnapshot = 52
 // -[NSObject(AXPrivCategory) _iosAccessibilityAttributeValue:] 0x1bb739f00,
 // table 0x1bb70ca6c).
 const (
-	nativeLabel          = 2001
-	nativeHint           = 2002
-	nativeFrame          = 2003
-	nativeTraits         = 2004
-	nativeSelectedRange  = 2005
-	nativeValue          = 2006
-	nativeActivation     = 2007
-	nativeIsElement      = 2016
-	nativeURL            = 2020
-	nativeContextID      = 2021
-	nativeCustomActions  = 2036
-	nativeVisibleFrame   = 2057
-	nativeExpanded       = 2114
-	nativeHelp           = 2188
-	nativeParent         = 5002
-	nativeIdentifier     = 5019
-	nativePlaceholder    = 5043
-	nativeAutomationType = 5058
-	nativeNumberValue    = 5059
+	nativeLabel                = 2001
+	nativeHint                 = 2002
+	nativeFrame                = 2003
+	nativeTraits               = 2004
+	nativeSelectedRange        = 2005
+	nativeValue                = 2006
+	nativeActivation           = 2007
+	nativeIsElement            = 2016
+	nativeURL                  = 2020
+	nativeContextID            = 2021
+	nativeCustomActions        = 2036
+	nativeVisibleFrame         = 2057
+	nativeExpanded             = 2114
+	nativeHelp                 = 2188
+	nativeParent               = 5002
+	nativeAnimationsInProgress = 5028
+	nativeIdentifier           = 5019
+	nativePlaceholder          = 5043
+	nativeAutomationType       = 5058
+	nativeNumberValue          = 5059
 )
 
 // axauditd converts the snapshot's values for the host: elements to

@@ -19,9 +19,15 @@ import (
 )
 
 type operation struct {
-	engine *engine
-	name   string
-	args   []json.RawMessage
+	engine   *engine
+	name     string
+	args     []json.RawMessage
+	recorded []json.RawMessage
+}
+
+func (o *operation) record(aim device.Aim, arguments ...json.RawMessage) {
+	element, _ := json.Marshal(aim.String())
+	o.recorded = append([]json.RawMessage{element}, arguments...)
 }
 
 type operationFunc func(ctx context.Context, call *operation) (any, error)
@@ -608,7 +614,13 @@ func uiSetText(ctx context.Context, phone *device.Phone, call *operation) error 
 	if err != nil {
 		return err
 	}
-	return phone.SetText(ctx, ref, text, timeout)
+	aim, err := phone.SetText(ctx, ref, text, timeout)
+	if aim.Element == "" || aim.Secure {
+		call.record(aim, call.args[2:]...)
+	} else {
+		call.record(aim, call.args[1:]...)
+	}
+	return err
 }
 
 func uiPerform(ctx context.Context, phone *device.Phone, call *operation) error {
@@ -616,7 +628,9 @@ func uiPerform(ctx context.Context, phone *device.Phone, call *operation) error 
 	if err := call.decode(2, &ref, &name); err != nil {
 		return err
 	}
-	return phone.Perform(ctx, ref, name)
+	aim, err := phone.Perform(ctx, ref, name)
+	call.record(aim, call.args[1:]...)
+	return err
 }
 
 func uiTap(ctx context.Context, phone *device.Phone, call *operation) error {
@@ -629,7 +643,9 @@ func uiTap(ctx context.Context, phone *device.Phone, call *operation) error {
 	if err != nil {
 		return err
 	}
-	return phone.Tap(ctx, ref, timeout)
+	aim, err := phone.Tap(ctx, ref, timeout)
+	call.record(aim, call.args[1:]...)
+	return err
 }
 
 // A missing limit waits forever.

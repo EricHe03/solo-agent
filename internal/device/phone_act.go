@@ -47,6 +47,11 @@ type axSession struct {
 	grant    *hidGrant
 	acted    bool
 	previous *accessibility.LayoutFrame
+
+	target    Aim
+	settled   time.Time
+	animating bool
+	stale     bool
 }
 
 func (s *axSession) tap(ctx context.Context, at Point, count int, hold time.Duration) error {

@@ -223,6 +223,21 @@ func (b *Batch) Native(element Element, native uint64) *Result[any] {
 	return result
 }
 
+// _accessibilityAnimationsInProgress reads a count of the running UIView
+// animations of the process, whichever element is asked (24A446 UIAccessibility
+// 0x1bb749c9c; 24A446 UIKit.axbundle -[UIViewAnimationStateAccessibility
+// animationDidStart:] 0x189f41c70).
+func (b *Batch) AnimationsInProgress(element Element) *Result[bool] {
+	result := &Result[bool]{}
+	b.add(remoteRequest{kind: requestAttribute, object: &element.object, attribute: attributeNative, params: map[string]any{"parameter": int64(nativeAnimationsInProgress)}},
+		func(response remoteResponse, _ *Batch) error {
+			result.Value, _ = response.value.(bool)
+			result.Code = response.code
+			return nil
+		})
+	return result
+}
+
 // Once the translator holds more than 4096 objects, the next new one drops the
 // 1024 added first. A dropped one is looked up as pid 0 and ID 0, the
 // system-wide element, so it answers all-zero element data, while actions on
