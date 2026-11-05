@@ -239,6 +239,7 @@
   "{developer} is trusted": "{developer} er klarert",
   "{device} is offline; {hint}": "{device} er frakoblet; {hint}",
   "{device} requires a token: swipt device add {url}": "{device} krever token: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "fant ikke {device} på det lokale nettverket; finn API-URL-ene i Swipt › Utvikler › Lokalt nettverk",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; lås opp enheten eller bruk --passcode, og kjør dette på nytt",
   "{directory} is not empty": "{directory} er ikke tom",
   "{enabled}, {status}": "{enabled}, {status}",

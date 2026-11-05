@@ -243,6 +243,7 @@
   "{developer} is trusted": "{developer} é confiável",
   "{device} is offline; {hint}": "{device} está offline; {hint}",
   "{device} requires a token: swipt device add {url}": "{device} requer um token: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "{device} não foi encontrado na rede local; encontre as URLs da API em Swipt › Desenvolvedor › Rede Local",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; desbloqueie o dispositivo ou passe --passcode e execute novamente",
   "{directory} is not empty": "{directory} não está vazio",
   "{enabled}, {status}": "{enabled}, {status}",

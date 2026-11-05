@@ -227,6 +227,7 @@
   "{developer} is trusted": "{developer} telah dipercayai",
   "{device} is offline; {hint}": "{device} sedang offline; {hint}",
   "{device} requires a token: swipt device add {url}": "{device} memerlukan token: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "{device} tidak ditemukan di jaringan lokal; temukan URL API-nya di Swipt › Pengembang › Jaringan Lokal",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; buka kuncinya atau berikan --passcode, lalu jalankan perintah ini lagi",
   "{directory} is not empty": "{directory} tidak kosong",
   "{enabled}, {status}": "{enabled}, {status}",

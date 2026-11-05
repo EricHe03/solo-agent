@@ -227,6 +227,7 @@
   "{developer} is trusted": "{developer} 신뢰됨",
   "{device} is offline; {hint}": "{device}이(가) 오프라인 상태입니다. {hint}",
   "{device} requires a token: swipt device add {url}": "{device}에 토큰이 필요합니다. swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "로컬 네트워크에서 {device}을(를) 찾을 수 없습니다. Swipt > ‘개발자’ > ‘로컬 네트워크’에서 API URL을 확인하십시오",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}. 기기의 잠금을 해제하거나 --passcode를 전달한 다음 다시 실행하십시오",
   "{directory} is not empty": "{directory}이(가) 비어 있지 않습니다",
   "{enabled}, {status}": "{enabled}, {status}",

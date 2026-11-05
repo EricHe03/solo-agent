@@ -239,6 +239,7 @@
   "{developer} is trusted": "{developer} நம்பப்பட்டது",
   "{device} is offline; {hint}": "{device} ஆஃப்லைனில் உள்ளது. {hint}",
   "{device} requires a token: swipt device add {url}": "{device}-க்கு டோக்கன் தேவை: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "உள்ளக நெட்வொர்க்கில் {device} கிடைக்கவில்லை. அதன் API URLகளை Swipt › டெவலப்பர் › உள்ளக நெட்வொர்க் என்பதில் பார்க்கவும்",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}. அதை அன்லாக் செய்யவும் அல்லது --passcode ஐ வழங்கவும், பிறகு இதை மீண்டும் இயக்கவும்",
   "{directory} is not empty": "{directory} காலியாக இல்லை",
   "{enabled}, {status}": "{enabled}, {status}",

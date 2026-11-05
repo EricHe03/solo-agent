@@ -247,6 +247,7 @@
   "{developer} is trusted": "разработчик {developer} отмечен как доверенный",
   "{device} is offline; {hint}": "устройство {device} не в сети; {hint}",
   "{device} requires a token: swipt device add {url}": "для устройства {device} требуется токен: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "{device} не найдено в локальной сети; URL-адреса API см. в «Swipt» > «Разработчик» > «Локальная сеть»",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; разблокируйте устройство или передайте --passcode, затем запустите команду снова",
   "{directory} is not empty": "каталог {directory} не пуст",
   "{enabled}, {status}": "{enabled}, {status}",

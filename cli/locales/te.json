@@ -239,6 +239,7 @@
   "{developer} is trusted": "{developer}ను విశ్వసించడం జరిగింది",
   "{device} is offline; {hint}": "{device} ఆఫ్‌లైన్‌లో ఉంది; {hint}",
   "{device} requires a token: swipt device add {url}": "{device}కు టోకెన్ అవసరం: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "లోకల్ నెట్‌వర్క్‌లో {device} కనుగొనబడలేదు; దాని API URLలను Swipt › ‘డెవలపర్’ › ‘లోకల్ నెట్‌వర్క్’లో చూడండి",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; దాన్ని అన్‌లాక్ చేయండి లేదా --passcode ఇవ్వండి, ఆపై దీన్ని మళ్లీ రన్ చేయండి",
   "{directory} is not empty": "{directory} ఖాళీగా లేదు",
   "{enabled}, {status}": "{enabled}, {status}",

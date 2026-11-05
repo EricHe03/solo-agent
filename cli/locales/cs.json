@@ -247,6 +247,7 @@
   "{developer} is trusted": "vývojář {developer} je důvěryhodný",
   "{device} is offline; {hint}": "zařízení {device} je offline; {hint}",
   "{device} requires a token: swipt device add {url}": "zařízení {device} vyžaduje token: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "zařízení {device} nebylo v místní síti nalezeno; adresy URL jeho API najdete v Swipt › Vývojář › Místní síť",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; odemkněte zařízení nebo zadejte --passcode a potom příkaz spusťte znovu",
   "{directory} is not empty": "adresář {directory} není prázdný",
   "{enabled}, {status}": "{enabled}, {status}",

@@ -243,6 +243,7 @@
   "{developer} is trusted": "ניתן אמון ב-{developer}",
   "{device} is offline; {hint}": "‏{device} לא מקוון; {hint}",
   "{device} requires a token: swipt device add {url}": "‏{device} דורש אסימון: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "{device} לא נמצא ברשת המקומית; כתובות ה-URL של ה-API מופיעות ב-״Swipt״ › ״מפתחים״ › ״רשת מקומית״",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "‏{device}: {message}; יש לבטל את נעילת המכשיר או להעביר את --passcode ולהריץ שוב",
   "{directory} is not empty": "התיקייה {directory} אינה ריקה",
   "{enabled}, {status}": "{enabled}, {status}",

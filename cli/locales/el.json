@@ -239,6 +239,7 @@
   "{developer} is trusted": "ο προγραμματιστής {developer} είναι αξιόπιστος",
   "{device} is offline; {hint}": "η συσκευή {device} είναι εκτός σύνδεσης· {hint}",
   "{device} requires a token: swipt device add {url}": "η συσκευή {device} απαιτεί διακριτικό: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "η συσκευή {device} δεν βρέθηκε στο τοπικό δίκτυο· βρείτε τις διευθύνσεις URL του API στην επιλογή Swipt › Προγραμματιστής › Τοπικό δίκτυο",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}· ξεκλειδώστε τη συσκευή ή δώστε --passcode και εκτελέστε ξανά την εντολή",
   "{directory} is not empty": "το {directory} δεν είναι κενό",
   "{enabled}, {status}": "{enabled}, {status}",

@@ -16,6 +16,7 @@ import {
 
 const browseLimit = 1500;
 const browseRequery = 300;
+const publishLimit = 10_000;
 
 const storeFile = path.join(
   process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config"),
@@ -85,7 +86,7 @@ function parseURL(text) {
 
 export const withToken = (url) => url.replace("://", "://TOKEN@");
 
-async function browse(signal, until) {
+async function browse(signal, until, limit = browseLimit) {
   const bonjour = new Bonjour({
     socket: dgram.createSocket("udp4"),
     bind: false,
@@ -109,7 +110,7 @@ async function browse(signal, until) {
     });
     const requery = setInterval(() => browser.update(), browseRequery);
     try {
-      await sleep(browseLimit, undefined, {
+      await sleep(limit, undefined, {
         signal: AbortSignal.any([signal, enough.signal]),
       });
     } catch (error) {
@@ -124,6 +125,17 @@ async function browse(signal, until) {
     bonjour.destroy();
   }
   return [...found.values()];
+}
+
+export async function findPublished(name, signal) {
+  const wanted = label(name);
+  const matches = (service) => sameName(service.name, wanted);
+  const found = await browse(
+    signal,
+    (services) => services.some(matches),
+    publishLimit,
+  );
+  return found.find(matches);
 }
 
 async function discover(signal, stored, until) {

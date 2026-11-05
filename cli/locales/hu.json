@@ -239,6 +239,7 @@
   "{developer} is trusted": "a(z) {developer} fejlesztő megbízható",
   "{device} is offline; {hint}": "a(z) {device} eszköz offline; {hint}",
   "{device} requires a token: swipt device add {url}": "a(z) {device} eszköz tokent igényel: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "a(z) {device} nem található a helyi hálózaton; az API-URL-jeit a Swipt › Fejlesztő › Helyi hálózat helyen találja",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; oldja fel az eszközt, vagy adja meg a --passcode kapcsolót, majd futtassa újra a parancsot",
   "{directory} is not empty": "a(z) {directory} könyvtár nem üres",
   "{enabled}, {status}": "{enabled}, {status}",

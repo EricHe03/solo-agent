@@ -227,6 +227,7 @@
   "{developer} is trusted": "เชื่อถือ {developer} แล้ว",
   "{device} is offline; {hint}": "{device} ออฟไลน์อยู่ {hint}",
   "{device} requires a token: swipt device add {url}": "{device} ต้องใช้โทเค็น: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "ไม่พบ {device} บนเครือข่ายในพื้นที่ ดู URL ของ API ได้ที่ Swipt › นักพัฒนา › เครือข่ายในพื้นที่",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message} ปลดล็อคอุปกรณ์หรือระบุ --passcode แล้วเรียกใช้อีกครั้ง",
   "{directory} is not empty": "{directory} ไม่ว่าง",
   "{enabled}, {status}": "{enabled} {status}",

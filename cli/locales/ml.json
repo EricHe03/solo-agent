@@ -239,6 +239,7 @@
   "{developer} is trusted": "{developer} എന്ന ഡെവലപ്പറെ വിശ്വസിച്ചു",
   "{device} is offline; {hint}": "{device} ഓഫ്‌ലൈനാണ്; {hint}",
   "{device} requires a token: swipt device add {url}": "{device} എന്ന ഡിവൈസിന് ടോക്കൺ ആവശ്യമാണ്: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "ലോക്കൽ നെറ്റ്‌വർക്കിൽ {device} കണ്ടെത്തിയില്ല; അതിന്റെ API URL-കൾ Swipt › ഡെവലപ്പർ › ലോക്കൽ നെറ്റ്‌വർക്ക് എന്നതിൽ കാണാം",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; ഇത് അൺലോക്ക് ചെയ്യൂ അല്ലെങ്കിൽ --passcode നൽകൂ, തുടർന്ന് ഇത് വീണ്ടും റൺ ചെയ്യൂ",
   "{directory} is not empty": "{directory} ശൂന്യമല്ല",
   "{enabled}, {status}": "{enabled}, {status}",

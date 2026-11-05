@@ -13,6 +13,7 @@ import password from "@inquirer/password";
 import select from "@inquirer/select";
 
 import { UsageError, open } from "./client.mjs";
+import { findPublished, withToken } from "./connection.mjs";
 import {
   apps,
   coreDevice,
@@ -22,6 +23,7 @@ import {
 import { language, tr } from "./i18n.mjs";
 import {
   choose,
+  columns,
   interactive,
   printScriptError,
   selectTheme,
@@ -938,7 +940,32 @@ const launchCommand = (device, id, args = []) => [
 const publishArgument = "--publish-local-network";
 const setupArgument = "--setup";
 
+async function printAPI(context, device) {
+  const found = await step(
+    tr("checking Swipt on {device}", { device: device.name }),
+    () => findPublished(device.name, context.signal),
+    { transient: true },
+  );
+  if (found === undefined) {
+    console.error(
+      tr(
+        "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network",
+        { device: device.name },
+      ),
+    );
+    return;
+  }
+  const url = found.authenticates ? withToken(found.url) : found.url;
+  console.log(
+    columns([
+      ["CLI", url],
+      ["MCP", `${url}/mcp`],
+    ]),
+  );
+}
+
 async function openConfigured(context, device, id, passcode) {
+  const publishes = !context.options["no-setup-api"];
   try {
     await trustAndOpen(context, device, id, passcode);
   } catch (error) {
@@ -950,11 +977,12 @@ async function openConfigured(context, device, id, passcode) {
         hint: serverHint,
       }),
     );
-    await launch(
-      device,
-      id,
-      context.options["no-setup-api"] ? [] : [publishArgument],
-    );
+    if (!(await launch(device, id, publishes ? [publishArgument] : []))) {
+      return;
+    }
+  }
+  if (publishes) {
+    await printAPI(context, device);
   }
 }
 
@@ -963,6 +991,7 @@ async function launch(device, id, args) {
     await step(tr("opening Swipt on {device}", { device: device.name }), () =>
       devicectl(launchCommand(device, id, args)),
     );
+    return true;
   } catch (error) {
     if (/trusted by the user/.test(error.message)) {
       await step(
@@ -992,6 +1021,7 @@ async function launch(device, id, args) {
     } else {
       throw error;
     }
+    return false;
   }
 }
 

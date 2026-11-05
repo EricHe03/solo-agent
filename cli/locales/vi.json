@@ -239,6 +239,7 @@
   "{developer} is trusted": "{developer} đã được tin cậy",
   "{device} is offline; {hint}": "{device} đang ngoại tuyến; {hint}",
   "{device} requires a token: swipt device add {url}": "{device} cần mã thông báo: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "không tìm thấy {device} trên mạng cục bộ; hãy tìm các URL API của thiết bị trong Swipt > Nhà phát triển > Mạng cục bộ",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; hãy mở khóa thiết bị hoặc truyền --passcode, rồi chạy lại lệnh này",
   "{directory} is not empty": "{directory} không trống",
   "{enabled}, {status}": "{enabled}, {status}",

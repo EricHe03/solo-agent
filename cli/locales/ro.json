@@ -243,6 +243,7 @@
   "{developer} is trusted": "{developer} este de încredere",
   "{device} is offline; {hint}": "{device} este offline; {hint}",
   "{device} requires a token: swipt device add {url}": "{device} necesită un token: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "{device} nu a fost găsit în rețeaua locală; găsiți URL-urile API în Swipt › Dezvoltator › Rețea locală",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; deblocați dispozitivul sau transmiteți --passcode, apoi rulați din nou comanda",
   "{directory} is not empty": "{directory} nu este gol",
   "{enabled}, {status}": "{enabled}, {status}",

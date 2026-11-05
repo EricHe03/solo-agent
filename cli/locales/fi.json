@@ -239,6 +239,7 @@
   "{developer} is trusted": "{developer} on merkitty luotetuksi",
   "{device} is offline; {hint}": "{device} ei ole yhteydessä; {hint}",
   "{device} requires a token: swipt device add {url}": "{device} vaatii tunnuksen: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "laitetta {device} ei löytynyt lähiverkosta; sen API-URL-osoitteet löytyvät kohdasta Swipt › Kehittäjä › Lähiverkko",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; avaa laitteen lukitus tai anna valinta --passcode ja suorita komento sitten uudelleen",
   "{directory} is not empty": "{directory} ei ole tyhjä",
   "{enabled}, {status}": "{enabled}, {status}",

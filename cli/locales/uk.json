@@ -247,6 +247,7 @@
   "{developer} is trusted": "розробник {developer} є довіреним",
   "{device} is offline; {hint}": "пристрій {device} не в мережі; {hint}",
   "{device} requires a token: swipt device add {url}": "пристрій {device} потребує токена: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "{device} не знайдено в локальній мережі; URL-адреси API див. у Swipt › Розробник › Локальна мережа",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; розімкніть пристрій або вкажіть --passcode, потім виконайте команду ще раз",
   "{directory} is not empty": "каталог {directory} не порожній",
   "{enabled}, {status}": "{enabled}, {status}",

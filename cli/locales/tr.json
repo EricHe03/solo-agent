@@ -239,6 +239,7 @@
   "{developer} is trusted": "{developer} geliştiricisine güvenildi",
   "{device} is offline; {hint}": "{device} çevrimdışı; {hint}",
   "{device} requires a token: swipt device add {url}": "{device} belirteç gerektiriyor: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "{device} yerel ağda bulunamadı; API URL'lerini Swipt › Geliştirici › Yerel Ağ bölümünde bulabilirsiniz",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; aygıtın kilidini açın veya --passcode iletin, sonra bu komutu yeniden çalıştırın",
   "{directory} is not empty": "{directory} boş değil",
   "{enabled}, {status}": "{enabled}, {status}",

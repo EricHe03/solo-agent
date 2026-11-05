@@ -239,6 +239,7 @@
   "{developer} is trusted": "{developer} 'ਤੇ ਭਰੋਸਾ ਕੀਤਾ ਗਿਆ",
   "{device} is offline; {hint}": "{device} ਆਫ਼ਲਾਈਨ ਹੈ; {hint}",
   "{device} requires a token: swipt device add {url}": "{device} ਲਈ ਟੋਕਨ ਲੋੜੀਂਦਾ ਹੈ: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "ਸਥਾਨਕ ਨੈੱਟਵਰਕ 'ਤੇ {device} ਨਹੀਂ ਮਿਲਿਆ; ਇਸਦੇ API URL ਲਈ Swipt › ਡਿਵੈਲਪਰ › ਸਥਾਨਕ ਨੈੱਟਵਰਕ ਦੇਖੋ",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; ਉਸਨੂੰ ਅਣਲਾਕ ਕਰੋ ਜਾਂ --passcode ਦਿਓ, ਫਿਰ ਇਸਨੂੰ ਦੁਬਾਰਾ ਚਲਾਓ",
   "{directory} is not empty": "{directory} ਖਾਲੀ ਨਹੀਂ ਹੈ",
   "{enabled}, {status}": "{enabled}, {status}",

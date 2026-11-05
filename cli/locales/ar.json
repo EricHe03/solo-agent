@@ -255,6 +255,7 @@
   "{developer} is trusted": "تم الوثوق بـ {developer}",
   "{device} is offline; {hint}": "{device} غير متصل؛ {hint}",
   "{device} requires a token: swipt device add {url}": "يتطلب {device} رمزًا مميزًا: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "لم يتم العثور على {device} على الشبكة المحلية؛ يمكنك العثور على عناوين URL الخاصة بواجهة API في Swipt > المطور > الشبكة المحلية",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}؛ يرجى فتح قفله أو تمرير --passcode، ثم إعادة تنفيذ هذا الأمر",
   "{directory} is not empty": "{directory} ليس فارغًا",
   "{enabled}, {status}": "{enabled}، {status}",

@@ -247,6 +247,7 @@
   "{developer} is trusted": "kūrėju {developer} pasitikima",
   "{device} is offline; {hint}": "įrenginys {device} neprisijungęs; {hint}",
   "{device} requires a token: swipt device add {url}": "įrenginiui {device} reikia žetono: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "įrenginys {device} nerastas vietiniame tinkle; jo API URL adresus rasite skiltyje „Swipt” › „Kūrėjas” › „Vietinis tinklas”",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; atrakinkite įrenginį arba nurodykite --passcode, tada paleiskite komandą dar kartą",
   "{directory} is not empty": "katalogas {directory} nėra tuščias",
   "{enabled}, {status}": "{enabled}, {status}",

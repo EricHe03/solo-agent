@@ -227,6 +227,7 @@
   "{developer} is trusted": "已信任 {developer}",
   "{device} is offline; {hint}": "{device} 已离线；{hint}",
   "{device} requires a token: swipt device add {url}": "{device} 需要令牌：swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "在本地网络上找不到 {device}；请前往“Swipt”>“开发者”>“本地网络”查看其 API URL",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}：{message}；请解锁设备或传入 --passcode，然后重新运行",
   "{directory} is not empty": "{directory} 不是空目录",
   "{enabled}, {status}": "{enabled}，{status}",

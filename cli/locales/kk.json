@@ -239,6 +239,7 @@
   "{developer} is trusted": "{developer} әзірлеушісіне сенім білдірілді",
   "{device} is offline; {hint}": "{device} құрылғысы желіден тыс; {hint}",
   "{device} requires a token: swipt device add {url}": "{device} құрылғысына токен қажет: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "{device} жергілікті желіде табылмады; оның API URL мекенжайларын Swipt › Әзірлеуші › Жергілікті желі бөлімінен табыңыз",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; құрылғының құлпын ашыңыз немесе --passcode опциясын беріңіз де, пәрменді қайта орындаңыз",
   "{directory} is not empty": "{directory} каталогы бос емес",
   "{enabled}, {status}": "{enabled}, {status}",

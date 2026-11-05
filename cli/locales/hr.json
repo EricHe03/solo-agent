@@ -243,6 +243,7 @@
   "{developer} is trusted": "programer {developer} označen je kao pouzdan",
   "{device} is offline; {hint}": "uređaj {device} je izvan mreže; {hint}",
   "{device} requires a token: swipt device add {url}": "uređaj {device} zahtijeva token: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "uređaj {device} nije pronađen na lokalnoj mreži; URL-ove njegova API-ja potražite u Swipt › Programer › Lokalna mreža",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}; otključajte uređaj ili navedite --passcode, a zatim ponovno pokrenite naredbu",
   "{directory} is not empty": "direktorij {directory} nije prazan",
   "{enabled}, {status}": "{enabled}, {status}",

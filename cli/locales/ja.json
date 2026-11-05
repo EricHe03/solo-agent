@@ -227,6 +227,7 @@
   "{developer} is trusted": "{developer}を信頼しました",
   "{device} is offline; {hint}": "{device}はオフラインです。{hint}",
   "{device} requires a token: swipt device add {url}": "{device}にはトークンが必要です: swipt device add {url}",
+  "{device} was not found on the local network; find its API URLs in Swipt › Developer › Local Network": "ローカルネットワークで{device}が見つかりませんでした。API URLはSwipt＞“デベロッパ”＞“ローカルネットワーク”で確認してください",
   "{device}: {message}; unlock it or pass --passcode, then run this again": "{device}: {message}。ロックを解除するか--passcodeを指定してから、もう一度実行してください",
   "{directory} is not empty": "{directory}は空ではありません",
   "{enabled}, {status}": "{enabled}、{status}",
