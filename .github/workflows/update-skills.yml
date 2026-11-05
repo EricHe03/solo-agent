@@ -1,0 +1,53 @@
+name: Update skills
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - api/**
+      - cli/**
+      - package.json
+      - bun.lock
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+concurrency:
+  group: update-skills
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    name: Update
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout skills
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          repository: swipt-automation/skills
+          ref: source
+          ssh-key: ${{ secrets.SKILLS_DEPLOY_KEY }}
+      - name: Update source
+        run: |-
+          SHA=$GITHUB_SHA
+          TAG=$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName // ""')
+          if [ -n "$TAG" ]; then
+            SHA=$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)
+          fi
+          git update-index --cacheinfo "160000,$SHA,sources/swipt"
+          git diff --cached --quiet && exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "Update sources"
+          for attempt in 1 2 3; do
+            git push origin HEAD:source && exit 0
+            git pull --rebase origin source
+          done
+          exit 1
+        env:
+          GH_TOKEN: ${{ github.token }}
