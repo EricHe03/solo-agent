@@ -275,6 +275,42 @@ function profileField(file, key) {
   }).trim();
 }
 
+function revoked(certificates) {
+  const [leaf, issuer] = [0, 1].map(
+    (index) => new X509Certificate(fs.readFileSync(`${certificates}${index}`)),
+  );
+  const url = /^OCSP - URI:(.+)$/m.exec(leaf.infoAccess ?? "")?.[1];
+  if (url === undefined) {
+    return false;
+  }
+  fs.writeFileSync(`${certificates}0.pem`, leaf.toString());
+  fs.writeFileSync(`${certificates}1.pem`, issuer.toString());
+  try {
+    return /: revoked$/m.test(
+      execFileSync(
+        "openssl",
+        [
+          "ocsp",
+          "-issuer",
+          `${certificates}1.pem`,
+          "-cert",
+          `${certificates}0.pem`,
+          "-url",
+          url,
+          "-noverify",
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+          timeout: 10_000,
+        },
+      ),
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function provision(work, id, team, device, update) {
   const stub = path.join(work, "Stub");
   const products = path.join(stub, "Products");
@@ -330,14 +366,24 @@ async function provision(work, id, team, device, update) {
       throw new Error(explain(`${error.stdout}${error.stderr}`, team));
     }
   };
+  const certificates = path.join(work, "certificate");
+  const stdio = ["ignore", "pipe", "ignore"];
+  const extract = () =>
+    execFileSync(
+      "codesign",
+      ["-d", `--extract-certificates=${certificates}`, app],
+      { stdio },
+    );
   await build();
+  extract();
   if (
     expiresSoon({
       creation: Date.parse(profileField(profile, "CreationDate")),
       expiration: Date.parse(profileField(profile, "ExpirationDate")),
-    })
+    }) ||
+    revoked(certificates)
   ) {
-    // Xcode keeps a valid cached profile and creates a new one once it is removed.
+    // Xcode keeps a cached profile until it expires, even after its certificate is revoked, and creates a new one once it is removed.
     fs.rmSync(
       path.join(
         os.homedir(),
@@ -347,14 +393,8 @@ async function provision(work, id, team, device, update) {
       { force: true },
     );
     await build();
+    extract();
   }
-  const certificates = path.join(work, "certificate");
-  const stdio = ["ignore", "pipe", "ignore"];
-  execFileSync(
-    "codesign",
-    ["-d", `--extract-certificates=${certificates}`, app],
-    { stdio },
-  );
   const entitlements = path.join(work, "entitlements.plist");
   fs.writeFileSync(
     entitlements,
