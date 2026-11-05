@@ -35,16 +35,18 @@ static void swipt_record_change(void *context, int operation, const char *schema
 	changes->items[changes->count++] = (swipt_change){strdup(schema), strdup(table), row};
 }
 
-static void swipt_watch_changes(sqlite3 *db, swipt_changes *changes) {
-	sqlite3_update_hook(db, swipt_record_change, changes);
-}
-
-static void swipt_clear_changes(swipt_changes *changes) {
+static void swipt_clear_changes(void *context) {
+	swipt_changes *changes = context;
 	for (size_t index = 0; index < changes->count; index++) {
 		free(changes->items[index].schema);
 		free(changes->items[index].table);
 	}
 	changes->count = 0;
+}
+
+static void swipt_watch_changes(sqlite3 *db, swipt_changes *changes) {
+	sqlite3_update_hook(db, swipt_record_change, changes);
+	sqlite3_rollback_hook(db, swipt_clear_changes, changes);
 }
 
 static void swipt_free_changes(swipt_changes *changes) {
@@ -944,7 +946,7 @@ func (db *database) bindValue(stmt *C.sqlite3_stmt, index C.int, item json.RawMe
 }
 
 func (db *database) takeChanges() []DatabaseChange {
-	if db.changes == nil || db.changes.count == 0 {
+	if db.changes == nil || db.changes.count == 0 || C.sqlite3_txn_state(db.conn, nil) == C.SQLITE_TXN_WRITE {
 		return nil
 	}
 	items := unsafe.Slice(db.changes.items, db.changes.count)
@@ -952,7 +954,7 @@ func (db *database) takeChanges() []DatabaseChange {
 	for index, item := range items {
 		changes[index] = DatabaseChange{Swiplet: db.swiplet, Database: C.GoString(item.schema), Path: db.path, Table: C.GoString(item.table), RowID: int64(item.row)}
 	}
-	C.swipt_clear_changes(db.changes)
+	C.swipt_clear_changes(unsafe.Pointer(db.changes))
 	return changes
 }
 
