@@ -32,7 +32,12 @@ type tunnel struct {
 // addresses, sorted by name, then tries route gateways, route destinations
 // and point-to-point peers, in that order (minimuxer 12be70d,
 // Sources/Services/DeviceConnectionManager.swift:206-214, 260-283).
-func candidates() []netip.Addr {
+func candidates(allowLocal bool) []netip.Addr {
+	if allowLocal {
+		if addresses := guestAddresses(); len(addresses) > 0 {
+			return addresses
+		}
+	}
 	tunnels, local := scan()
 	var result []netip.Addr
 	add := func(address netip.Addr) {
@@ -59,8 +64,8 @@ type Peer struct {
 	LocalNetwork bool
 }
 
-func Find(ctx context.Context, port uint16) (Peer, error) {
-	addresses := candidates()
+func Find(ctx context.Context, port uint16, allowLocal bool) (Peer, error) {
+	addresses := candidates(allowLocal)
 	if len(addresses) == 0 {
 		return Peer{}, E.New("vpnpeer: no VPN address to try")
 	}
@@ -89,7 +94,7 @@ func Find(ctx context.Context, port uint16) (Peer, error) {
 		answer := <-results
 		if answer.err == nil {
 			address := addresses[answer.index]
-			return Peer{Address: address, LocalNetwork: onLocalNetwork(answer.local) || loopsThroughLocalNetwork(ctx, address)}, nil
+			return Peer{Address: address, LocalNetwork: address != answer.local && (onLocalNetwork(answer.local) || loopsThroughLocalNetwork(ctx, address))}, nil
 		}
 		errs[answer.index] = answer.err
 	}

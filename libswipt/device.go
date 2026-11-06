@@ -78,7 +78,7 @@ func NewLoopbackProbe(remotePairingPort int32) *LoopbackProbe {
 
 func (p *LoopbackProbe) Run() (*LoopbackAddress, error) {
 	defer p.cancel()
-	peer, err := vpnpeer.Find(p.ctx, p.port)
+	peer, err := vpnpeer.Find(p.ctx, p.port, true)
 	if p.ctx.Err() != nil {
 		return nil, p.ctx.Err()
 	}
@@ -114,21 +114,39 @@ func newDevice(options *DeviceOptions, handler DeviceHandler, logFactory *log.Fa
 				return nil, E.Cause1(device.ErrUnavailable, E.New("the device is not paired"))
 			}
 			port := uint16(d.pairingPort.Load())
+			var udid string
 			if file.lockdown != nil {
 				port = lockdown.Port
+				udid = file.lockdown.UDID
+			} else {
+				udid = file.remote.DeviceUDID
 			}
-			peer, err := vpnpeer.Find(ctx, port)
-			if err != nil {
-				return nil, err
+			allowLocal := coredevice.IsGuest(udid)
+			var localError error
+			for {
+				peer, err := vpnpeer.Find(ctx, port, allowLocal)
+				var connected *coredevice.Device
+				if err == nil {
+					connectLogger.Info("device address: ", peer.Address, ", local network: ", peer.LocalNetwork)
+					if file.lockdown != nil {
+						connected, err = coredevice.ConnectLockdown(ctx, coredevice.LockdownOptions{Address: peer.Address, Record: file.lockdown, Logger: connectLogger})
+					} else {
+						connected, err = coredevice.ConnectRemotePairing(ctx, coredevice.RemotePairingOptions{
+							Address: netip.AddrPortFrom(peer.Address, port), Record: file.remote, Logger: connectLogger,
+						})
+					}
+					if err == nil {
+						d.loopback.Store(newLoopbackAddress(peer))
+						return connected, nil
+					}
+				}
+				if !allowLocal || ctx.Err() != nil {
+					return nil, E.Errors(localError, err)
+				}
+				connectLogger.Debug("local connection failed: ", err)
+				localError = err
+				allowLocal = false
 			}
-			d.loopback.Store(newLoopbackAddress(peer))
-			connectLogger.Info("device address: ", peer.Address, ", local network: ", peer.LocalNetwork)
-			if file.lockdown != nil {
-				return coredevice.ConnectLockdown(ctx, coredevice.LockdownOptions{Address: peer.Address, Record: file.lockdown, Logger: connectLogger})
-			}
-			return coredevice.ConnectRemotePairing(ctx, coredevice.RemotePairingOptions{
-				Address: netip.AddrPortFrom(peer.Address, port), Record: file.remote, Logger: connectLogger,
-			})
 		},
 		Logger:             logFactory.Logger(),
 		Observer:           &deviceObserver{handler: handler},

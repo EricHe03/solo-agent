@@ -59,15 +59,16 @@ const frameworks = () => {
 
 async function installApp(context) {
   const device = await coreDevice(context, { required: false });
-  const current = (await apps(device.udid)).find(
+  const current = (await apps(device)).find(
     (it) => it.bundleIdentifier === bundleId,
   );
-  const passcode = await installPasscode(context, current);
+  const passcode = await installPasscode(context, device, current);
   const stamp = Math.floor(Date.now() / 1000);
   run("make", ["lib", "server", "build_ios"], {
     XCODEBUILD_FLAGS: [
       process.env.XCODEBUILD_FLAGS,
       `CURRENT_PROJECT_VERSION=${stamp}`,
+      ...(device.virtual ? ["CODE_SIGNING_ALLOWED=NO"] : []),
     ]
       .filter(Boolean)
       .join(" "),
@@ -78,28 +79,15 @@ async function installApp(context) {
 }
 
 const commands = [
-  [
-    "frameworks",
-    "Build ExpoModulesCore from its patched sources and install the React Native frameworks that the Xcode project links",
-  ],
-  [
-    "install [-d NAME|UDID]",
-    "Run make lib server build_ios, install the app on the device, check the installed build, and set it up",
-  ],
-  [
-    "strings",
-    "Check cli/locales against the strings of the CLI and remove the stale ones",
-  ],
+  ["frameworks", "Install the React Native frameworks"],
+  ["install [-d NAME|UDID]", "Build Swipt and install it on the device"],
+  ["strings", "Sync cli/locales with the strings of the CLI"],
 ];
 
 const usage = `usage: bun dev COMMAND
 
 commands:
-${commands.map(([use, help]) => `  ${use.padEnd(26)}${help}`).join("\n")}
-
-install picks the paired iOS device that -d names by CoreDevice name or UDID, or the only one; when Swipt answers on it, it unlocks the device first; otherwise a locked device is unlocked with the passcode saved in Swipt.
-install reinstalls on every run and sets Swipt up like swipt sideload install; --passcode, --passcode-type, --no-setup, --no-setup-pair and --no-setup-api work the same.
-install fails when the build number installed on the device differs from the one just built.`;
+${commands.map(([use, help]) => `  ${use.padEnd(26)}${help}`).join("\n")}`;
 
 async function main() {
   const { values: options, positionals } = parseArgs({

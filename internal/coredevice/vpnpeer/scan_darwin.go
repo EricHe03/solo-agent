@@ -9,6 +9,7 @@ import (
 	"github.com/sagernet/sing/common"
 
 	"golang.org/x/net/route"
+	"golang.org/x/sys/unix"
 )
 
 func scan() ([]tunnel, []netip.Addr) {
@@ -134,4 +135,38 @@ func ipv4(addresses []route.Addr, slot int) (netip.Addr, bool) {
 		return netip.Addr{}, false
 	}
 	return netip.AddrFrom4(address.IP), true
+}
+
+// Virtualization.framework guests report kern.hv_vmm_present as 1
+// (vphone-cli, Research/Patches/hv_vmm_present_usermode_xrefs.md).
+func guestAddresses() []netip.Addr {
+	present, err := unix.SysctlUint32("kern.hv_vmm_present")
+	if err != nil || present == 0 {
+		return nil
+	}
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+	var result []netip.Addr
+	for _, iface := range interfaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagBroadcast == 0 {
+			continue
+		}
+		addresses, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, address := range addresses {
+			network, isNetwork := address.(*net.IPNet)
+			if !isNetwork {
+				continue
+			}
+			ip, valid := netip.AddrFromSlice(network.IP)
+			if valid && ip.Unmap().Is4() && !ip.Unmap().IsLinkLocalUnicast() {
+				result = append(result, ip.Unmap())
+			}
+		}
+	}
+	return result
 }

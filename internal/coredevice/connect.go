@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/netip"
+	"strings"
 
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/common/logger"
@@ -14,6 +15,19 @@ import (
 
 	"github.com/google/uuid"
 )
+
+// vphone guests are built with chip ID 0xFE01, which their UDID starts with
+// (vphone-cli 8c3630c7, Research/Guest/xcode_install_signature_gate.md).
+func IsGuest(udid string) bool {
+	return strings.HasPrefix(udid, "0000FE01-")
+}
+
+func tunnelMTU(udid string) int {
+	if IsGuest(udid) {
+		return tunnel.GuestMTU
+	}
+	return tunnel.DefaultMTU
+}
 
 type RemotePairingOptions struct {
 	Address netip.AddrPort
@@ -57,7 +71,7 @@ func ConnectRemotePairing(ctx context.Context, options RemotePairingOptions) (*D
 		session.Close()
 		return nil, E.Cause(err, "tunnel TLS")
 	}
-	tun, err := tunnel.Open(ctx, secureConn, options.Logger)
+	tun, err := tunnel.Open(ctx, secureConn, tunnelMTU(options.Record.DeviceUDID), options.Logger)
 	if err != nil {
 		session.Close()
 		return nil, err
@@ -92,7 +106,7 @@ func connectLockdown(ctx context.Context, record *lockdown.PairRecord, dial lock
 	if err != nil {
 		return nil, err
 	}
-	tun, err := tunnel.Open(ctx, conn, logger)
+	tun, err := tunnel.Open(ctx, conn, tunnelMTU(record.UDID), logger)
 	if err != nil {
 		return nil, err
 	}

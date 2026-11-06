@@ -136,6 +136,7 @@ func findLockdownPeer(ctx context.Context, udid string) (lockdownPeer, error) {
 	if err != nil {
 		return lockdownPeer{}, err
 	}
+	record.UDID = udid
 	return lockdownPeer{device: found, record: record}, nil
 }
 

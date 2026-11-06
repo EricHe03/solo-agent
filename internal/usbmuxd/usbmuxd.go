@@ -117,6 +117,27 @@ func ReadPairRecord(ctx context.Context, udid string) ([]byte, error) {
 	return data, nil
 }
 
+func ReadBUID(ctx context.Context) (string, error) {
+	conn, reply, err := open(ctx, map[string]any{"MessageType": "ReadBUID"})
+	if err != nil {
+		return "", err
+	}
+	_ = conn.Close()
+	buid, _ := reply["BUID"].(string)
+	if buid == "" {
+		return "", E.New("usbmuxd: no BUID")
+	}
+	return buid, nil
+}
+
+func SavePairRecord(ctx context.Context, device uint64, udid string, record []byte) error {
+	conn, _, err := open(ctx, map[string]any{"MessageType": "SavePairRecord", "PairRecordID": udid, "DeviceID": device, "PairRecordData": record})
+	if err != nil {
+		return err
+	}
+	return conn.Close()
+}
+
 func Dial(ctx context.Context, device uint64, port uint16) (net.Conn, error) {
 	conn, _, err := open(ctx, map[string]any{"MessageType": "Connect", "DeviceID": device, "PortNumber": port<<8 | port>>8})
 	return conn, err

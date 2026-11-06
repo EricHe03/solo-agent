@@ -1,7 +1,6 @@
 import { execFile, execFileSync, spawn } from "node:child_process";
 import { X509Certificate, createHash } from "node:crypto";
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
@@ -21,9 +20,20 @@ import {
 } from "./connection.mjs";
 import {
   apps,
+  configureGuest,
+  containerHasFile,
   coreDevice,
   devicectl,
+  installApp,
+  launchApp,
+  lockedError,
   provisioningProfiles,
+  pullFromContainer,
+  pushToContainer,
+  serverHint,
+  serverPath,
+  terminateApp,
+  uninstallApp,
 } from "./coredevice.mjs";
 import { language, tr } from "./i18n.mjs";
 import {
@@ -45,6 +55,32 @@ const teamPattern = /^[A-Z0-9]{10}$/;
 const sideloadedPattern = new RegExp(
   `^${bundleId.replaceAll(".", "\\.")}(?:\\.([A-Z0-9]{10}))?$`,
 );
+
+const guestTeam = "SWIPTLOCAL";
+// installd on a vphone guest accepts an ad hoc signature and needs
+// application-identifier (vphone-cli 8c3630c7,
+// VPhoneGuestComponents/MISFix/MISFixInstallPolicy.c).
+const guestEntitlements = (id) => `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>application-identifier</key>
+	<string>${guestTeam}.${id}</string>
+	<key>com.apple.developer.team-identifier</key>
+	<string>${guestTeam}</string>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>${guestTeam}.${id}</string>
+	</array>
+	<key>get-task-allow</key>
+	<true/>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>${guestTeam}.${id}</string>
+	</array>
+</dict>
+</plist>
+`;
 
 const accountsHint = "Xcode › Settings › Accounts";
 const xcodeProfiles = "Library/Developer/Xcode/UserData/Provisioning Profiles";
@@ -468,14 +504,26 @@ async function resign(app, id, signing, update) {
       info,
     ]);
   }
-  fs.copyFileSync(signing.profile, path.join(app, "embedded.mobileprovision"));
+  const profile = path.join(app, "embedded.mobileprovision");
+  if (signing.profile === undefined) {
+    fs.rmSync(profile, { force: true });
+  } else {
+    fs.copyFileSync(signing.profile, profile);
+  }
   const codesign = ["--force", "--sign", signing.identity, "--timestamp=none"];
   const frameworks = path.join(app, "Frameworks");
-  if (fs.existsSync(frameworks)) {
-    for (const name of fs.readdirSync(frameworks)) {
-      update(name);
-      await exec("codesign", [...codesign, path.join(frameworks, name)]);
-    }
+  const nested = [
+    ...fs
+      .readdirSync(app)
+      .filter((name) => name.endsWith(".dylib"))
+      .map((name) => path.join(app, name)),
+    ...(fs.existsSync(frameworks)
+      ? fs.readdirSync(frameworks).map((name) => path.join(frameworks, name))
+      : []),
+  ];
+  for (const file of nested) {
+    update(path.basename(file));
+    await exec("codesign", [...codesign, file]);
   }
   update(path.basename(app));
   await exec("codesign", [
@@ -572,7 +620,7 @@ async function sideloadedDevices(
     () =>
       Promise.all(
         devices.map((device) =>
-          apps(device.udid).then(
+          apps(device).then(
             (listed) =>
               listed.some((app) =>
                 sideloadedPattern.test(app.bundleIdentifier),
@@ -594,9 +642,14 @@ async function locate(context, device, fresh = false) {
   const { options } = context;
   const listed = await step(
     tr("checking Swipt on {device}", { device: device.name }),
-    () => apps(device.udid),
+    () => apps(device),
     { transient: true },
   );
+  if (device.virtual) {
+    return {
+      current: listed.find((app) => app.bundleIdentifier === bundleId),
+    };
+  }
   const found = listed
     .map((app) => {
       const match = sideloadedPattern.exec(app.bundleIdentifier);
@@ -760,8 +813,9 @@ async function askPasscode(context) {
   );
 }
 
-export async function installPasscode(context, current) {
+export async function installPasscode(context, device, current) {
   return current === undefined &&
+    !device.virtual &&
     interactive(context) &&
     context.options.passcode === undefined &&
     context.options["passcode-type"] === undefined &&
@@ -798,39 +852,44 @@ async function findInstalled(context) {
 }
 
 async function deploy(context, { device, team, current }, updateOnly) {
-  const passcode = await installPasscode(context, current);
+  const passcode = await installPasscode(context, device, current);
   const release = await step(
     tr("checking the latest release"),
     () => findRelease(context.options.nightly, context.signal),
     { transient: true },
   );
-  const id = team === bundleTeam ? bundleId : `${bundleId}.${team}`;
+  const id =
+    device.virtual || team === bundleTeam ? bundleId : `${bundleId}.${team}`;
   if (current !== undefined) {
     const installed = Number(current.bundleVersion);
-    const signing = await signingPeriod(device, id, team);
-    if (installed >= release.build && !expiresSoon(signing)) {
+    const signing = device.virtual
+      ? undefined
+      : await signingPeriod(device, id, team);
+    if (
+      installed >= release.build &&
+      (signing === undefined || !expiresSoon(signing))
+    ) {
+      const parameters = {
+        build: buildText(current),
+        device: device.name,
+        release: release.tag,
+        releaseBuild: release.build,
+      };
       console.log(
         installed === release.build
-          ? tr(
-              "{build} on {device} is already {release}; its signing expires {expiration}",
-              {
-                build: buildText(current),
-                device: device.name,
-                release: release.tag,
-                expiration: expirationText(signing.expiration),
-              },
-            )
+          ? tr("{build} on {device} is already {release}", parameters)
           : tr(
-              "{build} on {device} is newer than {release} ({releaseBuild}); its signing expires {expiration}",
-              {
-                build: buildText(current),
-                device: device.name,
-                release: release.tag,
-                releaseBuild: release.build,
-                expiration: expirationText(signing.expiration),
-              },
+              "{build} on {device} is newer than {release} ({releaseBuild})",
+              parameters,
             ),
       );
+      if (signing !== undefined) {
+        console.log(
+          tr("its signing expires {expiration}", {
+            expiration: expirationText(signing.expiration),
+          }),
+        );
+      }
       const saves = !updateOnly && passcode !== undefined;
       if (saves) {
         await step(tr("setting up auto-unlock"), () =>
@@ -866,12 +925,14 @@ async function deploy(context, { device, team, current }, updateOnly) {
   }
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "swipt-sideload-"));
   try {
-    const signing = await step(
-      tr("preparing signing for Swipt with team {team} through Xcode", {
-        team: xcodeTeams().find((it) => it.id === team)?.name ?? team,
-      }),
-      (update) => provision(work, id, team, device, update),
-    );
+    const signing = device.virtual
+      ? undefined
+      : await step(
+          tr("preparing signing for Swipt with team {team} through Xcode", {
+            team: xcodeTeams().find((it) => it.id === team)?.name ?? team,
+          }),
+          (update) => provision(work, id, team, device, update),
+        );
     const name = `Swipt-${release.ipa.id}.ipa`;
     const ipa = path.join(downloads, name);
     if (!fs.existsSync(ipa)) {
@@ -892,15 +953,45 @@ async function deploy(context, { device, team, current }, updateOnly) {
         }
       }
     }
-    const app = await step(tr("re-signing Swipt"), async (update) => {
-      const unpacked = await unpack(ipa, work);
-      await resign(unpacked, id, signing, update);
-      return unpacked;
-    });
+    const app =
+      signing === undefined
+        ? await unpack(ipa, work)
+        : await step(tr("re-signing Swipt"), async (update) => {
+            const unpacked = await unpack(ipa, work);
+            await resign(unpacked, id, signing, update);
+            return unpacked;
+          });
     await installAndOpen(context, { device, id, current }, app, release.build, {
       passcode,
       saves: !updateOnly,
     });
+  } finally {
+    fs.rmSync(work, { recursive: true, force: true });
+  }
+}
+
+async function installOnGuest(device, id, app) {
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "swipt-guest-"));
+  try {
+    const signed = path.join(work, "Payload", path.basename(app));
+    await exec("ditto", [app, signed]);
+    await step(tr("re-signing Swipt"), async (update) => {
+      const entitlements = path.join(work, "entitlements.plist");
+      fs.writeFileSync(entitlements, guestEntitlements(id));
+      execFileSync("plutil", [
+        "-replace",
+        "AppGroupIdentifier",
+        "-string",
+        `${guestTeam}.${id}`,
+        path.join(signed, "Info.plist"),
+      ]);
+      await resign(signed, id, { identity: "-", entitlements }, update);
+    });
+    const archive = path.join(work, "Swipt.ipa");
+    await exec("zip", ["-qry1", archive, "Payload"], { cwd: work });
+    await step(tr("installing on {device}", { device: device.name }), () =>
+      installApp(device, archive, id),
+    );
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
@@ -927,9 +1018,13 @@ export async function installAndOpen(
       );
     }
   }
-  await step(tr("installing on {device}", { device: device.name }), () =>
-    devicectl(["device", "install", "app", "--device", device.udid, app]),
-  );
+  if (device.virtual) {
+    await installOnGuest(device, id, app);
+  } else {
+    await step(tr("installing on {device}", { device: device.name }), () =>
+      installApp(device, app, id),
+    );
+  }
   if (saves && passcode !== undefined) {
     await step(tr("setting up auto-unlock"), () =>
       setUpAutoUnlock(device, id, passcode),
@@ -938,7 +1033,7 @@ export async function installAndOpen(
   const result = (
     await step(
       tr("checking Swipt on {device}", { device: device.name }),
-      () => apps(device.udid),
+      () => apps(device),
       { transient: true },
     )
   ).find((it) => it.bundleIdentifier === id);
@@ -949,30 +1044,28 @@ export async function installAndOpen(
         : `${device.name} has ${buildText(result)} after the install`,
     );
   }
-  const expiration = expirationText(
-    Date.parse(
-      profileField(
-        path.join(app, "embedded.mobileprovision"),
-        "ExpirationDate",
-      ),
-    ),
-  );
+  const parameters = { build: buildText(result), device: device.name };
   console.log(
     current === undefined
-      ? tr(
-          "{build} is installed on {device}; its signing expires {expiration}",
-          { build: buildText(result), device: device.name, expiration },
-        )
+      ? tr("{build} is installed on {device}", parameters)
       : Number(current.bundleVersion) === build
-        ? tr(
-            "{build} is re-signed on {device}; its signing expires {expiration}",
-            { build: buildText(result), device: device.name, expiration },
-          )
-        : tr(
-            "{build} is updated on {device}; its signing expires {expiration}",
-            { build: buildText(result), device: device.name, expiration },
-          ),
+        ? tr("{build} is re-signed on {device}", parameters)
+        : tr("{build} is updated on {device}", parameters),
   );
+  if (!device.virtual) {
+    console.log(
+      tr("its signing expires {expiration}", {
+        expiration: expirationText(
+          Date.parse(
+            profileField(
+              path.join(app, "embedded.mobileprovision"),
+              "ExpirationDate",
+            ),
+          ),
+        ),
+      }),
+    );
+  }
   if (context.options["no-setup"]) {
     await launch(device, id);
     return;
@@ -986,17 +1079,6 @@ export async function installAndOpen(
     current !== undefined && !paired,
   );
 }
-
-const launchCommand = (device, id, args = []) => [
-  "device",
-  "process",
-  "launch",
-  "--terminate-existing",
-  "--device",
-  device.udid,
-  id,
-  ...(args.length > 0 ? ["--", ...args] : []),
-];
 
 const publishArgument = "--publish-local-network";
 const setupArgument = "--setup";
@@ -1027,19 +1109,33 @@ async function printAPI(context, device) {
 
 async function openConfigured(context, device, id, passcode, updated) {
   const publishes = !context.options["no-setup-api"];
-  try {
-    await trustAndOpen(context, device, id, passcode, updated);
-  } catch (error) {
-    if (error.message !== serverHint) {
-      throw error;
-    }
-    console.error(
-      tr("{hint}; its developer is not trusted automatically", {
-        hint: serverHint,
-      }),
+  if (device.virtual) {
+    await step(
+      tr("opening Swipt on {device}", { device: device.name }),
+      async () => {
+        await savePreferences(device, id, {
+          autoUnlockSetUp: true,
+          developerLocalNetworkEnabled: publishes,
+        });
+        await configureGuest(device, id, "Swipt");
+        await launchApp(device, id);
+      },
     );
-    if (!(await launch(device, id, publishes ? [publishArgument] : []))) {
-      return;
+  } else {
+    try {
+      await trustAndOpen(context, device, id, passcode, updated);
+    } catch (error) {
+      if (error.message !== serverHint) {
+        throw error;
+      }
+      console.error(
+        tr("{hint}; its developer is not trusted automatically", {
+          hint: serverHint,
+        }),
+      );
+      if (!(await launch(device, id, publishes ? [publishArgument] : []))) {
+        return;
+      }
     }
   }
   if (publishes) {
@@ -1050,7 +1146,7 @@ async function openConfigured(context, device, id, passcode, updated) {
 async function launch(device, id, args) {
   try {
     await step(tr("opening Swipt on {device}", { device: device.name }), () =>
-      devicectl(launchCommand(device, id, args)),
+      launchApp(device, id, args),
     );
     return true;
   } catch (error) {
@@ -1075,7 +1171,7 @@ async function launch(device, id, args) {
           { device: device.name },
         ),
       );
-    } else if (/BSErrorCodeDescription = Locked/.test(error.message)) {
+    } else if (lockedError.test(error.message)) {
       console.log(
         tr("it opens once {device} is unlocked", { device: device.name }),
       );
@@ -1104,7 +1200,10 @@ export async function setup(context) {
   const { device, current } = await findInstalled(context);
   const id = current.bundleIdentifier;
   const passcode =
-    given ?? (interactive(context) ? await askPasscode(context) : undefined);
+    given ??
+    (interactive(context) && !device.virtual
+      ? await askPasscode(context)
+      : undefined);
   if (passcode !== undefined) {
     await step(tr("setting up auto-unlock"), () =>
       setUpAutoUnlock(device, id, passcode),
@@ -1115,10 +1214,6 @@ export async function setup(context) {
   }
   await openConfigured(context, device, id, passcode);
 }
-
-const serverHint = tr(
-  'swipt-server is missing; install it with "npm install -g @swipt/cli --include=optional"',
-);
 
 const trustMessages = JSON.stringify({
   unlockToContinue: tr("unlock the device to continue"),
@@ -1132,31 +1227,6 @@ const trustMessages = JSON.stringify({
 
 const deviceNotListedExit = 3;
 
-async function serverPath() {
-  const root = path.dirname(import.meta.dirname);
-  if (fs.existsSync(path.join(root, "cmd/swipt-server"))) {
-    await exec("make", ["server"], { cwd: root });
-    return path.join(root, "build/swipt-server");
-  }
-  let packaged;
-  try {
-    packaged = path.join(
-      path.dirname(
-        createRequire(import.meta.url).resolve(
-          `@swipt/server-${process.platform}-${process.arch}/package.json`,
-        ),
-      ),
-      "swipt-server",
-    );
-  } catch (error) {
-    if (error.code !== "MODULE_NOT_FOUND") {
-      throw error;
-    }
-    return "swipt-server";
-  }
-  return fs.existsSync(packaged) ? packaged : "swipt-server";
-}
-
 const schema = [
   "CREATE TABLE grdb_migrations (identifier TEXT NOT NULL PRIMARY KEY)",
   'CREATE TABLE "preferences" ("name" TEXT PRIMARY KEY NOT NULL, "data" BLOB NOT NULL)',
@@ -1168,59 +1238,15 @@ const schema = [
 
 const databasePath = "Library/Application Support/Swipt.sqlite";
 
-async function terminate(device, id) {
-  const [listed, { result }] = await Promise.all([
-    apps(device.udid),
-    devicectl(["device", "info", "processes", "--device", device.udid], {
-      parse: true,
-    }),
-  ]);
-  const { url } = listed.find((app) => app.bundleIdentifier === id);
-  const running = result.runningProcesses.find((process) =>
-    process.executable?.startsWith(url),
-  );
-  if (running !== undefined) {
-    await devicectl([
-      "device",
-      "process",
-      "terminate",
-      "--device",
-      device.udid,
-      "--pid",
-      String(running.processIdentifier),
-    ]);
-  }
-}
-
-async function setUpAutoUnlock(device, id, passcode) {
+async function savePreferences(device, id, preferences) {
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "swipt-database-"));
   try {
     const database = path.join(work, "Swipt.sqlite");
-    const exists = await hasFile(device, id, databasePath);
+    const exists = await containerHasFile(device, id, databasePath);
     if (exists) {
-      await terminate(device, id);
-      await devicectl([
-        "device",
-        "copy",
-        "from",
-        "--device",
-        device.udid,
-        "--source",
-        databasePath,
-        "--destination",
-        database,
-        "--domain-type",
-        "appDataContainer",
-        "--domain-identifier",
-        id,
-      ]);
+      await terminateApp(device, id);
+      await pullFromContainer(device, id, databasePath, database);
     }
-    const preferences = {
-      serverAutoUnlocks: true,
-      serverAutoUnlockPasscodeType: passcodeTypes.indexOf(passcode.type),
-      serverAutoUnlockPasscode: passcode.passcode,
-      autoUnlockSetUp: true,
-    };
     const quote = (text) => `'${text.replaceAll("'", "''")}'`;
     execFileSync("sqlite3", [database], {
       input: [
@@ -1233,69 +1259,31 @@ async function setUpAutoUnlock(device, id, passcode) {
         .map((statement) => `${statement};\n`)
         .join(""),
     });
-    await devicectl([
-      "device",
-      "copy",
-      "to",
-      "--device",
-      device.udid,
-      "--source",
-      database,
-      "--destination",
-      databasePath,
-      "--domain-type",
-      "appDataContainer",
-      "--domain-identifier",
-      id,
-    ]);
+    await pushToContainer(device, id, database, databasePath);
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
 }
 
+const setUpAutoUnlock = (device, id, passcode) =>
+  savePreferences(device, id, {
+    serverAutoUnlocks: true,
+    serverAutoUnlockPasscodeType: passcodeTypes.indexOf(passcode.type),
+    serverAutoUnlockPasscode: passcode.passcode,
+    autoUnlockSetUp: true,
+  });
+
 const pairingFile = "PairingRecord.plist";
 const pairingPath = `Library/Application Support/${pairingFile}`;
 
-async function hasFile(device, id, file) {
-  const { result } = await devicectl(
-    [
-      "device",
-      "info",
-      "files",
-      "--device",
-      device.udid,
-      "--domain-type",
-      "appDataContainer",
-      "--domain-identifier",
-      id,
-    ],
-    { parse: true },
-  );
-  return result.files.some((it) => it.relativePath === file);
-}
-
 async function savedPasscode(device, id) {
-  if (!(await hasFile(device, id, databasePath))) {
+  if (!(await containerHasFile(device, id, databasePath))) {
     return undefined;
   }
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "swipt-database-"));
   try {
     const database = path.join(work, "Swipt.sqlite");
-    await devicectl([
-      "device",
-      "copy",
-      "from",
-      "--device",
-      device.udid,
-      "--source",
-      databasePath,
-      "--destination",
-      database,
-      "--domain-type",
-      "appDataContainer",
-      "--domain-identifier",
-      id,
-    ]);
+    await pullFromContainer(device, id, databasePath, database);
     const rows = execFileSync(
       "sqlite3",
       [
@@ -1327,7 +1315,7 @@ async function pair(device, id, overwrite = false) {
     !overwrite &&
     (await step(
       tr("checking Swipt on {device}", { device: device.name }),
-      () => hasFile(device, id, pairingPath),
+      () => containerHasFile(device, id, pairingPath),
       { transient: true },
     ))
   ) {
@@ -1341,13 +1329,7 @@ async function pair(device, id, overwrite = false) {
       async () => {
         const record = path.join(work, pairingFile);
         try {
-          await exec(await serverPath(), [
-            "pair",
-            "-d",
-            device.udid,
-            "-o",
-            record,
-          ]);
+          await exec(serverPath(), ["pair", "-d", device.udid, "-o", record]);
         } catch (error) {
           if (typeof error.code === "number") {
             warning = tr(
@@ -1361,21 +1343,7 @@ async function pair(device, id, overwrite = false) {
           }
           throw error;
         }
-        await devicectl([
-          "device",
-          "copy",
-          "to",
-          "--device",
-          device.udid,
-          "--source",
-          record,
-          "--destination",
-          pairingPath,
-          "--domain-type",
-          "appDataContainer",
-          "--domain-identifier",
-          id,
-        ]);
+        await pushToContainer(device, id, record, pairingPath);
       },
     );
   } catch (error) {
@@ -1392,7 +1360,7 @@ async function pair(device, id, overwrite = false) {
 
 async function serve(udid, passcode, signal) {
   const server = spawn(
-    await serverPath(),
+    serverPath(),
     [
       "-d",
       udid,
@@ -1443,12 +1411,11 @@ async function serve(udid, passcode, signal) {
 }
 
 async function launchUnlocking(device, id, args, signal) {
-  const command = launchCommand(device, id, args);
   try {
-    await devicectl(command);
+    await launchApp(device, id, args);
     return;
   } catch (error) {
-    if (!/BSErrorCodeDescription = Locked/.test(error.message)) {
+    if (!lockedError.test(error.message)) {
       throw error;
     }
     const passcode = await savedPasscode(device, id);
@@ -1468,7 +1435,7 @@ async function launchUnlocking(device, id, args, signal) {
       await server.stop();
     }
   }
-  await devicectl(command);
+  await launchApp(device, id, args);
 }
 
 async function trustAndOpen(context, device, id, given, updated) {
@@ -1490,9 +1457,8 @@ async function trustAndOpen(context, device, id, given, updated) {
             return;
           } catch (error) {
             if (
-              !/trusted by the user|BSErrorCodeDescription = Locked/.test(
-                error.message,
-              )
+              !/trusted by the user/.test(error.message) &&
+              !lockedError.test(error.message)
             ) {
               throw error;
             }
@@ -1553,12 +1519,10 @@ async function trustAndOpen(context, device, id, given, updated) {
           };
           await run([id, "trust", unlock]);
           update("");
-          await devicectl(
-            launchCommand(device, id, [
-              setupArgument,
-              ...(context.options["no-setup-api"] ? [] : [publishArgument]),
-            ]),
-          );
+          await launchApp(device, id, [
+            setupArgument,
+            ...(context.options["no-setup-api"] ? [] : [publishArgument]),
+          ]);
           await run([id, "prompts"]);
         } finally {
           await server.stop();
@@ -1607,14 +1571,7 @@ export async function uninstall(context) {
     );
   }
   await step(tr("removing Swipt from {device}", { device: device.name }), () =>
-    devicectl([
-      "device",
-      "uninstall",
-      "app",
-      "--device",
-      device.udid,
-      current.bundleIdentifier,
-    ]),
+    uninstallApp(device, current.bundleIdentifier),
   );
   console.log(
     tr("removed {build} from {device}", {

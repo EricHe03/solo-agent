@@ -28,7 +28,7 @@ const sideloadOptions = {
     type: "string",
     short: "d",
     value: "NAME|UDID",
-    help: tr("device paired with this Mac"),
+    help: tr("the device to use"),
   },
   team: {
     type: "string",

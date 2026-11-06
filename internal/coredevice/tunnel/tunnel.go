@@ -25,7 +25,11 @@ const magic = "CDTunnel"
 // idevice requests MTU 16000; go-ios requests 1280
 // (idevice 3854a5d, idevice/src/tunnel.rs:16;
 // go-ios ca2c56d, ios/tunnel/tunnel.go:266-270).
-const requestedMTU = 16000
+const DefaultMTU = 16000
+
+// A vphone guest stops acknowledging a transfer over a tunnel of DefaultMTU
+// (iPhone18,2, iOS 27.0.1 24A446, vphone-cli 2.15.2).
+const GuestMTU = 1280
 
 const ipv6HeaderLength = 40
 
@@ -45,8 +49,8 @@ type handshakeResponse struct {
 	ServerRSDPort uint16 `json:"serverRSDPort"`
 }
 
-func handshake(conn net.Conn, reader *bufio.Reader) (*Parameters, error) {
-	request, err := json.Marshal(map[string]any{"type": "clientHandshakeRequest", "mtu": requestedMTU})
+func handshake(conn net.Conn, reader *bufio.Reader, mtu int) (*Parameters, error) {
+	request, err := json.Marshal(map[string]any{"type": "clientHandshakeRequest", "mtu": mtu})
 	if err != nil {
 		return nil, err
 	}
@@ -124,14 +128,14 @@ type Tunnel struct {
 	err         error
 }
 
-func Open(ctx context.Context, conn net.Conn, logger logger.ContextLogger) (*Tunnel, error) {
+func Open(ctx context.Context, conn net.Conn, mtu int, logger logger.ContextLogger) (*Tunnel, error) {
 	if err := ctx.Err(); err != nil {
 		conn.Close()
 		return nil, err
 	}
 	reader := bufio.NewReaderSize(conn, 2*(ipv6HeaderLength+65535))
 	stopAfter := context.AfterFunc(ctx, func() { conn.Close() })
-	parameters, err := handshake(conn, reader)
+	parameters, err := handshake(conn, reader, mtu)
 	if !stopAfter() || ctx.Err() != nil {
 		err = ctx.Err()
 	}
