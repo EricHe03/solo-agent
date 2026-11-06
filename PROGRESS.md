@@ -18,7 +18,8 @@ _Last updated: 2026-11-06_
 
 - Baseline upstream-source IPA build passed: <https://github.com/EricHe03/solo-agent/actions/runs/42226898947> in 18m1s.
 - Downloaded baseline artifact `Solo-Agent-iOS-IPA`: real `Swipt.ipa` (43,601,500 bytes; SHA-256 `5F41E6F093EE99380A765AC6279B53D829BC259D83A0569D7270E7BEAC24C9AB`), dSYMs, icon, and metadata for commit `10a1aa5`, version 0.1.0 build 1.
-- Pushing integrated commits and starting the Go/Swift compile–fix loop.
+- Integrated run `42229591276` failed only at the Swift archive after Go/framework setup succeeded. Actual errors were invalid `LibSolo Agent` identifiers in `PairingSession.swift` caused by over-broad rebranding; restored all five to `LibSwipt` in `7cdc811`.
+- Rebuild the corrected Swift sources and inspect the next compiler errors, if any.
 
 ## Remaining
 
@@ -44,6 +45,6 @@ _Last updated: 2026-11-06_
 ## Git / Actions
 
 - Upstream baseline SHA: `a9e7c64` (`Add basic vphone support`).
-- Latest local commit: `0090752` (`fix: harden agent execution and cache builds`), plus this progress update.
-- Previous commits: `67390d6` (integrated agent), `10a1aa5` (minimal IPA workflow).
-- Actions: baseline run `42226898947` succeeded; its IPA artifact was downloaded and verified locally. Integrated build not started yet.
+- Latest local commit: `7cdc811` (`fix: restore LibSwipt identifiers after rebranding`); latest pushed commit before this fix: `459e308`.
+- Integrated implementation commits: `67390d6`, `0090752`, `97db01a`; baseline workflow: `10a1aa5`.
+- Actions: baseline run `42226898947` succeeded and was downloaded. Integrated run `42229591276` failed at `Archive unsigned IPA` with `LibSolo Agent` Swift syntax/module errors; corrected locally in `7cdc811`. No integrated IPA yet.
