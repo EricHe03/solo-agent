@@ -33,6 +33,7 @@ type axJob struct {
 	gen      uint64
 	run      axRun
 	started  bool
+	retried  bool
 	interest int
 	value    any
 	err      error
@@ -191,6 +192,13 @@ func (w *axWorker) execute(job *axJob) (any, error) {
 	case client.Err() != nil && w.conn.ctx.Err() == nil:
 		w.logger.Debug("the connection to the device's accessibility service ended: ", client.Err())
 		w.dropClient()
+		// The device reset this connection, with axauditd still running, right
+		// after the application in front was relaunched (iPhone18,2, iOS 27.3
+		// 24C5037i).
+		if !job.action && !job.retried {
+			job.retried = true
+			return w.execute(job)
+		}
 	case isSilent:
 		w.silent(silent.PID)
 	}

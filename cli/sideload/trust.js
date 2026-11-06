@@ -204,14 +204,23 @@ async function waitForUnlock() {
 async function finishSetup() {
   const until = Date.now() + 60_000;
   do {
-    if (!(await answerPrompt())) {
-      const finished = await accessibility.find({
-        app: id,
-        identifier: "setup-finished",
-      });
-      if (finished !== null) {
-        console.log(filled(messages.running, name));
-        return;
+    try {
+      if (!(await answerPrompt())) {
+        const finished = await accessibility.find({
+          app: id,
+          identifier: "setup-finished",
+        });
+        if (finished !== null) {
+          console.log(filled(messages.running, name));
+          return;
+        }
+      }
+    } catch (error) {
+      if (
+        error.name !== "TimeoutError" &&
+        !/stopped answering/.test(error.message)
+      ) {
+        throw error;
       }
     }
   } while (Date.now() < until);
