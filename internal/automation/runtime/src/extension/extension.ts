@@ -5,11 +5,7 @@ import { createDialog } from "./dialog";
 import { DOMException, failureOf } from "./errors";
 import { AbortController } from "./events";
 import { assets, cacheDirectory, dataDirectory } from "./files";
-import {
-  getCalendars,
-  getLocales,
-  preferredLocalizations,
-} from "./localization";
+import { preferredLocalizations } from "./localization";
 import { native } from "./native";
 import { installLocalStorage, sqlite, sqliteStore } from "./sqlite";
 
@@ -146,7 +142,6 @@ interface Modules {
   "@swipt/api/device": typeof import("@swipt/api/device");
   "@swipt/api/screen": typeof import("@swipt/api/screen");
   "@swipt/api/image": typeof import("@swipt/api/image");
-  "expo-localization": typeof import("./types/expo-localization");
   "expo-sqlite": typeof import("./types/expo-sqlite");
   "expo-sqlite/kv-store": typeof import("./types/expo-sqlite/kv-store");
   "expo-sqlite/localStorage/install": typeof import("./types/expo-sqlite/localStorage/install");
@@ -187,7 +182,6 @@ const moduleTable = {
   "@swipt/api/device": () => ({ __esModule: true, ...chunk("api").device }),
   "@swipt/api/screen": () => ({ __esModule: true, ...chunk("api").screen }),
   "@swipt/api/image": () => ({ __esModule: true, ...chunk("api").image }),
-  "expo-localization": () => ({ __esModule: true, getLocales, getCalendars }),
   "expo-sqlite": sqlite,
   "expo-sqlite/kv-store": sqliteStore,
   "expo-sqlite/localStorage/install": installLocalStorage,

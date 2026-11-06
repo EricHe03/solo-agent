@@ -993,34 +993,6 @@ declare module "@swipt/api/image" {
   ): Promise<RasterImage>;
 }
 
-declare module "expo-localization" {
-  export interface Locale {
-    languageTag: string;
-    languageCode: string | null;
-    languageScriptCode: string | null;
-    scriptCode: string | null;
-    regionCode: string | null;
-    languageRegionCode: string | null;
-    textDirection: "ltr" | "rtl" | null;
-    decimalSeparator: string | null;
-    digitGroupingSeparator: string | null;
-    measurementSystem: "metric" | "us" | "uk" | null;
-    currencyCode: string | null;
-    currencySymbol: string | null;
-    temperatureUnit: "celsius" | "fahrenheit" | null;
-  }
-
-  export interface Calendar {
-    calendar: string | null;
-    timeZone: string | null;
-    uses24hourClock: boolean | null;
-    firstWeekday: number | null;
-  }
-
-  export function getLocales(): Locale[];
-  export function getCalendars(): Calendar[];
-}
-
 declare module "expo-sqlite" {
   export type SQLiteBindValue =
     string | number | boolean | bigint | null | Uint8Array;

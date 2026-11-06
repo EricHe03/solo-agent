@@ -46,7 +46,6 @@ const extensionModules = [
   "@swipt/api/device",
   "@swipt/api/screen",
   "@swipt/api/image",
-  "expo-localization",
   "expo-sqlite",
   "expo-sqlite/kv-store",
   "expo-sqlite/localStorage/install",
@@ -316,10 +315,6 @@ function describeExtension(source) {
     "@swipt/api/device": loading("device"),
     "@swipt/api/screen": loading("screen"),
     "@swipt/api/image": loading("image"),
-    "expo-localization": {
-      getLocales: () => [{ languageTag: "en", languageCode: "en" }],
-      getCalendars: () => [],
-    },
     "expo-sqlite": {
       SQLiteDatabase: loading("SQLiteDatabase"),
       SQLiteStatement: loading("SQLiteStatement"),
