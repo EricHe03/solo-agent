@@ -244,7 +244,6 @@ func (r *REPL) discard(ctx context.Context, e *engine, cause error) error {
 			return ctx.Err()
 		}
 	}
-	r.host.releaseLocation(r.id)
 	return nil
 }
 

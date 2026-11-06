@@ -15,5 +15,4 @@ export const applicationIcon = outside;
 export const launchApplication = outside;
 export const pasteboard = outside;
 export const setPasteboard = outside;
-export const simulateLocation = outside;
-export const clearSimulatedLocation = outside;
+export const simulatedLocation = undefined;

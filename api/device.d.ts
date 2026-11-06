@@ -31,6 +31,11 @@ export interface ApplicationStateEvent {
   readonly time: number;
 }
 
+export interface SimulatedLocation {
+  readonly latitude: number;
+  readonly longitude: number;
+}
+
 export declare function info(options?: CallOptions): Promise<DeviceInfo>;
 export declare const foregroundApplication: ObservableState<string>;
 export declare const locked: ObservableState<boolean>;
@@ -61,11 +66,12 @@ export declare function setPasteboard(
   options?: CallOptions,
 ): Promise<void>;
 
-export declare function simulateLocation(
-  latitude: number,
-  longitude: number,
-  options?: CallOptions,
-): Promise<void>;
-export declare function clearSimulatedLocation(
-  options?: CallOptions,
-): Promise<void>;
+/**
+ * The WGS-84 location Swipt simulates, kept across restarts of Swipt until it is
+ * set to null or the swiplet that set it is removed. iOS reports the real location
+ * while Swipt is not connected to the device, and has no call that reads the
+ * simulated location back, so get answers what Swipt last set.
+ */
+export declare const simulatedLocation: ObservableState<SimulatedLocation | null> & {
+  set(location: SimulatedLocation | null, options?: CallOptions): Promise<void>;
+};

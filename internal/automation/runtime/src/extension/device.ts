@@ -4,6 +4,7 @@ import type {
   DeviceInfo,
   DisplayState,
   InstalledApplication,
+  SimulatedLocation,
 } from "@swipt/api/device";
 
 import { invoke, stream } from "./async";
@@ -34,6 +35,15 @@ export const info = (options?: Options) =>
 export const foregroundApplication = state<string>("foreground");
 export const locked = state<boolean>("locked");
 export const displayState = state<DisplayState>("display");
+export const simulatedLocation = Object.freeze({
+  ...state<SimulatedLocation | null>("simulatedLocation"),
+  set: (location: SimulatedLocation | null, options?: Options) => {
+    if (location === undefined) {
+      throw new TypeError("the location must be an object or null");
+    }
+    return act("device.setSimulatedLocation", [location], check(options, []));
+  },
+});
 export const unlock = (options?: Options) =>
   act("device.unlock", [], check(options, []));
 
@@ -75,11 +85,3 @@ export const setPasteboard = (text: string | null, options?: Options) => {
   }
   return act("device.setPasteboard", [text], check(options, []));
 };
-
-export const simulateLocation = (
-  latitude: number,
-  longitude: number,
-  options?: Options,
-) => act("device.simulateLocation", [latitude, longitude], check(options, []));
-export const clearSimulatedLocation = (options?: Options) =>
-  act("device.clearSimulatedLocation", [], check(options, []));

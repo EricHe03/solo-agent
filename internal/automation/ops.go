@@ -41,50 +41,49 @@ func init() {
 		"device.unlock": screenAction(func(ctx context.Context, phone *device.Phone, _ *operation) error {
 			return phone.Unlock(ctx)
 		}),
-		"device.installedApplications":  deviceApps,
-		"device.applicationIcon":        deviceAppIcon,
-		"device.launchApplication":      screenAction(deviceLaunch),
-		"device.pasteboard":             deviceClipboard,
-		"device.setPasteboard":          deviceSetClipboard,
-		"device.simulateLocation":       deviceSetLocation,
-		"device.clearSimulatedLocation": deviceClearLocation,
-		"input.tap":                     screenAction(deviceTap),
-		"input.swipe":                   screenAction(deviceGesture),
-		"input.drag":                    screenAction(deviceGesture),
-		"input.pinch":                   screenAction(devicePinch),
-		"input.touch":                   screenAction(deviceTouch),
-		"input.pressKey":                screenAction(devicePressKey),
-		"input.button":                  screenAction(deviceButton),
-		"accessibility.snapshot":        uiSnapshot,
-		"accessibility.find":            uiFind,
-		"accessibility.changed":         uiChanged,
-		"accessibility.setText":         screenAction(uiSetText),
-		"accessibility.perform":         screenAction(uiPerform),
-		"accessibility.tap":             screenAction(uiTap),
-		"fs.stat":                       fsStat,
-		"fs.list":                       fsList,
-		"fs.read":                       fsRead,
-		"fs.write":                      fsWrite,
-		"fs.mkdir":                      fsMkdir,
-		"fs.remove":                     fsRemove,
-		"fs.copy":                       fsTransfer(false),
-		"fs.move":                       fsTransfer(true),
-		"dialog":                        presentDialog,
-		"fs.writer":                     fsWriter,
-		"stream.read":                   streamRead,
-		"stream.write":                  streamWrite,
-		"stream.close":                  streamClose,
-		"stream.pipe":                   streamPipe,
-		"graphics":                      graphicsRun,
-		"crypto.encrypt":                cryptoEncrypt,
-		"crypto.decrypt":                cryptoDecrypt,
-		"crypto.sign":                   cryptoSign,
-		"crypto.verify":                 cryptoVerify,
-		"crypto.derive":                 cryptoDerive,
-		"crypto.generate":               cryptoGenerate,
-		"crypto.import":                 cryptoImport,
-		"crypto.export":                 cryptoExport,
-		"sqlite":                        sqliteOperation,
+		"device.installedApplications": deviceApps,
+		"device.applicationIcon":       deviceAppIcon,
+		"device.launchApplication":     screenAction(deviceLaunch),
+		"device.pasteboard":            deviceClipboard,
+		"device.setPasteboard":         deviceSetClipboard,
+		"device.setSimulatedLocation":  deviceSetLocation,
+		"input.tap":                    screenAction(deviceTap),
+		"input.swipe":                  screenAction(deviceGesture),
+		"input.drag":                   screenAction(deviceGesture),
+		"input.pinch":                  screenAction(devicePinch),
+		"input.touch":                  screenAction(deviceTouch),
+		"input.pressKey":               screenAction(devicePressKey),
+		"input.button":                 screenAction(deviceButton),
+		"accessibility.snapshot":       uiSnapshot,
+		"accessibility.find":           uiFind,
+		"accessibility.changed":        uiChanged,
+		"accessibility.setText":        screenAction(uiSetText),
+		"accessibility.perform":        screenAction(uiPerform),
+		"accessibility.tap":            screenAction(uiTap),
+		"fs.stat":                      fsStat,
+		"fs.list":                      fsList,
+		"fs.read":                      fsRead,
+		"fs.write":                     fsWrite,
+		"fs.mkdir":                     fsMkdir,
+		"fs.remove":                    fsRemove,
+		"fs.copy":                      fsTransfer(false),
+		"fs.move":                      fsTransfer(true),
+		"dialog":                       presentDialog,
+		"fs.writer":                    fsWriter,
+		"stream.read":                  streamRead,
+		"stream.write":                 streamWrite,
+		"stream.close":                 streamClose,
+		"stream.pipe":                  streamPipe,
+		"graphics":                     graphicsRun,
+		"crypto.encrypt":               cryptoEncrypt,
+		"crypto.decrypt":               cryptoDecrypt,
+		"crypto.sign":                  cryptoSign,
+		"crypto.verify":                cryptoVerify,
+		"crypto.derive":                cryptoDerive,
+		"crypto.generate":              cryptoGenerate,
+		"crypto.import":                cryptoImport,
+		"crypto.export":                cryptoExport,
+		"sqlite":                       sqliteOperation,
 	}
 }
 
@@ -363,6 +362,10 @@ func deviceState(ctx context.Context, call *operation) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	if name == "simulatedLocation" {
+		location, _ := call.engine.host.currentLocation()
+		return location, nil
+	}
 	return readState(ctx, phone, name)
 }
 
@@ -502,34 +505,27 @@ func deviceSetClipboard(ctx context.Context, call *operation) (any, error) {
 }
 
 func deviceSetLocation(ctx context.Context, call *operation) (any, error) {
-	var latitude, longitude float64
-	if err := call.decode(2, &latitude, &longitude); err != nil {
+	if len(call.args) == 0 {
+		return nil, E.Cause1(ErrInvalid, E.New("argument 1 is missing"))
+	}
+	var location *struct {
+		Latitude  *float64 `json:"latitude"`
+		Longitude *float64 `json:"longitude"`
+	}
+	if err := call.decode(0, &location); err != nil {
 		return nil, err
 	}
-	if latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180 {
+	phone, err := call.phone()
+	if err != nil {
+		return nil, err
+	}
+	if location == nil {
+		return nil, call.engine.host.clearLocation(ctx, phone)
+	}
+	if location.Latitude == nil || *location.Latitude < -90 || *location.Latitude > 90 || location.Longitude == nil || *location.Longitude < -180 || *location.Longitude > 180 {
 		return nil, E.Cause1(ErrInvalid, E.New("the latitude must be within ±90 and the longitude within ±180 degrees"))
 	}
-	phone, err := call.phone()
-	if err != nil {
-		return nil, err
-	}
-	if err = phone.SetLocation(ctx, latitude, longitude); err != nil {
-		return nil, err
-	}
-	call.engine.host.ownLocation(call.engine.swiplet.ID)
-	return nil, nil
-}
-
-func deviceClearLocation(ctx context.Context, call *operation) (any, error) {
-	if err := call.decode(0); err != nil {
-		return nil, err
-	}
-	phone, err := call.phone()
-	if err != nil {
-		return nil, err
-	}
-	call.engine.host.ownLocation("")
-	return nil, phone.ClearLocation(ctx)
+	return nil, call.engine.host.setLocation(ctx, phone, call.engine.swiplet.ID, *location.Latitude, *location.Longitude)
 }
 
 type snapshotOptions struct {

@@ -148,7 +148,6 @@ func (r *runner) supervise(ctx context.Context, cancel context.CancelFunc, previ
 		r.set(ServiceStarting, nil)
 		started := time.Now()
 		err := r.runService(ctx)
-		r.host.releaseLocation(r.id)
 		if ctx.Err() != nil {
 			break
 		}

@@ -67,8 +67,10 @@ type Host struct {
 	watchAccess sync.Mutex
 	watchers    map[*serviceWatcher]struct{}
 
-	locationAccess sync.Mutex
-	locationOwner  string
+	locationAccess  sync.Mutex
+	locationState   sync.Mutex
+	location        *simulatedLocation
+	locationChanged chan struct{}
 
 	timeline timeline
 
@@ -94,7 +96,8 @@ func New(options Options) *Host {
 	h := &Host{
 		options: options, logFactory: logFactory, logger: logFactory.Logger(),
 		runners: make(map[string]*runner), watchers: make(map[*serviceWatcher]struct{}),
-		timeline: timeline{watches: make(map[*TimelineWatch]struct{})}, databases: newDatabaseStore(),
+		locationChanged: make(chan struct{}),
+		timeline:        timeline{watches: make(map[*TimelineWatch]struct{})}, databases: newDatabaseStore(),
 	}
 	h.ctx, h.cancel = context.WithCancelCause(context.Background())
 	h.lease = &foregroundLease{host: h}
@@ -113,6 +116,7 @@ func New(options Options) *Host {
 }
 
 func (h *Host) Start() {
+	h.restoreLocation()
 	for _, swiplet := range h.Swiplets() {
 		if !swiplet.Manifest.Service {
 			continue
