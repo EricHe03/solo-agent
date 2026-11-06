@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/swipt-automation/swipt/internal/automation"
+	"github.com/swipt-automation/swipt/internal/graphics"
 	"github.com/swipt-automation/swipt/internal/log"
 )
 
@@ -43,6 +44,7 @@ type PlatformHandler interface {
 	OnSwipletsChanged()
 	OnAPIFailed(message string)
 	OnShutdownRequested()
+	OnRecordingFailed(message string)
 	AppActive() bool
 }
 
@@ -64,22 +66,22 @@ type Platform struct {
 	api       *apiState
 }
 
-func NewPlatform(options *PlatformOptions, handler PlatformHandler, deviceOptions *DeviceOptions, deviceHandler DeviceHandler, graphicsHandler GraphicsHandler) *Platform {
+func NewPlatform(options *PlatformOptions, handler PlatformHandler, deviceOptions *DeviceOptions, deviceHandler DeviceHandler) *Platform {
 	p := &Platform{logFactory: newLogFactory(), handler: handler, app: options.AppBundleID, appVersion: options.AppVersion, appBuild: options.AppBuild, dialogs: make(map[int64]chan string)}
 	p.device = newDevice(deviceOptions, deviceHandler, p.logFactory)
 	p.dialog = automation.Dialog{App: p.app, InApp: true, Ask: p.ask, Backdrop: handler.OnBackdrop, Active: handler.AppActive}
-	var graphics automation.Graphics
-	if graphicsHandler != nil {
-		graphics = graphicsBridge{handler: graphicsHandler}
-	}
 	p.host = automation.New(automation.Options{
-		Device:            p.device.connection.Phone(),
-		Directory:         options.SwipletDirectory,
-		Caches:            options.SwipletCacheDirectory,
-		Languages:         strings.Fields(options.Languages),
-		LogFactory:        p.logFactory,
-		Dialog:            p.dialog,
-		Graphics:          graphics,
+		Device:     p.device.connection.Phone(),
+		Directory:  options.SwipletDirectory,
+		Caches:     options.SwipletCacheDirectory,
+		Languages:  strings.Fields(options.Languages),
+		LogFactory: p.logFactory,
+		Dialog:     p.dialog,
+		Graphics: graphics.New(graphics.Options{
+			Connection:        p.device.connection,
+			Logger:            p.logFactory.NewLogger("graphics"),
+			OnRecordingFailed: handler.OnRecordingFailed,
+		}),
 		OnSwipletsChanged: handler.OnSwipletsChanged,
 	})
 	p.device.services = p.host

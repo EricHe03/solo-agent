@@ -91,7 +91,7 @@ final class Platform {
             },
             active: { [isAppActive] in isAppActive.withLock { $0 } })
         let deviceEvents = DeviceEvents()
-        let core = LibSwiptNewPlatform(options, events, deviceOptions, deviceEvents, Graphics.shared)!
+        let core = LibSwiptNewPlatform(options, events, deviceOptions, deviceEvents)!
         self.core = core
         let box = UncheckedSendable(value: core)
         SwiptHostModule.database = { client, swiplet, request in
@@ -108,7 +108,6 @@ final class Platform {
         SwiptHostModule.openWeb = { swiplet in
             try SwipletWeb(box.value, swiplet: swiplet)
         }
-        Graphics.shared.attach(core.device()!)
         device = DeviceConnection(core.device()!, events: deviceEvents)
         apiAdvertiser.onFailure = { [weak self] errorCode in
             self?.advertisingFailed(errorCode)
@@ -259,6 +258,8 @@ final class Platform {
         case .shutdownRequested:
             developer.isLocalNetworkEnabled = false
             developer.isCloudflareEnabled = false
+        case .recordingFailed(let message):
+            ErrorAlert.shared.report(AlertState(String(localized: "Couldn’t Save the Screen Recording"), errorMessage: message))
         }
     }
 

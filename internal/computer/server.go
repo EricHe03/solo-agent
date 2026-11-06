@@ -21,6 +21,7 @@ import (
 	"github.com/swipt-automation/swipt/internal/automation"
 	"github.com/swipt-automation/swipt/internal/device"
 	"github.com/swipt-automation/swipt/internal/dnssd"
+	"github.com/swipt-automation/swipt/internal/graphics"
 	"github.com/swipt-automation/swipt/internal/log"
 )
 
@@ -107,6 +108,7 @@ func Run(ctx context.Context, options Options) error {
 		Caches:     filepath.Join(caches, swipletsFolder),
 		Languages:  Languages(),
 		LogFactory: options.Logs,
+		Graphics:   graphics.New(graphics.Options{Connection: connection, Logger: options.Logs.NewLogger("graphics")}),
 	})
 	swiplets.Start()
 	defer swiplets.Close()

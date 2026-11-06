@@ -4,6 +4,7 @@
 
 #include <dlfcn.h>
 #include <mach/mach_time.h>
+#include <objc/objc.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdlib.h>

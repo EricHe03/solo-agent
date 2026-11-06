@@ -4,7 +4,7 @@ package jsc
 
 /*
 #cgo CFLAGS: -fmodules
-#cgo LDFLAGS: -framework JavaScriptCore -lobjc
+#cgo LDFLAGS: -framework JavaScriptCore
 
 #include <stdlib.h>
 #include "jsc_thread.h"
