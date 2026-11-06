@@ -142,6 +142,7 @@ interface Modules {
   "@swipt/api/device": typeof import("@swipt/api/device");
   "@swipt/api/screen": typeof import("@swipt/api/screen");
   "@swipt/api/image": typeof import("@swipt/api/image");
+  "@swipt/api/localization": typeof import("@swipt/api/localization");
   "expo-sqlite": typeof import("./types/expo-sqlite");
   "expo-sqlite/kv-store": typeof import("./types/expo-sqlite/kv-store");
   "expo-sqlite/localStorage/install": typeof import("./types/expo-sqlite/localStorage/install");
@@ -157,7 +158,6 @@ const moduleTable = {
     __esModule: true,
     defineExtension,
     defineAction,
-    preferredLocalizations,
     actions: interfaceOnly("actions"),
     useService: interfaceOnly("useService"),
     exit: interfaceOnly("exit"),
@@ -182,6 +182,10 @@ const moduleTable = {
   "@swipt/api/device": () => ({ __esModule: true, ...chunk("api").device }),
   "@swipt/api/screen": () => ({ __esModule: true, ...chunk("api").screen }),
   "@swipt/api/image": () => ({ __esModule: true, ...chunk("api").image }),
+  "@swipt/api/localization": () => ({
+    __esModule: true,
+    preferredLocalizations,
+  }),
   "expo-sqlite": sqlite,
   "expo-sqlite/kv-store": sqliteStore,
   "expo-sqlite/localStorage/install": installLocalStorage,

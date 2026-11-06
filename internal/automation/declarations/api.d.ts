@@ -337,10 +337,6 @@ declare module "@swipt/api/swiplet" {
 
   export function exit(): void;
 
-  export function preferredLocalizations(
-    localizations: readonly string[],
-  ): string[];
-
   export {};
 }
 
@@ -991,6 +987,12 @@ declare module "@swipt/api/image" {
     data: Uint8Array | FileHandle | string,
     options?: CallOptions & { readonly scale?: number },
   ): Promise<RasterImage>;
+}
+
+declare module "@swipt/api/localization" {
+  export function preferredLocalizations(
+    localizations: readonly string[],
+  ): string[];
 }
 
 declare module "expo-sqlite" {

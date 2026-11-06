@@ -9,4 +9,3 @@ export const defineAction = outside;
 export const actions = outside;
 export const useService = outside;
 export const exit = outside;
-export const preferredLocalizations = outside;

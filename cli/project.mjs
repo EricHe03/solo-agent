@@ -32,6 +32,7 @@ const appModules = [
   "@swipt/api",
   "@swipt/api/swiplet",
   "@swipt/api/file-system",
+  "@swipt/api/localization",
   "@swipt/api/maps",
   "expo-sqlite",
   "expo-sqlite/kv-store",
@@ -46,6 +47,7 @@ const extensionModules = [
   "@swipt/api/device",
   "@swipt/api/screen",
   "@swipt/api/image",
+  "@swipt/api/localization",
   "expo-sqlite",
   "expo-sqlite/kv-store",
   "expo-sqlite/localStorage/install",
@@ -281,8 +283,6 @@ function describeExtension(source) {
       defineAction: (definition) => definition,
       actions: loading("actions"),
       useService: loading("useService"),
-      preferredLocalizations: (localizations) =>
-        localizations.includes("en") ? ["en"] : localizations.slice(0, 1),
     },
     "@swipt/api/file-system": {
       get dataDirectory() {
@@ -315,6 +315,10 @@ function describeExtension(source) {
     "@swipt/api/device": loading("device"),
     "@swipt/api/screen": loading("screen"),
     "@swipt/api/image": loading("image"),
+    "@swipt/api/localization": {
+      preferredLocalizations: (localizations) =>
+        localizations.includes("en") ? ["en"] : localizations.slice(0, 1),
+    },
     "expo-sqlite": {
       SQLiteDatabase: loading("SQLiteDatabase"),
       SQLiteStatement: loading("SQLiteStatement"),

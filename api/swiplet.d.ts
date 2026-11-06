@@ -219,8 +219,4 @@ export declare function useService<
 
 export declare function exit(): void;
 
-export declare function preferredLocalizations(
-  localizations: readonly string[],
-): string[];
-
 export {};

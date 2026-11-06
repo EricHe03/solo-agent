@@ -244,7 +244,6 @@ function interfaceModule(props: Props) {
     actions: () => calls,
     useService,
     exit: () => host.exit(),
-    preferredLocalizations,
   });
 }
 
@@ -313,6 +312,8 @@ function load(props: Props): { Swiplet: ComponentType; close(): void } {
           props.cacheDirectory,
         ),
       ),
+    "@swipt/api/localization": () =>
+      exportsOf("@swipt/api/localization", { preferredLocalizations }),
     "@swipt/api/maps": () =>
       exportsOf("@swipt/api/maps", {
         searchPlaces: (query: string, options: { signal?: AbortSignal } = {}) =>
