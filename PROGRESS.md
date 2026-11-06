@@ -16,13 +16,13 @@ _Last updated: 2026-11-06_
 
 ## Current
 
-- Baseline upstream-source IPA build: <https://github.com/EricHe03/solo-agent/actions/runs/42226898947> (in progress; LibSwipt and React Native setup succeeded; application archive is running).
-- Two integrated implementation commits are ready locally. Push after the baseline finishes so its run is not cancelled by workflow concurrency.
-- Checking the new Go and Swift code through the real macOS build loop.
+- Baseline upstream-source IPA build passed: <https://github.com/EricHe03/solo-agent/actions/runs/42226898947> in 18m1s.
+- Downloaded baseline artifact `Solo-Agent-iOS-IPA`: real `Swipt.ipa` (43,601,500 bytes; SHA-256 `5F41E6F093EE99380A765AC6279B53D829BC259D83A0569D7270E7BEAC24C9AB`), dSYMs, icon, and metadata for commit `10a1aa5`, version 0.1.0 build 1.
+- Pushing integrated commits and starting the Go/Swift compile–fix loop.
 
 ## Remaining
 
-- Obtain a successful baseline IPA, then build and debug the integrated agent IPA.
+- Build and debug the integrated agent IPA, then download and inspect `SoloAgent.ipa`.
 - Add concise installation, LocalDevVPN/sing-box pairing, provider, background-limit, and SideStore instructions.
 - Run physical-device Wi-Fi Settings and Safari Search tests; neither has been performed.
 
@@ -46,4 +46,4 @@ _Last updated: 2026-11-06_
 - Upstream baseline SHA: `a9e7c64` (`Add basic vphone support`).
 - Latest local commit: `0090752` (`fix: harden agent execution and cache builds`), plus this progress update.
 - Previous commits: `67390d6` (integrated agent), `10a1aa5` (minimal IPA workflow).
-- Actions: baseline run `42226898947`, application archive in progress. No IPA artifact has been verified yet.
+- Actions: baseline run `42226898947` succeeded; its IPA artifact was downloaded and verified locally. Integrated build not started yet.
