@@ -4,7 +4,7 @@ param(
     [string]$GitHubCLIVersion = '2.103.3',
     [string]$NodeVersion = '26.13.0',
     [string]$BunVersion = '1.4.4',
-    [string]$GoVersion = '1.26.8'
+    [string]$GoVersion = '1.27.3'
 )
 
 $ErrorActionPreference = 'Stop'

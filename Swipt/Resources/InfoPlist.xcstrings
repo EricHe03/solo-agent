@@ -18,307 +18,307 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يتصل Swipt بخدمات المطور على هذا الجهاز، وإذا قمت بنشر واجهة API الخاصة به، فإنه يقبل الاتصالات على الشبكة المحلية."
+            "value" : "يتصل Solo Agent بخدمات المطور على هذا الجهاز، وإذا قمت بنشر واجهة API الخاصة به، فإنه يقبل الاتصالات على الشبكة المحلية."
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt се свързва с услугите за разработчици на това устройство, а ако публикувате неговия API, приема и връзки от локалната мрежа."
+            "value" : "Solo Agent се свързва с услугите за разработчици на това устройство, а ако публикувате неговия API, приема и връзки от локалната мрежа."
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt এই ডিভাইসের ডেভেলপার পরিষেবাগুলির সাথে কানেক্ট করে, এবং আপনি এর API পাবলিশ করলে স্থানীয় নেটওয়ার্কে কানেকশন গ্রহণ করে।"
+            "value" : "Solo Agent এই ডিভাইসের ডেভেলপার পরিষেবাগুলির সাথে কানেক্ট করে, এবং আপনি এর API পাবলিশ করলে স্থানীয় নেটওয়ার্কে কানেকশন গ্রহণ করে।"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L’app Swipt es connecta als serveis de desenvolupador d’aquest dispositiu i, si en publiques l’API, accepta connexions a la xarxa local."
+            "value" : "L’app Solo Agent es connecta als serveis de desenvolupador d’aquest dispositiu i, si en publiques l’API, accepta connexions a la xarxa local."
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplikace Swipt se připojuje k vývojářským službám na tomto zařízení, a pokud zveřejníte její API, přijímá i připojení z místní sítě."
+            "value" : "Aplikace Solo Agent se připojuje k vývojářským službám na tomto zařízení, a pokud zveřejníte její API, přijímá i připojení z místní sítě."
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt opretter forbindelse til udviklertjenester på denne enhed og accepterer forbindelser på det lokale netværk, hvis du udgiver appens API."
+            "value" : "Solo Agent opretter forbindelse til udviklertjenester på denne enhed og accepterer forbindelser på det lokale netværk, hvis du udgiver appens API."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt verbindet sich mit den Entwicklerdiensten auf diesem Gerät und nimmt Verbindungen im lokalen Netzwerk an, wenn du die API veröffentlichst."
+            "value" : "Solo Agent verbindet sich mit den Entwicklerdiensten auf diesem Gerät und nimmt Verbindungen im lokalen Netzwerk an, wenn du die API veröffentlichst."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το Swipt συνδέεται στις υπηρεσίες προγραμματιστή αυτής της συσκευής και, αν δημοσιεύσετε το API του, δέχεται συνδέσεις στο τοπικό δίκτυο."
+            "value" : "Το Solo Agent συνδέεται στις υπηρεσίες προγραμματιστή αυτής της συσκευής και, αν δημοσιεύσετε το API του, δέχεται συνδέσεις στο τοπικό δίκτυο."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt connects to developer services on this device and, if you publish its API, accepts connections on the local network."
+            "value" : "Solo Agent connects to developer services on this device and, if you publish its API, accepts connections on the local network."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt se conecta a los servicios de desarrollador de este dispositivo y, si publicas su API, acepta conexiones en la red local."
+            "value" : "Solo Agent se conecta a los servicios de desarrollador de este dispositivo y, si publicas su API, acepta conexiones en la red local."
           }
         },
         "es-419" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt se conecta a los servicios de desarrollador de este dispositivo y, si publicas su API, acepta conexiones en la red local."
+            "value" : "Solo Agent se conecta a los servicios de desarrollador de este dispositivo y, si publicas su API, acepta conexiones en la red local."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt muodostaa yhteyden tämän laitteen kehittäjäpalveluihin ja ottaa vastaan yhteyksiä lähiverkosta, jos julkaiset sen API:n."
+            "value" : "Solo Agent muodostaa yhteyden tämän laitteen kehittäjäpalveluihin ja ottaa vastaan yhteyksiä lähiverkosta, jos julkaiset sen API:n."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt se connecte aux services de développeur de cet appareil et, si vous publiez son API, accepte les connexions sur le réseau local."
+            "value" : "Solo Agent se connecte aux services de développeur de cet appareil et, si vous publiez son API, accepte les connexions sur le réseau local."
           }
         },
         "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L’app Swipt se connecte aux services de développeur de cet appareil et, si vous publiez son API, elle accepte les connexions sur le réseau local."
+            "value" : "L’app Solo Agent se connecte aux services de développeur de cet appareil et, si vous publiez son API, elle accepte les connexions sur le réseau local."
           }
         },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt આ ડિવાઇસ પરની ડેવલપર સેવાઓ સાથે કનેક્ટ થાય છે અને, જો તમે તેનું API પબ્લિશ કરો, તો સ્થાનિક નેટવર્ક પરનાં કનેક્શન સ્વીકારે છે."
+            "value" : "Solo Agent આ ડિવાઇસ પરની ડેવલપર સેવાઓ સાથે કનેક્ટ થાય છે અને, જો તમે તેનું API પબ્લિશ કરો, તો સ્થાનિક નેટવર્ક પરનાં કનેક્શન સ્વીકારે છે."
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "‏Swipt מתחבר לשירותי המפתחים במכשיר הזה, ואם ה-API שלו מפורסם, הוא גם מקבל חיבורים ברשת המקומית."
+            "value" : "‏Solo Agent מתחבר לשירותי המפתחים במכשיר הזה, ואם ה-API שלו מפורסם, הוא גם מקבל חיבורים ברשת המקומית."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt इस डिवाइस पर डेवलपर सेवाओं से कनेक्ट होता है। अगर आप इसका API प्रकाशित करते हैं, तो यह स्थानीय नेटवर्क पर कनेक्शन भी स्वीकार करता है।"
+            "value" : "Solo Agent इस डिवाइस पर डेवलपर सेवाओं से कनेक्ट होता है। अगर आप इसका API प्रकाशित करते हैं, तो यह स्थानीय नेटवर्क पर कनेक्शन भी स्वीकार करता है।"
           }
         },
         "hr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplikacija Swipt povezuje se s uslugama za programere na ovom uređaju, a ako objavite njezin API, prihvaća i veze s lokalne mreže."
+            "value" : "Aplikacija Solo Agent povezuje se s uslugama za programere na ovom uređaju, a ako objavite njezin API, prihvaća i veze s lokalne mreže."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A Swipt az eszközön futó fejlesztői szolgáltatásokhoz csatlakozik, és ha Ön közzéteszi az API-ját, a helyi hálózatról érkező kapcsolatokat is fogad."
+            "value" : "A Solo Agent az eszközön futó fejlesztői szolgáltatásokhoz csatlakozik, és ha Ön közzéteszi az API-ját, a helyi hálózatról érkező kapcsolatokat is fogad."
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt terhubung ke layanan pengembang di perangkat ini dan menerima koneksi di jaringan lokal jika Anda memublikasikan API-nya."
+            "value" : "Solo Agent terhubung ke layanan pengembang di perangkat ini dan menerima koneksi di jaringan lokal jika Anda memublikasikan API-nya."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt si connette ai servizi per sviluppatori su questo dispositivo e, se ne pubblichi l’API, accetta connessioni sulla rete locale."
+            "value" : "Solo Agent si connette ai servizi per sviluppatori su questo dispositivo e, se ne pubblichi l’API, accetta connessioni sulla rete locale."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swiptは、このデバイス上のデベロッパサービスに接続します。また、APIを公開している場合は、ローカルネットワークからの接続を受け付けます。"
+            "value" : "Solo Agentは、このデバイス上のデベロッパサービスに接続します。また、APIを公開している場合は、ローカルネットワークからの接続を受け付けます。"
           }
         },
         "kk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt осы құрылғыдағы әзірлеуші қызметтеріне қосылады, ал оның API интерфейсін жарияласаңыз, жергілікті желідегі қосылымдарды да қабылдайды."
+            "value" : "Solo Agent осы құрылғыдағы әзірлеуші қызметтеріне қосылады, ал оның API интерфейсін жарияласаңыз, жергілікті желідегі қосылымдарды да қабылдайды."
           }
         },
         "kn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt ಆ್ಯಪ್ ಈ ಸಾಧನದಲ್ಲಿರುವ ಡೆವಲಪರ್ ಸೇವೆಗಳಿಗೆ ಕನೆಕ್ಟ್ ಆಗುತ್ತದೆ ಮತ್ತು ನೀವು ಅದರ API ಅನ್ನು ಪ್ರಕಟಿಸಿದರೆ, ಸ್ಥಳೀಯ ನೆಟ್‌ವರ್ಕ್‌ನಲ್ಲಿನ ಕನೆಕ್ಷನ್‌ಗಳನ್ನು ಸ್ವೀಕರಿಸುತ್ತದೆ."
+            "value" : "Solo Agent ಆ್ಯಪ್ ಈ ಸಾಧನದಲ್ಲಿರುವ ಡೆವಲಪರ್ ಸೇವೆಗಳಿಗೆ ಕನೆಕ್ಟ್ ಆಗುತ್ತದೆ ಮತ್ತು ನೀವು ಅದರ API ಅನ್ನು ಪ್ರಕಟಿಸಿದರೆ, ಸ್ಥಳೀಯ ನೆಟ್‌ವರ್ಕ್‌ನಲ್ಲಿನ ಕನೆಕ್ಷನ್‌ಗಳನ್ನು ಸ್ವೀಕರಿಸುತ್ತದೆ."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt는 이 기기의 개발자 서비스에 연결하며, 사용자가 API를 게시하는 경우 로컬 네트워크에서 들어오는 연결을 수락합니다."
+            "value" : "Solo Agent는 이 기기의 개발자 서비스에 연결하며, 사용자가 API를 게시하는 경우 로컬 네트워크에서 들어오는 연결을 수락합니다."
           }
         },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "„Swipt” jungiasi prie šiame įrenginyje veikiančių kūrėjo paslaugų, o jei paskelbsite programos API, priima ir ryšius iš vietinio tinklo."
+            "value" : "„Solo Agent” jungiasi prie šiame įrenginyje veikiančių kūrėjo paslaugų, o jei paskelbsite programos API, priima ir ryšius iš vietinio tinklo."
           }
         },
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt ഈ ഡിവൈസിലെ ഡെവലപ്പർ സർവീസുകളിലേക്ക് കണക്റ്റ് ചെയ്യുന്നു. നിങ്ങൾ അതിന്റെ API പ്രസിദ്ധീകരിച്ചാൽ, ലോക്കൽ നെറ്റ്‌വർക്കിലെ കണക്ഷനുകളും സ്വീകരിക്കും."
+            "value" : "Solo Agent ഈ ഡിവൈസിലെ ഡെവലപ്പർ സർവീസുകളിലേക്ക് കണക്റ്റ് ചെയ്യുന്നു. നിങ്ങൾ അതിന്റെ API പ്രസിദ്ധീകരിച്ചാൽ, ലോക്കൽ നെറ്റ്‌വർക്കിലെ കണക്ഷനുകളും സ്വീകരിക്കും."
           }
         },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt या डिव्हाइसवरील डेव्हलपर सेवांशी कनेक्ट होते आणि तुम्ही त्याचे API प्रकाशित केल्यास स्थानिक नेटवर्कवरील कनेक्शन स्वीकारते."
+            "value" : "Solo Agent या डिव्हाइसवरील डेव्हलपर सेवांशी कनेक्ट होते आणि तुम्ही त्याचे API प्रकाशित केल्यास स्थानिक नेटवर्कवरील कनेक्शन स्वीकारते."
           }
         },
         "ms" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt menyambung ke perkhidmatan pembangun pada peranti ini dan, jika anda menerbitkan API-nya, menerima sambungan pada rangkaian setempat."
+            "value" : "Solo Agent menyambung ke perkhidmatan pembangun pada peranti ini dan, jika anda menerbitkan API-nya, menerima sambungan pada rangkaian setempat."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt kobler til utviklertjenester på denne enheten og tar imot tilkoblinger på det lokale nettverket hvis du publiserer API-et."
+            "value" : "Solo Agent kobler til utviklertjenester på denne enheten og tar imot tilkoblinger på det lokale nettverket hvis du publiserer API-et."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt maakt verbinding met ontwikkelaarsdiensten op dit apparaat en accepteert verbindingen op het lokale netwerk als je de API publiceert."
+            "value" : "Solo Agent maakt verbinding met ontwikkelaarsdiensten op dit apparaat en accepteert verbindingen op het lokale netwerk als je de API publiceert."
           }
         },
         "or" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt ଏହି ଡିଭାଇସ୍‌ରେ ଥିବା ଡେଭଲପର୍ ସେବା ସହ ସଂଯୋଗ କରେ ଏବଂ ଯଦି ଆପଣ ଏହାର API ପ୍ରକାଶ କରନ୍ତି, ତେବେ ସ୍ଥାନୀୟ ନେଟ୍‌ୱର୍କ୍‌ରେ ସଂଯୋଗ ଗ୍ରହଣ କରେ।"
+            "value" : "Solo Agent ଏହି ଡିଭାଇସ୍‌ରେ ଥିବା ଡେଭଲପର୍ ସେବା ସହ ସଂଯୋଗ କରେ ଏବଂ ଯଦି ଆପଣ ଏହାର API ପ୍ରକାଶ କରନ୍ତି, ତେବେ ସ୍ଥାନୀୟ ନେଟ୍‌ୱର୍କ୍‌ରେ ସଂଯୋଗ ଗ୍ରହଣ କରେ।"
           }
         },
         "pa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt ਇਸ ਡਿਵਾਈਸ 'ਤੇ ਡਿਵੈਲਪਰ ਸੇਵਾਵਾਂ ਨਾਲ ਕਨੈਕਟ ਕਰਦੀ ਹੈ। ਜੇ ਤੁਸੀਂ ਇਸਦਾ API ਪ੍ਰਕਾਸ਼ਿਤ ਕਰਦੇ ਹੋ, ਤਾਂ ਇਹ ਸਥਾਨਕ ਨੈੱਟਵਰਕ 'ਤੇ ਕਨੈਕਸ਼ਨ ਵੀ ਸਵੀਕਾਰ ਕਰਦੀ ਹੈ।"
+            "value" : "Solo Agent ਇਸ ਡਿਵਾਈਸ 'ਤੇ ਡਿਵੈਲਪਰ ਸੇਵਾਵਾਂ ਨਾਲ ਕਨੈਕਟ ਕਰਦੀ ਹੈ। ਜੇ ਤੁਸੀਂ ਇਸਦਾ API ਪ੍ਰਕਾਸ਼ਿਤ ਕਰਦੇ ਹੋ, ਤਾਂ ਇਹ ਸਥਾਨਕ ਨੈੱਟਵਰਕ 'ਤੇ ਕਨੈਕਸ਼ਨ ਵੀ ਸਵੀਕਾਰ ਕਰਦੀ ਹੈ।"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplikacja Swipt łączy się z usługami deweloperskimi na tym urządzeniu, a jeśli opublikujesz jej API, przyjmuje także połączenia z sieci lokalnej."
+            "value" : "Aplikacja Solo Agent łączy się z usługami deweloperskimi na tym urządzeniu, a jeśli opublikujesz jej API, przyjmuje także połączenia z sieci lokalnej."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Swipt se conecta aos serviços de desenvolvedor neste dispositivo e, se você publicar a API dele, aceita conexões na rede local."
+            "value" : "O Solo Agent se conecta aos serviços de desenvolvedor neste dispositivo e, se você publicar a API dele, aceita conexões na rede local."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Swipt liga‑se aos serviços de programador neste dispositivo e, se publicar a respetiva API, aceita ligações na rede local."
+            "value" : "O Solo Agent liga‑se aos serviços de programador neste dispositivo e, se publicar a respetiva API, aceita ligações na rede local."
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplicația Swipt se conectează la serviciile pentru dezvoltatori de pe acest dispozitiv și, dacă publicați API-ul aplicației, acceptă conexiuni în rețeaua locală."
+            "value" : "Aplicația Solo Agent se conectează la serviciile pentru dezvoltatori de pe acest dispozitiv și, dacă publicați API-ul aplicației, acceptă conexiuni în rețeaua locală."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt подключается к службам разработчика на этом устройстве и, если Вы опубликуете его API, принимает подключения из локальной сети."
+            "value" : "Solo Agent подключается к службам разработчика на этом устройстве и, если Вы опубликуете его API, принимает подключения из локальной сети."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apka Swipt sa pripája k vývojárskym službám v tomto zariadení. Ak zverejníte jej API, prijíma aj pripojenia z lokálnej siete."
+            "value" : "Apka Solo Agent sa pripája k vývojárskym službám v tomto zariadení. Ak zverejníte jej API, prijíma aj pripojenia z lokálnej siete."
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplikacija Swipt se povezuje s storitvami za razvijalce v tej napravi. Če objavite njen API, sprejema tudi povezave v lokalnem omrežju."
+            "value" : "Aplikacija Solo Agent se povezuje s storitvami za razvijalce v tej napravi. Če objavite njen API, sprejema tudi povezave v lokalnem omrežju."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt ansluter till utvecklartjänster på den här enheten och tar emot anslutningar i det lokala nätverket om du publicerar dess API."
+            "value" : "Solo Agent ansluter till utvecklartjänster på den här enheten och tar emot anslutningar i det lokala nätverket om du publicerar dess API."
           }
         },
         "ta" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt இந்தச் சாதனத்தில் உள்ள டெவலப்பர் சேவைகளுடன் இணைகிறது. நீங்கள் அதன் APIஐ வெளியிட்டால், உள்ளக நெட்வொர்க்கில் இருந்து வரும் இணைப்புகளையும் ஏற்கும்."
+            "value" : "Solo Agent இந்தச் சாதனத்தில் உள்ள டெவலப்பர் சேவைகளுடன் இணைகிறது. நீங்கள் அதன் APIஐ வெளியிட்டால், உள்ளக நெட்வொர்க்கில் இருந்து வரும் இணைப்புகளையும் ஏற்கும்."
           }
         },
         "te" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt ఈ డివైజ్‌లోని డెవలపర్ సర్వీస్‌లకు కనెక్ట్ అవుతుంది. మీరు దాని APIని పబ్లిష్ చేస్తే, లోకల్ నెట్‌వర్క్‌లోని కనెక్షన్‌లను కూడా అంగీకరిస్తుంది."
+            "value" : "Solo Agent ఈ డివైజ్‌లోని డెవలపర్ సర్వీస్‌లకు కనెక్ట్ అవుతుంది. మీరు దాని APIని పబ్లిష్ చేస్తే, లోకల్ నెట్‌వర్క్‌లోని కనెక్షన్‌లను కూడా అంగీకరిస్తుంది."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt จะเชื่อมต่อกับบริการนักพัฒนาบนอุปกรณ์นี้ และหากคุณเผยแพร่ API ของ Swipt ก็จะยอมรับการเชื่อมต่อบนเครือข่ายในพื้นที่ด้วย"
+            "value" : "Solo Agent จะเชื่อมต่อกับบริการนักพัฒนาบนอุปกรณ์นี้ และหากคุณเผยแพร่ API ของ Solo Agent ก็จะยอมรับการเชื่อมต่อบนเครือข่ายในพื้นที่ด้วย"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt bu aygıttaki geliştirici servislerine bağlanır ve API’sini yayımlarsanız yerel ağdaki bağlantıları kabul eder."
+            "value" : "Solo Agent bu aygıttaki geliştirici servislerine bağlanır ve API’sini yayımlarsanız yerel ağdaki bağlantıları kabul eder."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Програма Swipt підʼєднується до служб розробника на цьому пристрої, а якщо ви опублікуєте її API, також приймає зʼєднання з локальної мережі."
+            "value" : "Програма Solo Agent підʼєднується до служб розробника на цьому пристрої, а якщо ви опублікуєте її API, також приймає зʼєднання з локальної мережі."
           }
         },
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "‏Swipt اس ڈیوائس پر ڈیولپر سروسز سے کنکٹ ہوتا ہے، اور اگر آپ اس کا API شائع کرتے ہیں تو یہ مقامی نیٹ ورک پر کنکشنز بھی قبول کرتا ہے۔"
+            "value" : "‏Solo Agent اس ڈیوائس پر ڈیولپر سروسز سے کنکٹ ہوتا ہے، اور اگر آپ اس کا API شائع کرتے ہیں تو یہ مقامی نیٹ ورک پر کنکشنز بھی قبول کرتا ہے۔"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt kết nối với các dịch vụ nhà phát triển trên thiết bị này và chấp nhận các kết nối trên mạng cục bộ nếu bạn công bố API của ứng dụng."
+            "value" : "Solo Agent kết nối với các dịch vụ nhà phát triển trên thiết bị này và chấp nhận các kết nối trên mạng cục bộ nếu bạn công bố API của ứng dụng."
           }
         },
         "zh-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt 會連接此裝置上的開發者服務；如果你發佈其 API，它亦會接受來自本地網絡的連線。"
+            "value" : "Solo Agent 會連接此裝置上的開發者服務；如果你發佈其 API，它亦會接受來自本地網絡的連線。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt 会连接此设备上的开发者服务；如果你发布它的 API，它还会接受本地网络上的连接。"
+            "value" : "Solo Agent 会连接此设备上的开发者服务；如果你发布它的 API，它还会接受本地网络上的连接。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt 會連線至此裝置上的開發者服務；如果你發佈它的 API，它也會接受區域網路上的連線。"
+            "value" : "Solo Agent 會連線至此裝置上的開發者服務；如果你發佈它的 API，它也會接受區域網路上的連線。"
           }
         }
       }
@@ -330,307 +330,307 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يحصل Swipt على موقعك التقريبي فقط لمواصلة أتمتة هذا الجهاز أثناء استخدامك لتطبيقات أخرى أو عندما يكون الجهاز مقفلًا. ولا يحتفظ بموقعك ولا يرسله إلى أي مكان."
+            "value" : "يحصل Solo Agent على موقعك التقريبي فقط لمواصلة أتمتة هذا الجهاز أثناء استخدامك لتطبيقات أخرى أو عندما يكون الجهاز مقفلًا. ولا يحتفظ بموقعك ولا يرسله إلى أي مكان."
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt получава приблизителното Ви местоположение само за да продължи да автоматизира това устройство, докато използвате други приложения или устройството е заключено. Приложението не съхранява местоположението Ви и не го изпраща никъде."
+            "value" : "Solo Agent получава приблизителното Ви местоположение само за да продължи да автоматизира това устройство, докато използвате други приложения или устройството е заключено. Приложението не съхранява местоположението Ви и не го изпраща никъде."
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "আপনি অন্য অ্যাপ ব্যবহার করার সময় বা ডিভাইস লক থাকা অবস্থায় এই ডিভাইস অটোমেট করা চালু রাখার জন্যই শুধু Swipt-এ আপনার আনুমানিক লোকেশন নেওয়া হয়। আপনার লোকেশন সেভ করে রাখা বা কোথাও পাঠানো হয় না।"
+            "value" : "আপনি অন্য অ্যাপ ব্যবহার করার সময় বা ডিভাইস লক থাকা অবস্থায় এই ডিভাইস অটোমেট করা চালু রাখার জন্যই শুধু Solo Agent-এ আপনার আনুমানিক লোকেশন নেওয়া হয়। আপনার লোকেশন সেভ করে রাখা বা কোথাও পাঠানো হয় না।"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L’app Swipt obté la teva ubicació aproximada només per poder continuar automatitzant aquest dispositiu mentre utilitzes altres apps o mentre el dispositiu està bloquejat. No desa la ubicació ni l’envia enlloc."
+            "value" : "L’app Solo Agent obté la teva ubicació aproximada només per poder continuar automatitzant aquest dispositiu mentre utilitzes altres apps o mentre el dispositiu està bloquejat. No desa la ubicació ni l’envia enlloc."
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplikace Swipt zjišťuje vaši přibližnou polohu pouze proto, aby mohla dál automatizovat toto zařízení, když používáte jiné aplikace nebo je zařízení zamknuté. Vaši polohu neukládá ani ji nikam neodesílá."
+            "value" : "Aplikace Solo Agent zjišťuje vaši přibližnou polohu pouze proto, aby mohla dál automatizovat toto zařízení, když používáte jiné aplikace nebo je zařízení zamknuté. Vaši polohu neukládá ani ji nikam neodesílá."
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt henter kun din omtrentlige lokalitet for at kunne fortsætte med at automatisere denne enhed, mens du bruger andre apps, eller mens enheden er låst. Lokaliteten bliver hverken gemt eller sendt nogen steder hen."
+            "value" : "Solo Agent henter kun din omtrentlige lokalitet for at kunne fortsætte med at automatisere denne enhed, mens du bruger andre apps, eller mens enheden er låst. Lokaliteten bliver hverken gemt eller sendt nogen steder hen."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt ruft deinen ungefähren Standort nur ab, um dieses Gerät weiterhin zu automatisieren, während du andere Apps verwendest oder das Gerät gesperrt ist. Dein Standort wird weder aufbewahrt noch irgendwohin gesendet."
+            "value" : "Solo Agent ruft deinen ungefähren Standort nur ab, um dieses Gerät weiterhin zu automatisieren, während du andere Apps verwendest oder das Gerät gesperrt ist. Dein Standort wird weder aufbewahrt noch irgendwohin gesendet."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το Swipt λαμβάνει την κατά προσέγγιση τοποθεσία σας μόνο για να συνεχίζει την αυτοματοποίηση αυτής της συσκευής ενώ χρησιμοποιείτε άλλες εφαρμογές ή όταν η συσκευή είναι κλειδωμένη. Δεν διατηρεί την τοποθεσία σας ούτε τη στέλνει πουθενά."
+            "value" : "Το Solo Agent λαμβάνει την κατά προσέγγιση τοποθεσία σας μόνο για να συνεχίζει την αυτοματοποίηση αυτής της συσκευής ενώ χρησιμοποιείτε άλλες εφαρμογές ή όταν η συσκευή είναι κλειδωμένη. Δεν διατηρεί την τοποθεσία σας ούτε τη στέλνει πουθενά."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt gets your approximate location only to keep automating this device while you use other apps or the device is locked. It doesn’t keep your location or send it anywhere."
+            "value" : "Solo Agent gets your approximate location only to keep automating this device while you use other apps or the device is locked. It doesn’t keep your location or send it anywhere."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt obtiene tu ubicación aproximada solo para seguir automatizando este dispositivo mientras usas otras apps o el dispositivo está bloqueado. No guarda tu ubicación ni la envía a ningún sitio."
+            "value" : "Solo Agent obtiene tu ubicación aproximada solo para seguir automatizando este dispositivo mientras usas otras apps o el dispositivo está bloqueado. No guarda tu ubicación ni la envía a ningún sitio."
           }
         },
         "es-419" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt obtiene tu ubicación aproximada sólo para seguir automatizando este dispositivo mientras usas otras apps o cuando el dispositivo está bloqueado. No guarda tu ubicación ni la envía a ningún lugar."
+            "value" : "Solo Agent obtiene tu ubicación aproximada sólo para seguir automatizando este dispositivo mientras usas otras apps o cuando el dispositivo está bloqueado. No guarda tu ubicación ni la envía a ningún lugar."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt hakee likimääräisen sijaintisi vain, jotta tämän laitteen automatisointi voi jatkua, kun käytät muita appeja tai laite on lukittuna. Se ei tallenna sijaintiasi eikä lähetä sitä minnekään."
+            "value" : "Solo Agent hakee likimääräisen sijaintisi vain, jotta tämän laitteen automatisointi voi jatkua, kun käytät muita appeja tai laite on lukittuna. Se ei tallenna sijaintiasi eikä lähetä sitä minnekään."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt obtient votre position approximative uniquement pour continuer à automatiser cet appareil lorsque vous utilisez d’autres apps ou que l’appareil est verrouillé. L’app ne conserve pas votre position et ne l’envoie nulle part."
+            "value" : "Solo Agent obtient votre position approximative uniquement pour continuer à automatiser cet appareil lorsque vous utilisez d’autres apps ou que l’appareil est verrouillé. L’app ne conserve pas votre position et ne l’envoie nulle part."
           }
         },
         "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L’app Swipt obtient votre position approximative uniquement pour continuer à automatiser cet appareil lorsque vous utilisez d’autres apps ou que l’appareil est verrouillé. Elle ne conserve pas votre position et ne l’envoie nulle part."
+            "value" : "L’app Solo Agent obtient votre position approximative uniquement pour continuer à automatiser cet appareil lorsque vous utilisez d’autres apps ou que l’appareil est verrouillé. Elle ne conserve pas votre position et ne l’envoie nulle part."
           }
         },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "તમે અન્ય ઍપનો ઉપયોગ કરો અથવા ડિવાઇસ લૉક હોય ત્યારે આ ડિવાઇસને ઑટોમેટ કરવાનું ચાલુ રાખવા માટે જ Swipt તમારું અંદાજિત સ્થાન મેળવે છે. તે તમારું સ્થાન સાચવતું નથી કે ક્યાંય મોકલતું નથી."
+            "value" : "તમે અન્ય ઍપનો ઉપયોગ કરો અથવા ડિવાઇસ લૉક હોય ત્યારે આ ડિવાઇસને ઑટોમેટ કરવાનું ચાલુ રાખવા માટે જ Solo Agent તમારું અંદાજિત સ્થાન મેળવે છે. તે તમારું સ્થાન સાચવતું નથી કે ક્યાંય મોકલતું નથી."
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "‏Swipt מקבל את המיקום המשוער שלך רק כדי להמשיך לבצע אוטומציה של המכשיר הזה בזמן שימוש ביישומים אחרים או כשהמכשיר נעול. המיקום לא נשמר ולא נשלח לשום מקום."
+            "value" : "‏Solo Agent מקבל את המיקום המשוער שלך רק כדי להמשיך לבצע אוטומציה של המכשיר הזה בזמן שימוש ביישומים אחרים או כשהמכשיר נעול. המיקום לא נשמר ולא נשלח לשום מקום."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "जब आप अन्य ऐप्स का उपयोग करते हैं या डिवाइस लॉक होता है, तब इस डिवाइस को ऑटोमेट करते रहने के लिए ही Swipt आपकी अनुमानित लोकेशन प्राप्त करता है। यह आपकी लोकेशन न तो सहेजता है और न ही उसे कहीं भेजता है।"
+            "value" : "जब आप अन्य ऐप्स का उपयोग करते हैं या डिवाइस लॉक होता है, तब इस डिवाइस को ऑटोमेट करते रहने के लिए ही Solo Agent आपकी अनुमानित लोकेशन प्राप्त करता है। यह आपकी लोकेशन न तो सहेजता है और न ही उसे कहीं भेजता है।"
           }
         },
         "hr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplikacija Swipt dohvaća vašu približnu lokaciju samo kako bi nastavila automatizirati ovaj uređaj dok upotrebljavate druge aplikacije ili je uređaj zaključan. Ne sprema vašu lokaciju niti je bilo kamo šalje."
+            "value" : "Aplikacija Solo Agent dohvaća vašu približnu lokaciju samo kako bi nastavila automatizirati ovaj uređaj dok upotrebljavate druge aplikacije ili je uređaj zaključan. Ne sprema vašu lokaciju niti je bilo kamo šalje."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A Swipt csak azért kéri le az Ön hozzávetőleges helyzetét, hogy továbbra is automatizálhassa az eszközt, amíg Ön más appokat használ, vagy az eszköz le van zárva. A helyadatokat nem tárolja, és sehová sem küldi el."
+            "value" : "A Solo Agent csak azért kéri le az Ön hozzávetőleges helyzetét, hogy továbbra is automatizálhassa az eszközt, amíg Ön más appokat használ, vagy az eszköz le van zárva. A helyadatokat nem tárolja, és sehová sem küldi el."
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt mendapatkan lokasi perkiraan Anda hanya untuk terus mengotomatiskan perangkat ini saat Anda menggunakan app lain atau saat perangkat terkunci. Swipt tidak menyimpan lokasi Anda atau mengirimkannya ke mana pun."
+            "value" : "Solo Agent mendapatkan lokasi perkiraan Anda hanya untuk terus mengotomatiskan perangkat ini saat Anda menggunakan app lain atau saat perangkat terkunci. Solo Agent tidak menyimpan lokasi Anda atau mengirimkannya ke mana pun."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt ottiene la tua posizione approssimativa solo per continuare ad automatizzare questo dispositivo mentre usi altre app o il dispositivo è bloccato. Non memorizza la tua posizione e non la invia da nessuna parte."
+            "value" : "Solo Agent ottiene la tua posizione approssimativa solo per continuare ad automatizzare questo dispositivo mentre usi altre app o il dispositivo è bloccato. Non memorizza la tua posizione e non la invia da nessuna parte."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swiptは、ほかのアプリを使用しているときやデバイスがロックされているときにもこのデバイスの自動化を続けるためだけに、おおよその位置情報を取得します。位置情報を保存したり、どこかに送信したりすることはありません。"
+            "value" : "Solo Agentは、ほかのアプリを使用しているときやデバイスがロックされているときにもこのデバイスの自動化を続けるためだけに、おおよその位置情報を取得します。位置情報を保存したり、どこかに送信したりすることはありません。"
           }
         },
         "kk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt басқа қолданбаларды пайдаланып жатқанда немесе құрылғы құлыпталғанда осы құрылғыны автоматтандыруды жалғастыру үшін ғана шамамен орналасуыңызды алады. Ол орналасуыңызды сақтамайды және ешқайда жібермейді."
+            "value" : "Solo Agent басқа қолданбаларды пайдаланып жатқанда немесе құрылғы құлыпталғанда осы құрылғыны автоматтандыруды жалғастыру үшін ғана шамамен орналасуыңызды алады. Ол орналасуыңызды сақтамайды және ешқайда жібермейді."
           }
         },
         "kn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ನೀವು ಇತರ ಆ್ಯಪ್‌ಗಳನ್ನು ಬಳಸುತ್ತಿರುವಾಗ ಅಥವಾ ಸಾಧನ ಲಾಕ್ ಆಗಿರುವಾಗ ಈ ಸಾಧನವನ್ನು ಸ್ವಯಂಚಾಲಿತಗೊಳಿಸುವುದನ್ನು ಮುಂದುವರಿಸಲು ಮಾತ್ರ Swipt ಆ್ಯಪ್ ನಿಮ್ಮ ಅಂದಾಜು ಸ್ಥಳವನ್ನು ಪಡೆಯುತ್ತದೆ. ಇದು ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ಸಂಗ್ರಹಿಸುವುದಿಲ್ಲ ಅಥವಾ ಎಲ್ಲಿಗೂ ಕಳುಹಿಸುವುದಿಲ್ಲ."
+            "value" : "ನೀವು ಇತರ ಆ್ಯಪ್‌ಗಳನ್ನು ಬಳಸುತ್ತಿರುವಾಗ ಅಥವಾ ಸಾಧನ ಲಾಕ್ ಆಗಿರುವಾಗ ಈ ಸಾಧನವನ್ನು ಸ್ವಯಂಚಾಲಿತಗೊಳಿಸುವುದನ್ನು ಮುಂದುವರಿಸಲು ಮಾತ್ರ Solo Agent ಆ್ಯಪ್ ನಿಮ್ಮ ಅಂದಾಜು ಸ್ಥಳವನ್ನು ಪಡೆಯುತ್ತದೆ. ಇದು ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ಸಂಗ್ರಹಿಸುವುದಿಲ್ಲ ಅಥವಾ ಎಲ್ಲಿಗೂ ಕಳುಹಿಸುವುದಿಲ್ಲ."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt는 다른 앱을 사용하거나 기기가 잠겨 있는 동안에도 이 기기를 계속 자동화하기 위해서만 사용자의 대략적인 위치를 가져옵니다. 위치 정보를 보관하거나 다른 곳으로 전송하지 않습니다."
+            "value" : "Solo Agent는 다른 앱을 사용하거나 기기가 잠겨 있는 동안에도 이 기기를 계속 자동화하기 위해서만 사용자의 대략적인 위치를 가져옵니다. 위치 정보를 보관하거나 다른 곳으로 전송하지 않습니다."
           }
         },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "„Swipt” nustato apytikslę jūsų vietovę tik tam, kad galėtų toliau automatizuoti šį įrenginį, kai naudojate kitas programas arba įrenginys užrakintas. Programa nesaugo jūsų vietovės ir niekur jos nesiunčia."
+            "value" : "„Solo Agent” nustato apytikslę jūsų vietovę tik tam, kad galėtų toliau automatizuoti šį įrenginį, kai naudojate kitas programas arba įrenginys užrakintas. Programa nesaugo jūsų vietovės ir niekur jos nesiunčia."
           }
         },
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "നിങ്ങൾ മറ്റ് ആപ്പുകൾ ഉപയോഗിക്കുമ്പോഴോ ഡിവൈസ് ലോക്ക് ചെയ്തിരിക്കുമ്പോഴോ ഈ ഡിവൈസ് ഓട്ടോമേറ്റ് ചെയ്യുന്നത് തുടരാൻ മാത്രമാണ് Swipt നിങ്ങളുടെ ഏകദേശ ലൊക്കേഷൻ ലഭ്യമാക്കുന്നത്. ഇത് നിങ്ങളുടെ ലൊക്കേഷൻ സൂക്ഷിക്കുകയോ എവിടേക്കും അയയ്ക്കുകയോ ചെയ്യുന്നില്ല."
+            "value" : "നിങ്ങൾ മറ്റ് ആപ്പുകൾ ഉപയോഗിക്കുമ്പോഴോ ഡിവൈസ് ലോക്ക് ചെയ്തിരിക്കുമ്പോഴോ ഈ ഡിവൈസ് ഓട്ടോമേറ്റ് ചെയ്യുന്നത് തുടരാൻ മാത്രമാണ് Solo Agent നിങ്ങളുടെ ഏകദേശ ലൊക്കേഷൻ ലഭ്യമാക്കുന്നത്. ഇത് നിങ്ങളുടെ ലൊക്കേഷൻ സൂക്ഷിക്കുകയോ എവിടേക്കും അയയ്ക്കുകയോ ചെയ്യുന്നില്ല."
           }
         },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "तुम्ही इतर ॲप वापरत असताना किंवा डिव्हाइस लॉक असताना हे डिव्हाइस स्वयंचलित करत राहण्यासाठीच Swipt तुमचे अंदाजे स्थान मिळवते. ते तुमचे स्थान साठवत नाही किंवा कुठेही पाठवत नाही."
+            "value" : "तुम्ही इतर ॲप वापरत असताना किंवा डिव्हाइस लॉक असताना हे डिव्हाइस स्वयंचलित करत राहण्यासाठीच Solo Agent तुमचे अंदाजे स्थान मिळवते. ते तुमचे स्थान साठवत नाही किंवा कुठेही पाठवत नाही."
           }
         },
         "ms" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt mendapatkan lokasi anggaran anda hanya untuk terus mengautomasikan peranti ini semasa anda menggunakan app lain atau semasa peranti dikunci. Ia tidak menyimpan lokasi anda atau menghantarnya ke mana-mana."
+            "value" : "Solo Agent mendapatkan lokasi anggaran anda hanya untuk terus mengautomasikan peranti ini semasa anda menggunakan app lain atau semasa peranti dikunci. Ia tidak menyimpan lokasi anda atau menghantarnya ke mana-mana."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt henter omtrentlig posisjon bare for å fortsette å automatisere denne enheten mens du bruker andre apper eller enheten er låst. Posisjonen lagres ikke og sendes ingen steder."
+            "value" : "Solo Agent henter omtrentlig posisjon bare for å fortsette å automatisere denne enheten mens du bruker andre apper eller enheten er låst. Posisjonen lagres ikke og sendes ingen steder."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt gebruikt je geschatte locatie alleen om dit apparaat te blijven automatiseren terwijl je andere apps gebruikt of het apparaat is vergrendeld. Je locatie wordt niet bewaard en nergens naartoe verstuurd."
+            "value" : "Solo Agent gebruikt je geschatte locatie alleen om dit apparaat te blijven automatiseren terwijl je andere apps gebruikt of het apparaat is vergrendeld. Je locatie wordt niet bewaard en nergens naartoe verstuurd."
           }
         },
         "or" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ଆପଣ ଅନ୍ୟ ଆପ୍ ବ୍ୟବହାର କରୁଥିବା ସମୟରେ କିମ୍ବା ଡିଭାଇସ୍ ଲକ୍ ଥିବା ସମୟରେ ଏହି ଡିଭାଇସ୍‌କୁ ସ୍ୱୟଂଚାଳିତ କରିବା ଜାରି ରଖିବା ପାଇଁ ହିଁ Swipt ଆପଣଙ୍କ ଆନୁମାନିକ ଲୋକେଶନ୍ ପାଏ। ଏହା ଆପଣଙ୍କ ଲୋକେଶନ୍ ସେଭ୍ କରେ ନାହିଁ କିମ୍ବା କୌଣସି ସ୍ଥାନକୁ ପଠାଏ ନାହିଁ।"
+            "value" : "ଆପଣ ଅନ୍ୟ ଆପ୍ ବ୍ୟବହାର କରୁଥିବା ସମୟରେ କିମ୍ବା ଡିଭାଇସ୍ ଲକ୍ ଥିବା ସମୟରେ ଏହି ଡିଭାଇସ୍‌କୁ ସ୍ୱୟଂଚାଳିତ କରିବା ଜାରି ରଖିବା ପାଇଁ ହିଁ Solo Agent ଆପଣଙ୍କ ଆନୁମାନିକ ଲୋକେଶନ୍ ପାଏ। ଏହା ଆପଣଙ୍କ ଲୋକେଶନ୍ ସେଭ୍ କରେ ନାହିଁ କିମ୍ବା କୌଣସି ସ୍ଥାନକୁ ପଠାଏ ନାହିଁ।"
           }
         },
         "pa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt ਤੁਹਾਡਾ ਅੰਦਾਜ਼ਨ ਟਿਕਾਣਾ ਸਿਰਫ਼ ਇਸ ਲਈ ਪ੍ਰਾਪਤ ਕਰਦੀ ਹੈ ਤਾਂ ਜੋ ਤੁਹਾਡੇ ਵੱਲੋਂ ਹੋਰ ਐਪਾਂ ਵਰਤਣ ਵੇਲੇ ਜਾਂ ਡਿਵਾਈਸ ਲਾਕ ਹੋਣ 'ਤੇ ਵੀ ਇਸ ਡਿਵਾਈਸ ਨੂੰ ਸਵੈਚਲਿਤ ਕੀਤਾ ਜਾਂਦਾ ਰਹੇ। ਇਹ ਤੁਹਾਡਾ ਟਿਕਾਣਾ ਨਾ ਤਾਂ ਰੱਖਿਅਤ ਕਰਦੀ ਹੈ ਅਤੇ ਨਾ ਹੀ ਇਸਨੂੰ ਕਿਤੇ ਭੇਜਦੀ ਹੈ।"
+            "value" : "Solo Agent ਤੁਹਾਡਾ ਅੰਦਾਜ਼ਨ ਟਿਕਾਣਾ ਸਿਰਫ਼ ਇਸ ਲਈ ਪ੍ਰਾਪਤ ਕਰਦੀ ਹੈ ਤਾਂ ਜੋ ਤੁਹਾਡੇ ਵੱਲੋਂ ਹੋਰ ਐਪਾਂ ਵਰਤਣ ਵੇਲੇ ਜਾਂ ਡਿਵਾਈਸ ਲਾਕ ਹੋਣ 'ਤੇ ਵੀ ਇਸ ਡਿਵਾਈਸ ਨੂੰ ਸਵੈਚਲਿਤ ਕੀਤਾ ਜਾਂਦਾ ਰਹੇ। ਇਹ ਤੁਹਾਡਾ ਟਿਕਾਣਾ ਨਾ ਤਾਂ ਰੱਖਿਅਤ ਕਰਦੀ ਹੈ ਅਤੇ ਨਾ ਹੀ ਇਸਨੂੰ ਕਿਤੇ ਭੇਜਦੀ ਹੈ।"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplikacja Swipt pobiera Twoją przybliżoną lokalizację tylko po to, aby nadal automatyzować to urządzenie, gdy korzystasz z innych aplikacji lub urządzenie jest zablokowane. Nie przechowuje Twojej lokalizacji ani nigdzie jej nie wysyła."
+            "value" : "Aplikacja Solo Agent pobiera Twoją przybliżoną lokalizację tylko po to, aby nadal automatyzować to urządzenie, gdy korzystasz z innych aplikacji lub urządzenie jest zablokowane. Nie przechowuje Twojej lokalizacji ani nigdzie jej nie wysyła."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Swipt obtém sua localização aproximada apenas para continuar automatizando este dispositivo enquanto você usa outros apps ou quando o dispositivo está bloqueado. Ele não armazena sua localização nem a envia para lugar nenhum."
+            "value" : "O Solo Agent obtém sua localização aproximada apenas para continuar automatizando este dispositivo enquanto você usa outros apps ou quando o dispositivo está bloqueado. Ele não armazena sua localização nem a envia para lugar nenhum."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Swipt obtém a sua localização aproximada apenas para continuar a automatizar este dispositivo enquanto usa outras aplicações ou quando o dispositivo está bloqueado. A localização não é guardada nem enviada para lado nenhum."
+            "value" : "O Solo Agent obtém a sua localização aproximada apenas para continuar a automatizar este dispositivo enquanto usa outras aplicações ou quando o dispositivo está bloqueado. A localização não é guardada nem enviada para lado nenhum."
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplicația Swipt obține locația aproximativă doar pentru a continua automatizarea acestui dispozitiv în timp ce utilizați alte aplicații sau dispozitivul este blocat. Aplicația nu stochează locația și nu o trimite nicăieri."
+            "value" : "Aplicația Solo Agent obține locația aproximativă doar pentru a continua automatizarea acestui dispozitiv în timp ce utilizați alte aplicații sau dispozitivul este blocat. Aplicația nu stochează locația și nu o trimite nicăieri."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt получает приблизительную геопозицию только для того, чтобы продолжать автоматизацию этого устройства, пока Вы используете другие приложения или устройство заблокировано. Приложение не сохраняет геопозицию и никуда ее не передает."
+            "value" : "Solo Agent получает приблизительную геопозицию только для того, чтобы продолжать автоматизацию этого устройства, пока Вы используете другие приложения или устройство заблокировано. Приложение не сохраняет геопозицию и никуда ее не передает."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apka Swipt získava vašu približnú polohu iba na to, aby mohla ďalej automatizovať toto zariadenie, keď používate iné apky alebo je zariadenie zamknuté. Polohu neukladá ani ju nikam neodosiela."
+            "value" : "Apka Solo Agent získava vašu približnú polohu iba na to, aby mohla ďalej automatizovať toto zariadenie, keď používate iné apky alebo je zariadenie zamknuté. Polohu neukladá ani ju nikam neodosiela."
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplikacija Swipt pridobi vašo približno lokacijo samo zato, da lahko še naprej avtomatizira to napravo, medtem ko uporabljate druge aplikacije ali je naprava zaklenjena. Vaše lokacije ne shranjuje in je nikamor ne pošilja."
+            "value" : "Aplikacija Solo Agent pridobi vašo približno lokacijo samo zato, da lahko še naprej avtomatizira to napravo, medtem ko uporabljate druge aplikacije ali je naprava zaklenjena. Vaše lokacije ne shranjuje in je nikamor ne pošilja."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt hämtar din ungefärliga plats endast för att kunna fortsätta automatisera den här enheten medan du använder andra appar eller när enheten är låst. Din plats sparas inte och skickas inte någonstans."
+            "value" : "Solo Agent hämtar din ungefärliga plats endast för att kunna fortsätta automatisera den här enheten medan du använder andra appar eller när enheten är låst. Din plats sparas inte och skickas inte någonstans."
           }
         },
         "ta" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "நீங்கள் பிற ஆப்ஸைப் பயன்படுத்தும்போதோ சாதனம் பூட்டப்பட்டிருக்கும்போதோ இந்தச் சாதனத்தைத் தொடர்ந்து தானியக்கமாக்குவதற்காக மட்டுமே Swipt உங்கள் தோராயமான இருப்பிடத்தைப் பெறுகிறது. இது உங்கள் இருப்பிடத்தைச் சேமிப்பதோ எங்கும் அனுப்புவதோ இல்லை."
+            "value" : "நீங்கள் பிற ஆப்ஸைப் பயன்படுத்தும்போதோ சாதனம் பூட்டப்பட்டிருக்கும்போதோ இந்தச் சாதனத்தைத் தொடர்ந்து தானியக்கமாக்குவதற்காக மட்டுமே Solo Agent உங்கள் தோராயமான இருப்பிடத்தைப் பெறுகிறது. இது உங்கள் இருப்பிடத்தைச் சேமிப்பதோ எங்கும் அனுப்புவதோ இல்லை."
           }
         },
         "te" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "మీరు ఇతర యాప్‌లను ఉపయోగిస్తున్నప్పుడు లేదా డివైజ్ లాక్ అయి ఉన్నప్పుడు కూడా ఈ డివైజ్‌ను ఆటోమేట్ చేస్తూ ఉండటానికి మాత్రమే Swipt మీ సుమారు లొకేషన్‌ను పొందుతుంది. ఇది మీ లొకేషన్‌ను సేవ్ చేయదు, ఎక్కడికీ పంపదు."
+            "value" : "మీరు ఇతర యాప్‌లను ఉపయోగిస్తున్నప్పుడు లేదా డివైజ్ లాక్ అయి ఉన్నప్పుడు కూడా ఈ డివైజ్‌ను ఆటోమేట్ చేస్తూ ఉండటానికి మాత్రమే Solo Agent మీ సుమారు లొకేషన్‌ను పొందుతుంది. ఇది మీ లొకేషన్‌ను సేవ్ చేయదు, ఎక్కడికీ పంపదు."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt จะรับตำแหน่งที่ตั้งโดยประมาณของคุณเพื่อให้ทำงานอัตโนมัติบนอุปกรณ์นี้ต่อไปได้ขณะที่คุณใช้แอปอื่นหรือขณะที่อุปกรณ์ล็อคอยู่เท่านั้น Swipt จะไม่เก็บตำแหน่งที่ตั้งของคุณหรือส่งไปที่ใดๆ"
+            "value" : "Solo Agent จะรับตำแหน่งที่ตั้งโดยประมาณของคุณเพื่อให้ทำงานอัตโนมัติบนอุปกรณ์นี้ต่อไปได้ขณะที่คุณใช้แอปอื่นหรือขณะที่อุปกรณ์ล็อคอยู่เท่านั้น Solo Agent จะไม่เก็บตำแหน่งที่ตั้งของคุณหรือส่งไปที่ใดๆ"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt yaklaşık konumunuzu yalnızca siz başka uygulamaları kullanırken veya aygıt kilitliyken bu aygıtı otomatikleştirmeyi sürdürmek için alır. Konumunuzu saklamaz veya hiçbir yere göndermez."
+            "value" : "Solo Agent yaklaşık konumunuzu yalnızca siz başka uygulamaları kullanırken veya aygıt kilitliyken bu aygıtı otomatikleştirmeyi sürdürmek için alır. Konumunuzu saklamaz veya hiçbir yere göndermez."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Програма Swipt отримує приблизну локацію лише для того, щоб і далі автоматизувати цей пристрій, коли ви користуєтеся іншими програмами або пристрій замкнено. Вона не зберігає дані про локацію й нікуди їх не надсилає."
+            "value" : "Програма Solo Agent отримує приблизну локацію лише для того, щоб і далі автоматизувати цей пристрій, коли ви користуєтеся іншими програмами або пристрій замкнено. Вона не зберігає дані про локацію й нікуди їх не надсилає."
           }
         },
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "‏Swipt کی طرف سے آپ کا تقریبی مقام صرف اس لیے حاصل کیا جاتا ہے تاکہ دیگر ایپ استعمال کرنے یا ڈیوائس لاک ہونے کے دوران بھی اس ڈیوائس کو خودکار بنایا جاتا رہے۔ آپ کا مقام نہ تو محفوظ کیا جاتا ہے اور نہ ہی کہیں بھیجا جاتا ہے۔"
+            "value" : "‏Solo Agent کی طرف سے آپ کا تقریبی مقام صرف اس لیے حاصل کیا جاتا ہے تاکہ دیگر ایپ استعمال کرنے یا ڈیوائس لاک ہونے کے دوران بھی اس ڈیوائس کو خودکار بنایا جاتا رہے۔ آپ کا مقام نہ تو محفوظ کیا جاتا ہے اور نہ ہی کہیں بھیجا جاتا ہے۔"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt chỉ lấy vị trí gần đúng của bạn để tiếp tục tự động hóa thiết bị này khi bạn sử dụng các ứng dụng khác hoặc khi thiết bị bị khóa. Ứng dụng không lưu giữ vị trí của bạn và không gửi vị trí đi bất kỳ đâu."
+            "value" : "Solo Agent chỉ lấy vị trí gần đúng của bạn để tiếp tục tự động hóa thiết bị này khi bạn sử dụng các ứng dụng khác hoặc khi thiết bị bị khóa. Ứng dụng không lưu giữ vị trí của bạn và không gửi vị trí đi bất kỳ đâu."
           }
         },
         "zh-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt 取得你的大約位置，僅用於在你使用其他 App 或裝置鎖定時繼續自動化此裝置。它不會保留你的位置，也不會將位置傳送到任何地方。"
+            "value" : "Solo Agent 取得你的大約位置，僅用於在你使用其他 App 或裝置鎖定時繼續自動化此裝置。它不會保留你的位置，也不會將位置傳送到任何地方。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt 获取你的大致位置，只是为了在你使用其他 App 或锁定设备时继续自动化此设备。它不会保存你的位置，也不会把位置发送到任何地方。"
+            "value" : "Solo Agent 获取你的大致位置，只是为了在你使用其他 App 或锁定设备时继续自动化此设备。它不会保存你的位置，也不会把位置发送到任何地方。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipt 取得你的大約位置，僅用於在你使用其他 App 或裝置鎖定時繼續自動化此裝置。它不會保留你的位置，也不會將位置傳送到任何地方。"
+            "value" : "Solo Agent 取得你的大約位置，僅用於在你使用其他 App 或裝置鎖定時繼續自動化此裝置。它不會保留你的位置，也不會將位置傳送到任何地方。"
           }
         }
       }

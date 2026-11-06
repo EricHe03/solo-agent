@@ -44,16 +44,71 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Get Xcode version
+        id: xcode
+        run: echo "build=$(xcodebuild -version | tail -1 | cut -d ' ' -f 3)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache React Native artifacts
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/ReactNative/spm-artifacts
+          key: react-native-spm-${{ hashFiles('node_modules/react-native/package.json') }}
+
+      - name: Cache runtime bundle
+        id: runtime_bundle
+        uses: actions/cache@v4
+        with:
+          path: build/runtime
+          key: runtime-bundle-${{ hashFiles('package.json', 'bun.lock', 'internal/automation/runtime/**', '!**/node_modules/**') }}
+
+      - name: Keep cached runtime bundle
+        if: steps.runtime_bundle.outputs.cache-hit == 'true'
+        run: touch build/runtime/main.jsbundle
+
+      - name: Restore ExpoModulesCore
+        id: expo_modules_core
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/expo-modules-core/inputs
+            build/expo-modules-core/jsi/Products
+            node_modules/expo-modules-core/prebuilds/output/*/xcframeworks/ExpoModulesCore.xcframework
+          key: expo-modules-core-${{ steps.xcode.outputs.build }}-${{ hashFiles('dev/expo-modules-core.mjs', 'node_modules/expo-modules-core/package.json', 'node_modules/expo-modules-core/spm.config.json', 'node_modules/expo-modules-core/ios/**', 'node_modules/expo-modules-core/common/**', 'node_modules/expo-modules-jsi/package.json', 'node_modules/expo-modules-jsi/apple/**', 'node_modules/expo-modules-macros/package.json', 'node_modules/react-native/package.json') }}
+
       - name: Build LibSwipt for physical iOS devices
         run: go run ./internal/cmd/build_libswipt -target ios/arm64
 
       - name: Set up React Native frameworks
         run: bun dev frameworks
 
+      - name: Save ExpoModulesCore
+        if: steps.expo_modules_core.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/expo-modules-core/inputs
+            build/expo-modules-core/jsi/Products
+            node_modules/expo-modules-core/prebuilds/output/*/xcframeworks/ExpoModulesCore.xcframework
+          key: ${{ steps.expo_modules_core.outputs.cache-primary-key }}
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/SourcePackages
+          key: spm-${{ steps.xcode.outputs.build }}-${{ hashFiles('Swipt.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: spm-${{ steps.xcode.outputs.build }}-
+
+      - name: Cache Swift compilation
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/CompilationCache
+          key: swift-ios-${{ steps.xcode.outputs.build }}-${{ hashFiles('Swipt/**', 'Swipt.xcodeproj/**', 'bun.lock') }}
+          restore-keys: swift-ios-${{ steps.xcode.outputs.build }}-
+
       - name: Archive unsigned IPA
         run: make archive_ios_ipa altstore_icon
         env:
-          XCODEBUILD_FLAGS: CURRENT_PROJECT_VERSION=${{ github.run_number }}
+          XCODEBUILD_FLAGS: -clonedSourcePackagesDirPath ${{ runner.temp }}/SourcePackages CURRENT_PROJECT_VERSION=${{ github.run_number }} COMPILATION_CACHE_ENABLE_CACHING=YES COMPILATION_CACHE_CAS_PATH=${{ runner.temp }}/CompilationCache COMPILATION_CACHE_LIMIT_SIZE=2G
 
       - name: Package dSYMs
         run: ditto -c -k --keepParent build/Swipt-iOS.xcarchive/dSYMs build/Swipt-iOS.dSYMs.zip

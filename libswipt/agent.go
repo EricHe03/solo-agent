@@ -192,39 +192,40 @@ func (p *Platform) executeAgentTool(ctx context.Context, name string, input []by
 		return map[string]any{"element": aim.Element, "point": aim.Point}, nil
 	case "tap_coordinates":
 		var options struct {
-			X     float64 `json:"x"`
-			Y     float64 `json:"y"`
-			Count int     `json:"count"`
+			X     *float64 `json:"x"`
+			Y     *float64 `json:"y"`
+			Count int      `json:"count"`
 		}
 		if err := decodeAgentInput(input, &options); err != nil {
 			return nil, err
 		}
-		if !finite(options.X, options.Y) || options.Count < 0 || options.Count > 2 {
-			return nil, E.Cause1(device.ErrInvalid, E.New("x and y must be finite and count must be 1 or 2"))
+		if options.X == nil || options.Y == nil || !finite(*options.X, *options.Y) || options.Count < 0 || options.Count > 2 {
+			return nil, E.Cause1(device.ErrInvalid, E.New("x and y are required finite numbers and count must be 1 or 2"))
 		}
 		if options.Count == 0 {
 			options.Count = 1
 		}
-		at := device.Point{X: options.X, Y: options.Y}
+		at := device.Point{X: *options.X, Y: *options.Y}
 		if err := phone.TapPoint(ctx, at, options.Count); err != nil {
 			return nil, err
 		}
 		return map[string]any{"point": at}, nil
 	case "swipe":
 		var options struct {
-			FromX      float64 `json:"fromX"`
-			FromY      float64 `json:"fromY"`
-			ToX        float64 `json:"toX"`
-			ToY        float64 `json:"toY"`
-			DurationMS float64 `json:"durationMs"`
+			FromX      *float64 `json:"fromX"`
+			FromY      *float64 `json:"fromY"`
+			ToX        *float64 `json:"toX"`
+			ToY        *float64 `json:"toY"`
+			DurationMS float64  `json:"durationMs"`
 		}
 		if err := decodeAgentInput(input, &options); err != nil {
 			return nil, err
 		}
-		if !finite(options.FromX, options.FromY, options.ToX, options.ToY, options.DurationMS) || options.DurationMS < 0 || options.DurationMS > 10_000 {
-			return nil, E.Cause1(device.ErrInvalid, E.New("coordinates must be finite and durationMs must be between 0 and 10000"))
+		if options.FromX == nil || options.FromY == nil || options.ToX == nil || options.ToY == nil ||
+			!finite(*options.FromX, *options.FromY, *options.ToX, *options.ToY, options.DurationMS) || options.DurationMS < 0 || options.DurationMS > 10_000 {
+			return nil, E.Cause1(device.ErrInvalid, E.New("all coordinates are required finite numbers and durationMs must be between 0 and 10000"))
 		}
-		path, err := device.SwipePath(device.Point{X: options.FromX, Y: options.FromY}, device.Point{X: options.ToX, Y: options.ToY}, time.Duration(options.DurationMS)*time.Millisecond)
+		path, err := device.SwipePath(device.Point{X: *options.FromX, Y: *options.FromY}, device.Point{X: *options.ToX, Y: *options.ToY}, time.Duration(options.DurationMS)*time.Millisecond)
 		if err != nil {
 			return nil, err
 		}
