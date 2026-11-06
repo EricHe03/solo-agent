@@ -1,10 +1,15 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 
-import { runningSwipt, tryUnlock } from "@swipt/cli/connection.mjs";
-import { apps, coreDevice, devicectl } from "@swipt/cli/coredevice.mjs";
-import { launchUnlocking } from "@swipt/cli/sideload.mjs";
+import { apps, coreDevice } from "@swipt/cli/coredevice.mjs";
+import { FalseResult } from "@swipt/cli/output.mjs";
+import {
+  bundleId,
+  installAndOpen,
+  installPasscode,
+} from "@swipt/cli/sideload.mjs";
 
 import { buildExpoModulesCore } from "./expo-modules-core.mjs";
 import { syncLocales } from "./strings.mjs";
@@ -14,7 +19,6 @@ const app = path.join(
   root,
   "build/DerivedData/Build/Products/Debug-iphoneos/Swipt.app",
 );
-const bundleId = "io.nekohasekai.swipt";
 
 const interrupt = new AbortController();
 process.on("SIGINT", () => interrupt.abort());
@@ -53,9 +57,13 @@ const frameworks = () => {
   }
 };
 
-async function installApp(options) {
-  const device = await coreDevice({ options }, { required: false });
-  const stamp = String(Math.floor(Date.now() / 1000));
+async function installApp(context) {
+  const device = await coreDevice(context, { required: false });
+  const current = (await apps(device.udid)).find(
+    (it) => it.bundleIdentifier === bundleId,
+  );
+  const passcode = await installPasscode(context, current);
+  const stamp = Math.floor(Date.now() / 1000);
   run("make", ["lib", "server", "build_ios"], {
     XCODEBUILD_FLAGS: [
       process.env.XCODEBUILD_FLAGS,
@@ -64,47 +72,9 @@ async function installApp(options) {
       .filter(Boolean)
       .join(" "),
   });
-
-  const client = await runningSwipt(device.name, interrupt.signal);
-  if (client !== undefined) {
-    await tryUnlock(client, interrupt.signal);
-  }
-  await devicectl(["device", "install", "app", "--device", device.udid, app]);
-  await launchUnlocking(device, bundleId, [], interrupt.signal);
-
-  const installed = (await apps(device.udid)).filter(
-    (app) => app.bundleIdentifier === bundleId,
-  );
-  if (installed.length !== 1) {
-    throw new Error(
-      `${device.name} does not list ${bundleId} after the install`,
-    );
-  }
-  const { version, bundleVersion } = installed[0];
-  if (bundleVersion !== stamp) {
-    throw new Error(
-      `${device.name} has Swipt build ${bundleVersion} installed, not the one just built (${stamp})`,
-    );
-  }
-  console.log(
-    `Swipt ${version} (${bundleVersion}) is installed and launched on ${device.name}`,
-  );
-}
-
-function parse(argv) {
-  const options = {};
-  const positional = [];
-  for (let index = 0; index < argv.length; index++) {
-    const argument = argv[index];
-    const named = argument.match(/^--?([a-z]+)(?:=(.*))?$/);
-    if (named === null) {
-      positional.push(argument);
-      continue;
-    }
-    const name = { d: "device" }[named[1]] ?? named[1];
-    options[name] = named[2] ?? argv[++index];
-  }
-  return { options, positional };
+  await installAndOpen(context, { device, id: bundleId, current }, app, stamp, {
+    passcode,
+  });
 }
 
 const commands = [
@@ -114,7 +84,7 @@ const commands = [
   ],
   [
     "install [-d NAME|UDID]",
-    "Run make lib server build_ios, install and launch the app on the device, and check the installed build",
+    "Run make lib server build_ios, install the app on the device, check the installed build, and set it up",
   ],
   [
     "strings",
@@ -128,17 +98,28 @@ commands:
 ${commands.map(([use, help]) => `  ${use.padEnd(26)}${help}`).join("\n")}
 
 install picks the paired iOS device that -d names by CoreDevice name or UDID, or the only one; when Swipt answers on it, it unlocks the device first; otherwise a locked device is unlocked with the passcode saved in Swipt.
+install reinstalls on every run and sets Swipt up like swipt sideload install; --passcode, --passcode-type, --no-setup, --no-setup-pair and --no-setup-api work the same.
 install fails when the build number installed on the device differs from the one just built.`;
 
 async function main() {
-  const { options, positional } = parse(process.argv.slice(2));
-  const [command] = positional;
+  const { values: options, positionals } = parseArgs({
+    allowPositionals: true,
+    options: {
+      device: { type: "string", short: "d" },
+      passcode: { type: "string" },
+      "passcode-type": { type: "string" },
+      "no-setup": { type: "boolean" },
+      "no-setup-pair": { type: "boolean" },
+      "no-setup-api": { type: "boolean" },
+    },
+  });
+  const [command] = positionals;
   switch (command) {
     case "frameworks":
       frameworks();
       break;
     case "install":
-      await installApp(options);
+      await installApp({ options, signal: interrupt.signal });
       break;
     case "strings":
       syncLocales(path.join(root, "cli"));
@@ -152,7 +133,9 @@ async function main() {
 try {
   await main();
 } catch (error) {
-  if (interrupt.signal.aborted) {
+  if (error instanceof FalseResult) {
+    process.exitCode = 1;
+  } else if (interrupt.signal.aborted || error.name === "ExitPromptError") {
     process.exitCode = 130;
   } else {
     console.error("error:", error.message);

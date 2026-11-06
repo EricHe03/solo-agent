@@ -38,7 +38,7 @@ import { LogLevel } from "./proto/common_pb.js";
 
 const exec = promisify(execFile);
 
-const bundleId = "io.nekohasekai.swipt";
+export const bundleId = "io.nekohasekai.swipt";
 const bundleTeam = "P8XK3KHB48";
 const repository = "swipt-automation/swipt";
 const teamPattern = /^[A-Z0-9]{10}$/;
@@ -760,6 +760,16 @@ async function askPasscode(context) {
   );
 }
 
+export async function installPasscode(context, current) {
+  return current === undefined &&
+    interactive(context) &&
+    context.options.passcode === undefined &&
+    context.options["passcode-type"] === undefined &&
+    !context.options["no-setup"]
+    ? askPasscode(context)
+    : passcodeOf(context.options);
+}
+
 async function findInstalled(context) {
   const device = await coreDevice(context, {
     filter: (devices) =>
@@ -788,14 +798,7 @@ async function findInstalled(context) {
 }
 
 async function deploy(context, { device, team, current }, updateOnly) {
-  const passcode =
-    current === undefined &&
-    interactive(context) &&
-    context.options.passcode === undefined &&
-    context.options["passcode-type"] === undefined &&
-    !context.options["no-setup"]
-      ? await askPasscode(context)
-      : passcodeOf(context.options);
+  const passcode = await installPasscode(context, current);
   const release = await step(
     tr("checking the latest release"),
     () => findRelease(context.options.nightly, context.signal),
@@ -894,33 +897,52 @@ async function deploy(context, { device, team, current }, updateOnly) {
       await resign(unpacked, id, signing, update);
       return unpacked;
     });
-    if (current !== undefined) {
-      const running = await step(
-        tr("checking Swipt on {device}", { device: device.name }),
-        () => runningSwipt(device.name, context.signal),
-        { transient: true },
-      );
-      if (running !== undefined) {
-        await step(
-          tr("unlocking the device"),
-          () => tryUnlock(running, context.signal),
-          { transient: true },
-        );
-      }
-    }
-    await step(tr("installing on {device}", { device: device.name }), () =>
-      devicectl(["device", "install", "app", "--device", device.udid, app]),
-    );
-    if (!updateOnly && passcode !== undefined) {
-      await step(tr("setting up auto-unlock"), () =>
-        setUpAutoUnlock(device, id, passcode),
-      );
-    }
+    await installAndOpen(context, { device, id, current }, app, release.build, {
+      passcode,
+      saves: !updateOnly,
+    });
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
-  const result = (await locate({ options: { team } }, device)).current;
-  if (result === undefined || Number(result.bundleVersion) !== release.build) {
+}
+
+export async function installAndOpen(
+  context,
+  { device, id, current },
+  app,
+  build,
+  { passcode, saves = true },
+) {
+  if (current !== undefined) {
+    const running = await step(
+      tr("checking Swipt on {device}", { device: device.name }),
+      () => runningSwipt(device.name, context.signal),
+      { transient: true },
+    );
+    if (running !== undefined) {
+      await step(
+        tr("unlocking the device"),
+        () => tryUnlock(running, context.signal),
+        { transient: true },
+      );
+    }
+  }
+  await step(tr("installing on {device}", { device: device.name }), () =>
+    devicectl(["device", "install", "app", "--device", device.udid, app]),
+  );
+  if (saves && passcode !== undefined) {
+    await step(tr("setting up auto-unlock"), () =>
+      setUpAutoUnlock(device, id, passcode),
+    );
+  }
+  const result = (
+    await step(
+      tr("checking Swipt on {device}", { device: device.name }),
+      () => apps(device.udid),
+      { transient: true },
+    )
+  ).find((it) => it.bundleIdentifier === id);
+  if (result === undefined || Number(result.bundleVersion) !== build) {
     throw new Error(
       result === undefined
         ? `${device.name} does not list ${id} after the install`
@@ -928,7 +950,12 @@ async function deploy(context, { device, team, current }, updateOnly) {
     );
   }
   const expiration = expirationText(
-    (await signingPeriod(device, id, team)).expiration,
+    Date.parse(
+      profileField(
+        path.join(app, "embedded.mobileprovision"),
+        "ExpirationDate",
+      ),
+    ),
   );
   console.log(
     current === undefined
@@ -936,7 +963,7 @@ async function deploy(context, { device, team, current }, updateOnly) {
           "{build} is installed on {device}; its signing expires {expiration}",
           { build: buildText(result), device: device.name, expiration },
         )
-      : Number(current.bundleVersion) === release.build
+      : Number(current.bundleVersion) === build
         ? tr(
             "{build} is re-signed on {device}; its signing expires {expiration}",
             { build: buildText(result), device: device.name, expiration },
@@ -1415,7 +1442,7 @@ async function serve(udid, passcode, signal) {
   };
 }
 
-export async function launchUnlocking(device, id, args, signal) {
+async function launchUnlocking(device, id, args, signal) {
   const command = launchCommand(device, id, args);
   try {
     await devicectl(command);

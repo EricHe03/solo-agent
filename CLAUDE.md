@@ -8,7 +8,7 @@
 
 `bun dev` prints its commands with their arguments; `swipt [COMMAND...] --help` does the same for the CLI.
 
-- `bun dev install [-d NAME|UDID]` - Build Swipt, install it on the device, launch it, and check the installed build
+- `bun dev install [-d NAME|UDID]` - Build Swipt, install it on the device, check the installed build, and set it up like `swipt sideload install`
 - `bun dev frameworks` - Build ExpoModulesCore and install the React Native frameworks
 - `bun dev strings` - Check cli/locales against the strings of the CLI and remove the stale ones
 - `make lib` - Build the SDK runtime and libswipt
