@@ -17,7 +17,7 @@ struct BackgroundView: View {
                         .pickerStyle(.menu)
                     }
                 } footer: {
-                    Text("Swipt needs to stay running in the background to keep automating this device.")
+                    Text("Solo Agent needs to stay running in the background to keep automating this device.")
                 }
             }
             .navigationTitle("Background Service")

@@ -17,7 +17,7 @@ struct PairingSetupView: View {
         WithPerceptionTracking {
             SetupPage(
                 "link", Text("Pair with This Device"),
-                description: Text("Swipt needs to pair with this device to connect to its developer services.")
+                description: Text("Solo Agent needs to pair with this device to connect to its developer services.")
             ) {
                 PairingGuideView(hostName: session.hostName)
                 VStack(alignment: .leading, spacing: 10) {

@@ -49,7 +49,7 @@ final class DeviceConnection {
 
     var unavailableReason: String? {
         if !pairing.isPaired {
-            return String(localized: "Pair this device in Swipt first.")
+            return String(localized: "Pair this device in Solo Agent first.")
         }
         if autoUnlock.problem != nil {
             return String(localized: "Check Settings › Automatic Unlock.")

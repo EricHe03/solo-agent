@@ -42,10 +42,10 @@ struct SwiptApp: App {
     var body: some Scene {
         #if os(iOS)
         WindowGroup {
-            HomeView()
+            AgentHomeView()
         }
         #else
-        Window(Text(verbatim: "Swipt"), id: "home") {
+        Window(Text(verbatim: "Solo Agent"), id: "home") {
             HomeView()
         }
         .defaultSize(width: 900, height: 560)

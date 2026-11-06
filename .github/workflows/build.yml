@@ -60,7 +60,7 @@ jobs:
 
       - name: Write metadata
         run: |
-          INFO_PLIST=build/Swipt-iOS.xcarchive/Products/Applications/Swipt.app/Info.plist
+          INFO_PLIST=build/Swipt-iOS.xcarchive/Products/Applications/SoloAgent.app/Info.plist
           VERSION=$(plutil -extract CFBundleShortVersionString raw "$INFO_PLIST")
           BUILD=$(plutil -extract CFBundleVersion raw "$INFO_PLIST")
           printf '{"version":"%s","build":%s,"sha":"%s"}\n' "$VERSION" "$BUILD" "$GITHUB_SHA" > build/metadata.json
@@ -70,7 +70,7 @@ jobs:
         with:
           name: Solo-Agent-iOS-IPA
           path: |
-            build/Swipt.ipa
+            build/SoloAgent.ipa
             build/Swipt-iOS.dSYMs.zip
             build/metadata.json
             build/altstore

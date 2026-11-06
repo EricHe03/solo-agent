@@ -53,7 +53,7 @@ struct AutomatedSetupView: View {
     let finished: () -> Void
 
     var body: some View {
-        SetupPage("gearshape.2", Text("Setting Up Swipt")) {
+        SetupPage("gearshape.2", Text("Setting Up Solo Agent")) {
             ProgressView()
                 .controlSize(.large)
         } actions: {
@@ -87,7 +87,7 @@ struct LoopbackSetupView: View {
     private let device = Platform.shared.device
 
     var body: some View {
-        SetupPage("network", Text("Loopback VPN"), description: Text("Swipt needs a loopback VPN to connect to developer services. LocalDevVPN or sing-box is recommended.")) {
+        SetupPage("network", Text("Loopback VPN"), description: Text("Solo Agent needs a loopback VPN to connect to developer services. LocalDevVPN or sing-box is recommended.")) {
             VStack(spacing: 24) {
                 Divider()
                 VStack(spacing: 12) {

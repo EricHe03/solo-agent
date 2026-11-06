@@ -471,16 +471,16 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = P8XK3KHB48;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Swipt/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Swipt;
+				INFOPLIST_KEY_CFBundleDisplayName = "Solo Agent";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Swipt connects to developer services on this device and, if you publish its API, accepts connections on the local network.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Swipt gets your approximate location only to keep automating this device while you use other apps or the device is locked. It doesn’t keep your location or send it anywhere.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Solo Agent connects to developer services on this device and, if its local API is enabled, accepts connections on the local network.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Solo Agent gets your approximate location only to keep automating this device while you use other apps or the device is locked. It doesn’t keep your location or send it anywhere.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -495,9 +495,9 @@
 					"-lresolv",
 					"-lsqlite3",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.eriche03.soloagent;
 				PRODUCT_MODULE_NAME = Swipt;
-				PRODUCT_NAME = Swipt;
+				PRODUCT_NAME = SoloAgent;
 				PROJECT_ROOT = "$(SRCROOT)/internal/automation/runtime";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -519,16 +519,16 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = P8XK3KHB48;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Swipt/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Swipt;
+				INFOPLIST_KEY_CFBundleDisplayName = "Solo Agent";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Swipt connects to developer services on this device and, if you publish its API, accepts connections on the local network.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Swipt gets your approximate location only to keep automating this device while you use other apps or the device is locked. It doesn’t keep your location or send it anywhere.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Solo Agent connects to developer services on this device and, if its local API is enabled, accepts connections on the local network.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Solo Agent gets your approximate location only to keep automating this device while you use other apps or the device is locked. It doesn’t keep your location or send it anywhere.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -543,9 +543,9 @@
 					"-lresolv",
 					"-lsqlite3",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.eriche03.soloagent;
 				PRODUCT_MODULE_NAME = Swipt;
-				PRODUCT_NAME = Swipt;
+				PRODUCT_NAME = SoloAgent;
 				PROJECT_ROOT = "$(SRCROOT)/internal/automation/runtime";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -568,7 +568,7 @@
 				CODE_SIGN_ENTITLEMENTS = Swipt/Swipt.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = P8XK3KHB48;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
@@ -579,11 +579,11 @@
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Swipt/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Swipt;
+				INFOPLIST_KEY_CFBundleDisplayName = "Solo Agent";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Swipt connects to developer services on this device and, if you publish its API, accepts connections on the local network.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Solo Agent connects to developer services on this device and, if its local API is enabled, accepts connections on the local network.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -595,9 +595,9 @@
 					"-lresolv",
 					"-lsqlite3",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.eriche03.soloagent;
 				PRODUCT_MODULE_NAME = Swipt;
-				PRODUCT_NAME = Swipt;
+				PRODUCT_NAME = SoloAgent;
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = macosx;
@@ -618,7 +618,7 @@
 				CODE_SIGN_ENTITLEMENTS = Swipt/Swipt.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = P8XK3KHB48;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
@@ -629,11 +629,11 @@
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Swipt/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Swipt;
+				INFOPLIST_KEY_CFBundleDisplayName = "Solo Agent";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Swipt connects to developer services on this device and, if you publish its API, accepts connections on the local network.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Solo Agent connects to developer services on this device and, if its local API is enabled, accepts connections on the local network.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -645,9 +645,9 @@
 					"-lresolv",
 					"-lsqlite3",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.nekohasekai.swipt;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.eriche03.soloagent;
 				PRODUCT_MODULE_NAME = Swipt;
-				PRODUCT_NAME = Swipt;
+				PRODUCT_NAME = SoloAgent;
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = macosx;

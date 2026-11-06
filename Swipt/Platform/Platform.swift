@@ -21,6 +21,7 @@ final class Platform {
 
     let device: DeviceConnection
     private var calls = 0
+    private var agentTasks = 0
 
     @PerceptionIgnored private let core: LibSwiptPlatform
     @PerceptionIgnored private lazy var location: BackgroundLocation = {
@@ -117,7 +118,7 @@ final class Platform {
         }
     }
 
-    var isActive: Bool { developer.isPublishing || calls > 0 || SwipletStore.shared.hasEnabledServices }
+    var isActive: Bool { developer.isPublishing || calls > 0 || agentTasks > 0 || SwipletStore.shared.hasEnabledServices }
 
     var name: String {
         if let name = PairingStore.shared.device?.name, !name.isEmpty {
@@ -141,13 +142,22 @@ final class Platform {
             } catch {
                 let message = error.localizedDescription
                 DispatchQueue.main.async {
-                    ErrorAlert.shared.report(AlertState(String(localized: "Couldn’t Start Swipt"), errorMessage: message))
+                    ErrorAlert.shared.report(AlertState(String(localized: "Couldn’t Start Solo Agent"), errorMessage: message))
                 }
             }
         }
         observeCloudflare()
         observeAPI()
         SwipletStore.shared.reload()
+        observeActivity()
+    }
+
+    func makeAgentToolCall(name: String, input: String, timeoutSeconds: Int) -> LibSwiptAgentToolCall {
+        core.newAgentToolCall(name, input: input, timeoutMs: Int32(timeoutSeconds * 1000))!
+    }
+
+    func setAgentRunning(_ running: Bool) {
+        agentTasks = max(0, agentTasks + (running ? 1 : -1))
         observeActivity()
     }
 

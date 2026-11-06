@@ -13,7 +13,7 @@ struct AutoUnlockView: View {
                     Toggle("Enabled", isOn: $settings.isEnabled)
                         .disabled(!settings.isEnabled && settings.passcodeType.problem(for: settings.passcode) != nil)
                 } footer: {
-                    Text("Enable automatic unlock so Swipt can unlock your device automatically when it’s locked.")
+                    Text("Enable automatic unlock so Solo Agent can unlock your device automatically when it’s locked.")
                 }
                 Section {
                     Button { isEditing = true } label: {
@@ -61,7 +61,7 @@ struct AutoUnlockSetupView: View {
     }
 
     var body: some View {
-        SetupPage("lock.open", Text("Automatic Unlock"), description: Text("Enable automatic unlock so Swipt can unlock your device automatically when it’s locked.")) {
+        SetupPage("lock.open", Text("Automatic Unlock"), description: Text("Enable automatic unlock so Solo Agent can unlock your device automatically when it’s locked.")) {
             VStack(spacing: 8) {
                 ForEach(PasscodeType.allCases, id: \.self) { type in
                     PasscodeTypeCard(type: type, isSelected: type == passcodeType) {

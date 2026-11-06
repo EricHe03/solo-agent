@@ -1,5 +1,5 @@
 import Foundation
-import LibSwipt
+import LibSolo Agent
 import Perception
 import UIKit
 import dnssd
@@ -17,21 +17,21 @@ final class PairingSession {
 
     let hostName: String = {
         let info = Bundle.main.localizedInfoDictionary ?? Bundle.main.infoDictionary
-        return info?["CFBundleDisplayName"] as? String ?? "Swipt"
+        return info?["CFBundleDisplayName"] as? String ?? "Solo Agent"
     }()
 
     private var settingsPath: String {
         String(localized: "Privacy & Security › Developer Mode")
     }
 
-    @PerceptionIgnored private let device: LibSwiptDevice
-    @PerceptionIgnored private var responder: LibSwiptPairingResponder?
+    @PerceptionIgnored private let device: LibSolo AgentDevice
+    @PerceptionIgnored private var responder: LibSolo AgentPairingResponder?
     private let advertiser = BonjourAdvertiser()
     @PerceptionIgnored private var continuedTask: ContinuedTask?
     @PerceptionIgnored private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     @PerceptionIgnored private var observers: [NSObjectProtocol] = []
 
-    init(device: LibSwiptDevice) {
+    init(device: LibSolo AgentDevice) {
         self.device = device
     }
 
@@ -47,7 +47,7 @@ final class PairingSession {
         let events = PairingEvents { [weak self] event in
             DispatchQueue.main.async { self?.handle(event) }
         }
-        let responder: LibSwiptPairingResponder
+        let responder: LibSolo AgentPairingResponder
         do {
             responder = try device.newPairingResponder(hostName, record: PairingStore.shared.record, handler: events)
         } catch {
@@ -106,7 +106,7 @@ final class PairingSession {
                 fail(DeviceProblem(kind: .pairing, message: error.localizedDescription))
                 return
             }
-            continuedTask?.update(title: String(localized: "Paired"), subtitle: String(localized: "Tap to return to Swipt"))
+            continuedTask?.update(title: String(localized: "Paired"), subtitle: String(localized: "Tap to return to Solo Agent"))
             continuedTask?.setProgress(completed: 3, total: 3)
             finish(succeeded: true)
             state = .idle
@@ -139,7 +139,7 @@ final class PairingSession {
 
     private func backgroundTimeRanOut() {
         guard isInProgress, UIApplication.shared.applicationState == .background else { return }
-        fail(DeviceProblem(kind: .pairing, message: String(localized: "Swipt couldn’t keep waiting for Settings in the background.")))
+        fail(DeviceProblem(kind: .pairing, message: String(localized: "Solo Agent couldn’t keep waiting for Settings in the background.")))
     }
 
     static func grouped(_ pin: String) -> String {
@@ -154,7 +154,7 @@ final class PairingSession {
 
     private static func publishingMessage(_ errorCode: DNSServiceErrorType) -> String {
         if errorCode == kDNSServiceErr_PolicyDenied {
-            return String(localized: "Swipt isn’t allowed to use the local network. Allow it in Settings › Privacy & Security › Local Network.")
+            return String(localized: "Solo Agent isn’t allowed to use the local network. Allow it in Settings › Privacy & Security › Local Network.")
         }
         return String(localized: "Couldn’t publish the pairing service (error \(errorCode)).")
     }

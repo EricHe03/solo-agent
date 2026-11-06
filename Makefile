@@ -46,12 +46,12 @@ build_ios_ipa: lib
 	$(MAKE) archive_ios_ipa
 
 archive_ios_ipa: runtime_bundle
-	rm -rf build/Swipt-iOS.xcarchive build/Payload build/Swipt.ipa
+	rm -rf build/Swipt-iOS.xcarchive build/Payload build/SoloAgent.ipa
 	xcodebuild archive -skipMacroValidation -derivedDataPath build/DerivedData $(XCODEBUILD_FLAGS) -scheme Swipt -configuration Release -destination 'generic/platform=iOS' -archivePath build/Swipt-iOS.xcarchive \
 		CODE_SIGNING_ALLOWED=NO | xcbeautify
 	mkdir build/Payload
-	cp -R build/Swipt-iOS.xcarchive/Products/Applications/Swipt.app build/Payload/
-	cd build && zip -qry Swipt.ipa Payload
+	cp -R build/Swipt-iOS.xcarchive/Products/Applications/SoloAgent.app build/Payload/
+	cd build && zip -qry SoloAgent.ipa Payload
 	rm -rf build/Payload
 
 altstore_icon:
