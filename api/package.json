@@ -41,6 +41,10 @@
       "types": "./image.d.ts",
       "default": "./image.mjs"
     },
+    "./maps": {
+      "types": "./maps.d.ts",
+      "default": "./maps.mjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [

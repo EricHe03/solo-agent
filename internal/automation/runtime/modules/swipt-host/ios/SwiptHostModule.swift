@@ -24,6 +24,7 @@ public protocol SwiptHostDelegate: AnyObject, Sendable {
   nonisolated var swiplet: String { get }
   func call(action: String, input: String) async throws -> String
   func setServiceEnabled(_ enabled: Bool) async throws
+  func searchPlaces(_ query: String) async throws -> String
   func surfaceDidMount(_ surface: String)
   func exit()
   func log(level: String, message: String)
@@ -218,6 +219,10 @@ public final class SwiptHostModule: Module {
 
     AsyncFunction("setServiceEnabled") { @MainActor (enabled: Bool) async throws in
       try await self.host().setServiceEnabled(enabled)
+    }
+
+    AsyncFunction("searchPlaces") { @MainActor (query: String) async throws -> String in
+      try await self.host().searchPlaces(query)
     }
 
     Function("mounted") { (surface: String) in

@@ -32,6 +32,7 @@ const appModules = [
   "@swipt/api",
   "@swipt/api/swiplet",
   "@swipt/api/file-system",
+  "@swipt/api/maps",
   "expo-sqlite",
   "expo-sqlite/kv-store",
   "expo-sqlite/localStorage/install",

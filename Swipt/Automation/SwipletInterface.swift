@@ -1,6 +1,7 @@
 internal import Expo
 internal import ExpoObjC
 import LibSwipt
+import MapKit
 import Perception
 import RCTBlob
 import React
@@ -139,6 +140,25 @@ private final class SwipletRuntime: SwiptHostDelegate {
 
     func setServiceEnabled(_ enabled: Bool) async throws {
         try await SwipletStore.shared.setServiceEnabled(swiplet, enabled)
+    }
+
+    func searchPlaces(_ query: String) async throws -> String {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return "[]" }
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = query
+        let items: [MKMapItem]
+        do {
+            items = try await MKLocalSearch(request: request).start().mapItems
+        } catch MKError.placemarkNotFound {
+            items = []
+        }
+        let places = items.map { item -> [String: Any] in
+            var place: [String: Any] = ["coordinate": [item.location.coordinate.latitude, item.location.coordinate.longitude]]
+            place["name"] = item.name
+            place["address"] = item.address?.fullAddress
+            return place
+        }
+        return String(decoding: try JSONSerialization.data(withJSONObject: places), as: UTF8.self)
     }
 
     func exit() {

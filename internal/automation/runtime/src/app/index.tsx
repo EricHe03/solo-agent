@@ -51,6 +51,7 @@ interface Props {
 interface SwiptHost {
   call(action: string, input: string): Promise<string>;
   setServiceEnabled(enabled: boolean): Promise<void>;
+  searchPlaces(query: string): Promise<string>;
   mounted(surface: string): void;
   exit(): void;
   preferredLocalizations(localizations: string[]): string[];
@@ -178,6 +179,26 @@ const abortError = (signal: AbortSignal): unknown =>
   signal.reason ??
   Object.assign(new Error("the call was aborted"), { name: "AbortError" });
 
+const untilAborted = <T,>(
+  signal: AbortSignal | undefined,
+  start: () => Promise<T>,
+): Promise<T> => {
+  if (signal?.aborted) {
+    return Promise.reject(abortError(signal));
+  }
+  const reply = start();
+  if (signal === undefined) {
+    return reply;
+  }
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(abortError(signal));
+    signal.addEventListener("abort", abort, { once: true });
+    reply
+      .then(resolve, reject)
+      .finally(() => signal.removeEventListener("abort", abort));
+  });
+};
+
 const preferredLocalizations = (localizations: readonly string[]): string[] => {
   if (
     !Array.isArray(localizations) ||
@@ -200,25 +221,12 @@ function interfaceModule(props: Props) {
     action: string,
     input: unknown,
     options: { signal?: AbortSignal } = {},
-  ): Promise<unknown> => {
-    const { signal } = options;
-    if (signal?.aborted) {
-      return Promise.reject(abortError(signal));
-    }
-    const reply = host
-      .call(action, JSON.stringify(input === undefined ? null : input))
-      .then((value) => (value ? JSON.parse(value) : undefined));
-    if (signal === undefined) {
-      return reply;
-    }
-    return new Promise((resolve, reject) => {
-      const abort = () => reject(abortError(signal));
-      signal.addEventListener("abort", abort, { once: true });
-      reply
-        .then(resolve, reject)
-        .finally(() => signal.removeEventListener("abort", abort));
-    });
-  };
+  ): Promise<unknown> =>
+    untilAborted(options.signal, () =>
+      host
+        .call(action, JSON.stringify(input === undefined ? null : input))
+        .then((value) => (value ? JSON.parse(value) : undefined)),
+    );
   const calls = new Proxy({} as Record<string, unknown>, {
     get: (_, action) =>
       typeof action !== "string" || action === "then"
@@ -305,6 +313,13 @@ function load(props: Props): { Swiplet: ComponentType; close(): void } {
           props.cacheDirectory,
         ),
       ),
+    "@swipt/api/maps": () =>
+      exportsOf("@swipt/api/maps", {
+        searchPlaces: (query: string, options: { signal?: AbortSignal } = {}) =>
+          untilAborted(options.signal, async () =>
+            JSON.parse(await host.searchPlaces(query)),
+          ),
+      }),
     "expo-sqlite": () =>
       (sqliteModule ??= Object.freeze({
         ...sqlite.exports,
