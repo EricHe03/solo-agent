@@ -50,16 +50,20 @@ const nightlyOption = {
   nightly: { type: "boolean", help: tr("use nightly build") },
 };
 
-const setupOptions = {
-  "no-setup": {
-    type: "boolean",
-    help: tr("do not pair Swipt, trust its developer or publish its API"),
-  },
+const setupStepOptions = {
   "no-setup-pair": { type: "boolean", help: tr("do not pair Swipt") },
   "no-setup-api": {
     type: "boolean",
     help: tr("do not publish the API to the local network"),
   },
+};
+
+const setupOptions = {
+  "no-setup": {
+    type: "boolean",
+    help: tr("do not pair Swipt, trust its developer or publish its API"),
+  },
+  ...setupStepOptions,
 };
 
 const durationUnits = {
@@ -440,6 +444,16 @@ const commands = [
           ...setupOptions,
         },
         run: sideload.update,
+      },
+      {
+        name: "setup",
+        short: tr("Set up Swipt"),
+        args: [0, 0],
+        options: {
+          ...passcodeOptions(tr("set up auto-unlock with this passcode")),
+          ...setupStepOptions,
+        },
+        run: sideload.setup,
       },
       {
         name: "uninstall",

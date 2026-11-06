@@ -55,6 +55,7 @@
   "SERVICE": "บริการ",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider ทำการเรนเดอร์ React จึงใช้งานได้เฉพาะในอินเทอร์เฟซของ Swiplet",
   "STATUS": "สถานะ",
+  "Set up Swipt": "ตั้งค่า Swipt",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "ตั้งค่าการปลดล็อคอัตโนมัติหรือไม่ จากนั้น Swipt จะปลดล็อคอุปกรณ์นี้ได้ด้วยตัวเอง",
   "Show a swiplet": "แสดง Swiplet",
   "Sideload Swipt": "ติดตั้ง Swipt แบบไซด์โหลด",

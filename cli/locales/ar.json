@@ -55,6 +55,7 @@
   "SERVICE": "الخدمة",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "يعرض SQLiteProvider مكونات React، لذا لا يعمل إلا في واجهة Swiplet",
   "STATUS": "الحالة",
+  "Set up Swipt": "إعداد Swipt",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "هل تريد إعداد فتح القفل التلقائي؟ سيتمكن Swipt بعد ذلك من فتح قفل هذا الجهاز بنفسه",
   "Show a swiplet": "إظهار Swiplet",
   "Sideload Swipt": "تثبيت Swipt جانبيًا",

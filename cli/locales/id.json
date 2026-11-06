@@ -55,6 +55,7 @@
   "SERVICE": "LAYANAN",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider merender React, sehingga hanya berfungsi di antarmuka Swiplet",
   "STATUS": "STATUS",
+  "Set up Swipt": "Siapkan Swipt",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "Siapkan buka kunci otomatis? Swipt kemudian dapat membuka kunci perangkat ini sendiri",
   "Show a swiplet": "Tampilkan Swiplet",
   "Sideload Swipt": "Sideload Swipt",

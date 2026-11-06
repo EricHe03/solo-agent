@@ -55,6 +55,7 @@
   "SERVICE": "服务",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider 会渲染 React，因此只能在 Swiplet 界面中使用",
   "STATUS": "状态",
+  "Set up Swipt": "设置 Swipt",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "要设置自动解锁吗？设置后 Swipt 可以自行解锁此设备",
   "Show a swiplet": "显示 Swiplet",
   "Sideload Swipt": "侧载 Swipt",

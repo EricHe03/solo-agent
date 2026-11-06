@@ -55,6 +55,7 @@
   "SERVICE": "TJENESTE",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider gengiver React, så den virker kun i Swiplet-brugerfladen",
   "STATUS": "STATUS",
+  "Set up Swipt": "Konfigurer Swipt",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "Vil du konfigurere automatisk oplåsning? Så kan Swipt selv låse denne enhed op",
   "Show a swiplet": "Vis en Swiplet",
   "Sideload Swipt": "Sideload Swipt",

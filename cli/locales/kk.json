@@ -55,6 +55,7 @@
   "SERVICE": "ҚЫЗМЕТ",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider үшін React рендерлеуі қажет, сондықтан ол тек Swiplet интерфейсінде жұмыс істейді",
   "STATUS": "КҮЙІ",
+  "Set up Swipt": "Swipt қолданбасын баптау",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "Құлыпты автоматты түрде ашуды баптау керек пе? Сонда Swipt осы құрылғының құлпын өзі аша алады",
   "Show a swiplet": "Swiplet көрсету",
   "Sideload Swipt": "Swipt қолданбасын бүйірден жүктеу",

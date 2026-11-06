@@ -55,6 +55,7 @@
   "SERVICE": "ΥΠΗΡΕΣΙΑ",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "Το SQLiteProvider αποδίδει React, επομένως λειτουργεί μόνο στη διεπαφή του Swiplet",
   "STATUS": "ΚΑΤΑΣΤΑΣΗ",
+  "Set up Swipt": "Ρύθμιση του Swipt",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "Ρύθμιση αυτόματου ξεκλειδώματος; Το Swipt θα μπορεί στη συνέχεια να ξεκλειδώνει μόνο του αυτήν τη συσκευή",
   "Show a swiplet": "Εμφάνιση Swiplet",
   "Sideload Swipt": "Πλευρική φόρτωση του Swipt",

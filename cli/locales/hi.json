@@ -55,6 +55,7 @@
   "SERVICE": "सेवा",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider React रेंडर करता है, इसलिए यह केवल Swiplet इंटरफ़ेस में काम करता है",
   "STATUS": "स्थिति",
+  "Set up Swipt": "Swipt सेट अप करें",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "स्वचालित अनलॉक सेट अप करें? इसके बाद Swipt इस डिवाइस को अपने आप अनलॉक कर सकता है",
   "Show a swiplet": "Swiplet दिखाएँ",
   "Sideload Swipt": "Swipt साइडलोड करें",

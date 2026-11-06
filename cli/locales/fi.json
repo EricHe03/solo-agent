@@ -55,6 +55,7 @@
   "SERVICE": "PALVELU",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider renderöi Reactia, joten se toimii vain Swipletin käyttöliittymässä",
   "STATUS": "TILA",
+  "Set up Swipt": "Määritä Swipt",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "Määritetäänkö automaattinen lukituksen avaus? Swipt voi sen jälkeen avata tämän laitteen lukituksen itse",
   "Show a swiplet": "Näytä Swiplet",
   "Sideload Swipt": "Sivulataa Swipt",

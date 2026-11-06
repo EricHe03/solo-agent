@@ -55,6 +55,7 @@
   "SERVICE": "SLUŽBA",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider vykresluje React, takže funguje pouze v rozhraní Swipletu",
   "STATUS": "STAV",
+  "Set up Swipt": "Nastavit aplikaci Swipt",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "Nastavit automatické odemykání? Aplikace Swipt pak bude moci toto zařízení odemykat sama",
   "Show a swiplet": "Zobrazit Swiplet",
   "Sideload Swipt": "Nainstalovat aplikaci Swipt sideloadingem",

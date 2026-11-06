@@ -55,6 +55,7 @@
   "SERVICE": "DỊCH VỤ",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider kết xuất React nên chỉ hoạt động trong giao diện Swiplet",
   "STATUS": "TRẠNG THÁI",
+  "Set up Swipt": "Thiết lập Swipt",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "Thiết lập tự động mở khóa? Khi đó, Swipt có thể tự mở khóa thiết bị này",
   "Show a swiplet": "Hiển thị Swiplet",
   "Sideload Swipt": "Sideload Swipt",

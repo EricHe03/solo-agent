@@ -55,6 +55,7 @@
   "SERVICE": "PASLAUGA",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider atvaizduoja „React”, todėl veikia tik „Swiplet” sąsajoje",
   "STATUS": "BŪSENA",
+  "Set up Swipt": "Nustatyti „Swipt”",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "Nustatyti automatinį atrakinimą? Tada „Swipt” galės pati atrakinti šį įrenginį",
   "Show a swiplet": "Rodyti „Swiplet”",
   "Sideload Swipt": "Įdiegti „Swipt” šoniniu būdu",

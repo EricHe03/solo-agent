@@ -55,6 +55,7 @@
   "SERVICE": "SERVİS",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider React ile işleme yaptığı için yalnızca Swiplet arayüzünde çalışır",
   "STATUS": "DURUM",
+  "Set up Swipt": "Swipt’i ayarla",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "Otomatik kilit açma ayarlansın mı? Böylece Swipt bu aygıtın kilidini kendiliğinden açabilir",
   "Show a swiplet": "Bir Swiplet’i göster",
   "Sideload Swipt": "Swipt’i yandan yükle",

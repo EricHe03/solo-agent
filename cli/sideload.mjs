@@ -758,23 +758,18 @@ async function askPasscode(context) {
   );
 }
 
-async function deploy(context, updateOnly) {
-  const device = await coreDevice(
-    context,
-    updateOnly
-      ? {
-          filter: (devices) =>
-            sideloadedDevices(
-              devices,
-              tr(
-                'Swipt is not sideloaded on any online iOS device; install it with "swipt sideload install"',
-              ),
-            ),
-        }
-      : undefined,
-  );
-  const { team, current } = await locate(context, device, !updateOnly);
-  if (current === undefined && updateOnly) {
+async function findInstalled(context) {
+  const device = await coreDevice(context, {
+    filter: (devices) =>
+      sideloadedDevices(
+        devices,
+        tr(
+          'Swipt is not sideloaded on any online iOS device; install it with "swipt sideload install"',
+        ),
+      ),
+  });
+  const { team, current } = await locate(context, device);
+  if (current === undefined) {
     throw new Error(
       team === undefined
         ? tr(
@@ -787,6 +782,10 @@ async function deploy(context, updateOnly) {
           ),
     );
   }
+  return { device, team, current };
+}
+
+async function deploy(context, { device, team, current }, updateOnly) {
   const passcode =
     current === undefined &&
     interactive(context) &&
@@ -827,11 +826,21 @@ async function deploy(context, updateOnly) {
               },
             ),
       );
-      if (
-        !context.options["no-setup"] &&
-        !context.options["no-setup-pair"] &&
-        (await pair(device, id))
-      ) {
+      const saves = !updateOnly && passcode !== undefined;
+      if (saves) {
+        await step(tr("setting up auto-unlock"), () =>
+          setUpAutoUnlock(device, id, passcode),
+        );
+      }
+      if (context.options["no-setup"]) {
+        if (saves) {
+          await launch(device, id);
+        }
+        return;
+      }
+      const paired =
+        !context.options["no-setup-pair"] && (await pair(device, id));
+      if (saves || paired) {
         await openConfigured(context, device, id, passcode);
       }
       return;
@@ -900,9 +909,9 @@ async function deploy(context, updateOnly) {
     await step(tr("installing on {device}", { device: device.name }), () =>
       devicectl(["device", "install", "app", "--device", device.udid, app]),
     );
-    if (current === undefined && passcode !== undefined) {
+    if (!updateOnly && passcode !== undefined) {
       await step(tr("setting up auto-unlock"), () =>
-        setUpAutoUnlock(device, id, work, passcode),
+        setUpAutoUnlock(device, id, passcode),
       );
     }
   } finally {
@@ -1048,9 +1057,35 @@ async function launch(device, id, args) {
   }
 }
 
-export const install = (context) => deploy(context, false);
+export async function install(context) {
+  const device = await coreDevice(context);
+  await deploy(
+    context,
+    { device, ...(await locate(context, device, true)) },
+    false,
+  );
+}
 
-export const update = (context) => deploy(context, true);
+export async function update(context) {
+  await deploy(context, await findInstalled(context), true);
+}
+
+export async function setup(context) {
+  const given = passcodeOf(context.options);
+  const { device, current } = await findInstalled(context);
+  const id = current.bundleIdentifier;
+  const passcode =
+    given ?? (interactive(context) ? await askPasscode(context) : undefined);
+  if (passcode !== undefined) {
+    await step(tr("setting up auto-unlock"), () =>
+      setUpAutoUnlock(device, id, passcode),
+    );
+  }
+  if (!context.options["no-setup-pair"]) {
+    await pair(device, id, true);
+  }
+  await openConfigured(context, device, id, passcode);
+}
 
 const serverHint = tr(
   'swipt-server is missing; install it with "npm install -g @swipt/cli --include=optional"',
@@ -1104,41 +1139,89 @@ const schema = [
 
 const databasePath = "Library/Application Support/Swipt.sqlite";
 
-async function setUpAutoUnlock(device, id, work, passcode) {
-  const database = path.join(work, "Swipt.sqlite");
-  const preferences = {
-    serverAutoUnlocks: true,
-    serverAutoUnlockPasscodeType: passcodeTypes.indexOf(passcode.type),
-    serverAutoUnlockPasscode: passcode.passcode,
-    autoUnlockSetUp: true,
-  };
-  const quote = (text) => `'${text.replaceAll("'", "''")}'`;
-  execFileSync("sqlite3", [database], {
-    input: [
-      ...schema,
-      ...Object.entries(preferences).map(
-        ([name, value]) =>
-          `INSERT INTO preferences VALUES (${quote(name)}, CAST(${quote(JSON.stringify(value))} AS BLOB))`,
-      ),
-    ]
-      .map((statement) => `${statement};\n`)
-      .join(""),
-  });
-  await devicectl([
-    "device",
-    "copy",
-    "to",
-    "--device",
-    device.udid,
-    "--source",
-    database,
-    "--destination",
-    databasePath,
-    "--domain-type",
-    "appDataContainer",
-    "--domain-identifier",
-    id,
+async function terminate(device, id) {
+  const [listed, { result }] = await Promise.all([
+    apps(device.udid),
+    devicectl(["device", "info", "processes", "--device", device.udid], {
+      parse: true,
+    }),
   ]);
+  const { url } = listed.find((app) => app.bundleIdentifier === id);
+  const running = result.runningProcesses.find((process) =>
+    process.executable?.startsWith(url),
+  );
+  if (running !== undefined) {
+    await devicectl([
+      "device",
+      "process",
+      "terminate",
+      "--device",
+      device.udid,
+      "--pid",
+      String(running.processIdentifier),
+    ]);
+  }
+}
+
+async function setUpAutoUnlock(device, id, passcode) {
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "swipt-database-"));
+  try {
+    const database = path.join(work, "Swipt.sqlite");
+    const exists = await hasFile(device, id, databasePath);
+    if (exists) {
+      await terminate(device, id);
+      await devicectl([
+        "device",
+        "copy",
+        "from",
+        "--device",
+        device.udid,
+        "--source",
+        databasePath,
+        "--destination",
+        database,
+        "--domain-type",
+        "appDataContainer",
+        "--domain-identifier",
+        id,
+      ]);
+    }
+    const preferences = {
+      serverAutoUnlocks: true,
+      serverAutoUnlockPasscodeType: passcodeTypes.indexOf(passcode.type),
+      serverAutoUnlockPasscode: passcode.passcode,
+      autoUnlockSetUp: true,
+    };
+    const quote = (text) => `'${text.replaceAll("'", "''")}'`;
+    execFileSync("sqlite3", [database], {
+      input: [
+        ...(exists ? [] : schema),
+        ...Object.entries(preferences).map(
+          ([name, value]) =>
+            `INSERT OR REPLACE INTO preferences VALUES (${quote(name)}, CAST(${quote(JSON.stringify(value))} AS BLOB))`,
+        ),
+      ]
+        .map((statement) => `${statement};\n`)
+        .join(""),
+    });
+    await devicectl([
+      "device",
+      "copy",
+      "to",
+      "--device",
+      device.udid,
+      "--source",
+      database,
+      "--destination",
+      databasePath,
+      "--domain-type",
+      "appDataContainer",
+      "--domain-identifier",
+      id,
+    ]);
+  } finally {
+    fs.rmSync(work, { recursive: true, force: true });
+  }
 }
 
 const pairingFile = "PairingRecord.plist";
@@ -1210,13 +1293,15 @@ async function savedPasscode(device, id) {
   }
 }
 
-async function pair(device, id) {
-  const paired = await step(
-    tr("checking Swipt on {device}", { device: device.name }),
-    () => hasFile(device, id, pairingPath),
-    { transient: true },
-  );
-  if (paired) {
+async function pair(device, id, overwrite = false) {
+  if (
+    !overwrite &&
+    (await step(
+      tr("checking Swipt on {device}", { device: device.name }),
+      () => hasFile(device, id, pairingPath),
+      { transient: true },
+    ))
+  ) {
     return false;
   }
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "swipt-pairing-"));

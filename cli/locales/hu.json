@@ -55,6 +55,7 @@
   "SERVICE": "SZOLGÁLTATÁS",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "az SQLiteProvider React-tartalmat renderel, ezért csak a Swiplet felületén működik",
   "STATUS": "ÁLLAPOT",
+  "Set up Swipt": "A Swipt beállítása",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "Beállítja az automatikus feloldást? Így a Swipt önállóan fel tudja oldani ezt az eszközt",
   "Show a swiplet": "Swiplet megjelenítése",
   "Sideload Swipt": "A Swipt telepítése oldaltöltéssel",

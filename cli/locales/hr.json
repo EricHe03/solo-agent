@@ -55,6 +55,7 @@
   "SERVICE": "USLUGA",
   "SQLiteProvider renders React, so it works only in the swiplet interface": "SQLiteProvider renderira React, pa radi samo u sučelju Swipleta",
   "STATUS": "STATUS",
+  "Set up Swipt": "Postavi Swipt",
   "Set up auto-unlock? Swipt can then unlock this device by itself": "Postaviti automatsko otključavanje? Aplikacija Swipt tada može sama otključati ovaj uređaj",
   "Show a swiplet": "Prikaži Swiplet",
   "Sideload Swipt": "Bočno učitaj Swipt",
