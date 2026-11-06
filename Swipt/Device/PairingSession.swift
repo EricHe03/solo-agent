@@ -1,5 +1,5 @@
 import Foundation
-import LibSolo Agent
+import LibSwipt
 import Perception
 import UIKit
 import dnssd
@@ -24,14 +24,14 @@ final class PairingSession {
         String(localized: "Privacy & Security › Developer Mode")
     }
 
-    @PerceptionIgnored private let device: LibSolo AgentDevice
-    @PerceptionIgnored private var responder: LibSolo AgentPairingResponder?
+    @PerceptionIgnored private let device: LibSwiptDevice
+    @PerceptionIgnored private var responder: LibSwiptPairingResponder?
     private let advertiser = BonjourAdvertiser()
     @PerceptionIgnored private var continuedTask: ContinuedTask?
     @PerceptionIgnored private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     @PerceptionIgnored private var observers: [NSObjectProtocol] = []
 
-    init(device: LibSolo AgentDevice) {
+    init(device: LibSwiptDevice) {
         self.device = device
     }
 
@@ -47,7 +47,7 @@ final class PairingSession {
         let events = PairingEvents { [weak self] event in
             DispatchQueue.main.async { self?.handle(event) }
         }
-        let responder: LibSolo AgentPairingResponder
+        let responder: LibSwiptPairingResponder
         do {
             responder = try device.newPairingResponder(hostName, record: PairingStore.shared.record, handler: events)
         } catch {
