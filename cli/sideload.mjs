@@ -39,10 +39,11 @@ import { LogLevel } from "./proto/common_pb.js";
 const exec = promisify(execFile);
 
 const bundleId = "io.nekohasekai.swipt";
+const bundleTeam = "P8XK3KHB48";
 const repository = "swipt-automation/swipt";
 const teamPattern = /^[A-Z0-9]{10}$/;
 const sideloadedPattern = new RegExp(
-  `^${bundleId.replaceAll(".", "\\.")}\\.([A-Z0-9]{10})$`,
+  `^${bundleId.replaceAll(".", "\\.")}(?:\\.([A-Z0-9]{10}))?$`,
 );
 
 const accountsHint = "Xcode › Settings › Accounts";
@@ -597,11 +598,11 @@ async function locate(context, device, fresh = false) {
     { transient: true },
   );
   const found = listed
-    .map((app) => ({
-      ...app,
-      team: sideloadedPattern.exec(app.bundleIdentifier)?.[1],
-    }))
-    .filter((app) => app.team !== undefined);
+    .map((app) => {
+      const match = sideloadedPattern.exec(app.bundleIdentifier);
+      return { ...app, team: match && (match[1] ?? bundleTeam) };
+    })
+    .filter((app) => app.team !== null);
   if (options.team !== undefined) {
     if (!teamPattern.test(options.team)) {
       throw new UsageError(
@@ -647,8 +648,9 @@ async function locate(context, device, fresh = false) {
             ),
       );
     }
-    const team =
-      teams.length === 1
+    const team = teams.some((it) => it.id === bundleTeam)
+      ? bundleTeam
+      : teams.length === 1
         ? teams[0].id
         : await choose(
             context,
@@ -799,7 +801,7 @@ async function deploy(context, { device, team, current }, updateOnly) {
     () => findRelease(context.options.nightly, context.signal),
     { transient: true },
   );
-  const id = `${bundleId}.${team}`;
+  const id = team === bundleTeam ? bundleId : `${bundleId}.${team}`;
   if (current !== undefined) {
     const installed = Number(current.bundleVersion);
     const signing = await signingPeriod(device, id, team);
