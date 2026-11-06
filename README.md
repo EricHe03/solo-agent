@@ -6,7 +6,7 @@ It is an independent GPLv3 derivative of [Swipt](https://github.com/swipt-automa
 
 ## Status
 
-- **Build:** GitHub Actions produces an unsigned physical-iOS ARM64 `SoloAgent.ipa` artifact when the workflow succeeds.
+- **Verified build:** [Actions run 42232721394](https://github.com/EricHe03/solo-agent/actions/runs/42232721394) produced an unsigned physical-iOS ARM64 `SoloAgent.ipa` (version 0.1.0 build 5, source `374ee50`).
 - **Device verification:** No physical-device tests have been completed from the Windows development environment. Compilation does not prove that pairing, automation, or the example tasks work on an iPhone.
 - **Requirements:** iPhone/iPad running iOS 27, Developer Mode, a compatible loopback VPN, and an OpenAI-compatible API account/key.
 
@@ -41,10 +41,10 @@ An unsigned IPA must be signed during installation.
 1. Install and configure [SideStore](https://docs.sidestore.io/docs/installation/install) using its current official instructions. A computer is needed for initial SideStore setup, but not for normal agent operation.
 2. On the iPhone, trust the developer profile and enable **Settings › Privacy & Security › Developer Mode**. Restart when iOS requests it.
 3. Connect LocalDevVPN for SideStore installation/refresh, open **SideStore › My Apps**, tap **+**, and choose `SoloAgent.ipa`.
-4. Sign with your Apple Account. If SideStore reports an App Group/provisioning error, the signing profile does not support the app’s required App Group; use a compatible signing profile rather than stripping entitlements.
+4. Sign with your Apple Account. If SideStore reports a provisioning error, use a compatible signing profile rather than stripping required app capabilities.
 5. Refresh the app before a free provisioning profile expires (normally seven days). Keep the original IPA available.
 
-**Signing limitation is not yet device-verified.** The app requests `$(TeamIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)` as its App Group. SideStore must preserve embedded frameworks and the App Group entitlement. A free or otherwise incompatible provisioning profile may prevent installation or shared-container behavior; this project does not claim a bypass.
+**Signing is not yet device-verified.** The iOS target does not use the macOS-only App Group entitlement; its inherited empty `AppGroupIdentifier` plist key is unused, matching the upstream iOS IPA. SideStore must still preserve embedded frameworks, local-network/background declarations, and the bundle ID. Free provisioning normally requires periodic refresh. No unsupported entitlement bypass is claimed.
 
 ## Local Pairing and Loopback VPN
 
