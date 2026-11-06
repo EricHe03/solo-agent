@@ -26,6 +26,7 @@ const appModules = [
   "react-native-worklets",
   "expo",
   "expo-localization",
+  "expo-maps",
   "@expo/ui",
   "@expo/ui/*",
   "@swipt/api",

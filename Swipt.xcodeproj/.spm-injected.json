@@ -65,6 +65,10 @@
       "frameworkName": "ExpoFont"
     },
     {
+      "id": "expo-maps",
+      "frameworkName": "ExpoMaps"
+    },
+    {
       "id": "expo-modules-core",
       "frameworkName": "ExpoModulesCore"
     },

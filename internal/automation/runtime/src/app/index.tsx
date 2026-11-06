@@ -247,6 +247,7 @@ const modules: Record<string, () => unknown> = {
   "react-native-worklets": () => require("react-native-worklets"),
   expo: () => require("expo"),
   "expo-localization": () => require("expo-localization"),
+  "expo-maps": () => require("expo-maps"),
   "@expo/ui": () => require("@expo/ui"),
   "@expo/ui/swift-ui": () => require("@expo/ui/swift-ui"),
   "@expo/ui/swift-ui/modifiers": () => require("@expo/ui/swift-ui/modifiers"),

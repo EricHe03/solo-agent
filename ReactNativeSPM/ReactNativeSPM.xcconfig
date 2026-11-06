@@ -5,8 +5,8 @@ CLANG_CXX_LANGUAGE_STANDARD = c++20
 REACT_NATIVE_PATH = $(SRCROOT)/node_modules/react-native
 
 HEADER_SEARCH_PATHS = $(inherited) "$(SRCROOT)/build/generated/autolinking/headers"
-OTHER_LDFLAGS = $(inherited) -ObjC "$(RN_SPM_REACT_BINARY)" "$(RN_SPM_REACT_NATIVE_DEPENDENCIES_BINARY)" "$(RN_SPM_HERMES_BINARY)" "$(RN_SPM_EXPO_FONT_BINARY)" "$(RN_SPM_EXPO_MODULES_CORE_BINARY)" "$(RN_SPM_EXPO_MODULES_WORKLETS_BINARY)"
-FRAMEWORK_SEARCH_PATHS = $(inherited) "$(RN_SPM_REACT_SEARCH_PATH)" "$(RN_SPM_REACT_NATIVE_DEPENDENCIES_SEARCH_PATH)" "$(RN_SPM_HERMES_SEARCH_PATH)" "$(RN_SPM_EXPO_FONT_SEARCH_PATH)" "$(RN_SPM_EXPO_MODULES_CORE_SEARCH_PATH)" "$(RN_SPM_EXPO_MODULES_WORKLETS_SEARCH_PATH)"
+OTHER_LDFLAGS = $(inherited) -ObjC "$(RN_SPM_REACT_BINARY)" "$(RN_SPM_REACT_NATIVE_DEPENDENCIES_BINARY)" "$(RN_SPM_HERMES_BINARY)" "$(RN_SPM_EXPO_FONT_BINARY)" "$(RN_SPM_EXPO_MAPS_BINARY)" "$(RN_SPM_EXPO_MODULES_CORE_BINARY)" "$(RN_SPM_EXPO_MODULES_WORKLETS_BINARY)"
+FRAMEWORK_SEARCH_PATHS = $(inherited) "$(RN_SPM_REACT_SEARCH_PATH)" "$(RN_SPM_REACT_NATIVE_DEPENDENCIES_SEARCH_PATH)" "$(RN_SPM_HERMES_SEARCH_PATH)" "$(RN_SPM_EXPO_FONT_SEARCH_PATH)" "$(RN_SPM_EXPO_MAPS_SEARCH_PATH)" "$(RN_SPM_EXPO_MODULES_CORE_SEARCH_PATH)" "$(RN_SPM_EXPO_MODULES_WORKLETS_SEARCH_PATH)"
 LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks
 
 RN_SPM_FLAVOR = release
@@ -71,6 +71,12 @@ RN_SPM_EXPO_FONT_SEARCH_PATH[sdk=iphoneos*] = $(SRCROOT)/build/xcframeworks/$(RN
 RN_SPM_EXPO_FONT_FRAMEWORK[sdk=iphonesimulator*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-font.xcframework/ios-arm64_x86_64-simulator/ExpoFont.framework
 RN_SPM_EXPO_FONT_BINARY[sdk=iphonesimulator*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-font.xcframework/ios-arm64_x86_64-simulator/ExpoFont.framework/ExpoFont
 RN_SPM_EXPO_FONT_SEARCH_PATH[sdk=iphonesimulator*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-font.xcframework/ios-arm64_x86_64-simulator
+RN_SPM_EXPO_MAPS_FRAMEWORK[sdk=iphoneos*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-maps.xcframework/ios-arm64/ExpoMaps.framework
+RN_SPM_EXPO_MAPS_BINARY[sdk=iphoneos*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-maps.xcframework/ios-arm64/ExpoMaps.framework/ExpoMaps
+RN_SPM_EXPO_MAPS_SEARCH_PATH[sdk=iphoneos*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-maps.xcframework/ios-arm64
+RN_SPM_EXPO_MAPS_FRAMEWORK[sdk=iphonesimulator*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-maps.xcframework/ios-arm64_x86_64-simulator/ExpoMaps.framework
+RN_SPM_EXPO_MAPS_BINARY[sdk=iphonesimulator*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-maps.xcframework/ios-arm64_x86_64-simulator/ExpoMaps.framework/ExpoMaps
+RN_SPM_EXPO_MAPS_SEARCH_PATH[sdk=iphonesimulator*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-maps.xcframework/ios-arm64_x86_64-simulator
 RN_SPM_EXPO_MODULES_CORE_FRAMEWORK[sdk=iphoneos*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-modules-core.xcframework/ios-arm64/ExpoModulesCore.framework
 RN_SPM_EXPO_MODULES_CORE_BINARY[sdk=iphoneos*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-modules-core.xcframework/ios-arm64/ExpoModulesCore.framework/ExpoModulesCore
 RN_SPM_EXPO_MODULES_CORE_SEARCH_PATH[sdk=iphoneos*] = $(SRCROOT)/build/xcframeworks/$(RN_SPM_FLAVOR)/plugins/expo-modules-core.xcframework/ios-arm64
