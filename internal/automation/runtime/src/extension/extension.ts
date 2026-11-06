@@ -1,7 +1,7 @@
 import type * as swiplet from "@swipt/api/swiplet";
 
+import { appIntents } from "./app-intents";
 import { chunk } from "./chunks";
-import { createDialog } from "./dialog";
 import { DOMException, failureOf } from "./errors";
 import { AbortController } from "./events";
 import { assets, cacheDirectory, dataDirectory } from "./files";
@@ -142,6 +142,7 @@ interface Modules {
   "@swipt/api/device": typeof import("@swipt/api/device");
   "@swipt/api/screen": typeof import("@swipt/api/screen");
   "@swipt/api/image": typeof import("@swipt/api/image");
+  "@swipt/api/app-intents": typeof import("@swipt/api/app-intents");
   "@swipt/api/localization": typeof import("@swipt/api/localization");
   "expo-sqlite": typeof import("./types/expo-sqlite");
   "expo-sqlite/kv-store": typeof import("./types/expo-sqlite/kv-store");
@@ -182,6 +183,7 @@ const moduleTable = {
   "@swipt/api/device": () => ({ __esModule: true, ...chunk("api").device }),
   "@swipt/api/screen": () => ({ __esModule: true, ...chunk("api").screen }),
   "@swipt/api/image": () => ({ __esModule: true, ...chunk("api").image }),
+  "@swipt/api/app-intents": () => ({ __esModule: true, ...appIntents }),
   "@swipt/api/localization": () => ({
     __esModule: true,
     preferredLocalizations,
@@ -250,7 +252,6 @@ const validate = async (
 
 let loaded: Extension | undefined;
 const controller = new AbortController();
-const dialog = createDialog();
 
 const serialize = (value: unknown): string => {
   let json: string | undefined;
@@ -316,7 +317,7 @@ export const hooks = {
       return;
     }
     settle(async () => {
-      await run({ signal: controller.signal, dialog });
+      await run({ signal: controller.signal });
     });
   },
   call(name: string, input: string, caller: Caller): void {
@@ -336,7 +337,6 @@ export const hooks = {
     const context = Object.freeze({
       signal: controller.signal,
       caller,
-      dialog,
     });
     settle(async () => {
       const value = await validate(

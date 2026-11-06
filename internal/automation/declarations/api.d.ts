@@ -5,7 +5,7 @@ declare var screen: Screen;
 declare interface Screen extends Readonly<typeof import("@swipt/api/screen")> {}
 declare const image: typeof import("@swipt/api/image");
 declare const dataDirectory: import("@swipt/api/file-system").DirectoryHandle;
-declare const dialog: import("@swipt/api/swiplet").IntentDialog;
+declare const appIntents: typeof import("@swipt/api/app-intents");
 declare const args: readonly string[];
 
 declare function show(image: import("@swipt/api/image").RasterImage): void;
@@ -121,122 +121,7 @@ declare module "@swipt/api/swiplet" {
     type InferOutput<Schema extends StandardTypedV1> = StandardTypedV1.InferOutput<Schema>;
   }
 
-  import type { CallOptions, Jsonify } from "@swipt/api";
-
-  export type IntentChoiceStyle = "default" | "destructive" | "cancel";
-
-  export type ConfirmationActionName =
-    | "add"
-    | "addData"
-    | "book"
-    | "buy"
-    | "call"
-    | "checkIn"
-    | "continue"
-    | "create"
-    | "do"
-    | "download"
-    | "filter"
-    | "find"
-    | "get"
-    | "go"
-    | "log"
-    | "open"
-    | "order"
-    | "pay"
-    | "play"
-    | "playSound"
-    | "post"
-    | "request"
-    | "run"
-    | "search"
-    | "send"
-    | "set"
-    | "share"
-    | "start"
-    | "startNavigation"
-    | "toggle"
-    | "turnOff"
-    | "turnOn"
-    | "view";
-
-  export interface Person {
-    readonly name: string;
-    readonly handle?: { type: "phoneNumber" | "emailAddress"; value: string };
-  }
-
-  export interface Placemark {
-    readonly name?: string;
-    readonly coordinate?: [latitude: number, longitude: number];
-    readonly address?: string;
-  }
-
-  export interface IntentDialog {
-    requestChoice<
-      T extends string | { title: string; style?: IntentChoiceStyle },
-    >(
-      choices: T[],
-      prompt: string,
-      options?: CallOptions,
-    ): Promise<T>;
-    requestConfirmation(
-      prompt: string,
-      options?: CallOptions & {
-        actionName?:
-          | ConfirmationActionName
-          | { accept: string; deny: string; destructive?: boolean };
-      },
-    ): Promise<void>;
-    requestValue(
-      type: "text",
-      prompt?: string,
-      options?: CallOptions & { multiline?: boolean; literal?: boolean },
-    ): Promise<string>;
-    requestValue(
-      type: "integer",
-      prompt?: string,
-      options?: CallOptions & { stepper?: boolean; min?: number; max?: number },
-    ): Promise<number>;
-    requestValue(
-      type: "number",
-      prompt?: string,
-      options?: CallOptions & { min?: number; max?: number },
-    ): Promise<number>;
-    requestValue(
-      type: "date" | "time" | "dateTime",
-      prompt?: string,
-      options?: CallOptions,
-    ): Promise<Date>;
-    requestValue(
-      type: "file",
-      prompt?: string,
-      options?: CallOptions,
-    ): Promise<{ name: string; type: string; bytes: Uint8Array }>;
-    requestValue(
-      type: "person",
-      prompt?: string,
-      options?: CallOptions,
-    ): Promise<Person>;
-    requestValue(
-      type: "placemark",
-      prompt?: string,
-      options?: CallOptions,
-    ): Promise<Placemark>;
-    requestDisambiguation(
-      values: string[],
-      prompt: string,
-      options?: CallOptions,
-    ): Promise<string>;
-    requestValueConfirmation(
-      value: string,
-      prompt: string,
-      options?: CallOptions,
-    ): Promise<boolean>;
-    continueInForeground(
-      prompt?: string,
-      options?: CallOptions & { alwaysConfirm?: boolean },
-    ): Promise<void>;
-  }
+  import type { Jsonify } from "@swipt/api";
 
   export type ActionCaller = "app" | "shortcuts" | "api";
 
@@ -265,7 +150,6 @@ declare module "@swipt/api/swiplet" {
 
   export interface RunContext {
     readonly signal: AbortSignal;
-    readonly dialog: IntentDialog;
   }
 
   export interface ActionContext extends RunContext {
@@ -993,6 +877,135 @@ declare module "@swipt/api/image" {
     data: Uint8Array | FileHandle | string,
     options?: CallOptions & { readonly scale?: number },
   ): Promise<RasterImage>;
+}
+
+declare module "@swipt/api/app-intents" {
+  /**
+   * This package is designed to provide the same headless interactions as Shortcuts or App Intents.
+   *
+   * When Shortcuts runs an action, iOS presents these interactions itself, except requestValue.
+   * In every other case Swipt presents them. If another app is in front, Swipt takes a screenshot
+   * of it, comes to the front with the interaction over that screenshot, and returns to that app
+   * when the interaction ends. Cancelling an interaction rejects it with AbortError.
+   *
+   * It works in every environment, including the REPL, but should not be used in place of native
+   * UI interactions in a swiplet.
+   */
+  import type { CallOptions } from "@swipt/api";
+
+  export type IntentChoiceStyle = "default" | "destructive" | "cancel";
+
+  export type ConfirmationActionName =
+    | "add"
+    | "addData"
+    | "book"
+    | "buy"
+    | "call"
+    | "checkIn"
+    | "continue"
+    | "create"
+    | "do"
+    | "download"
+    | "filter"
+    | "find"
+    | "get"
+    | "go"
+    | "log"
+    | "open"
+    | "order"
+    | "pay"
+    | "play"
+    | "playSound"
+    | "post"
+    | "request"
+    | "run"
+    | "search"
+    | "send"
+    | "set"
+    | "share"
+    | "start"
+    | "startNavigation"
+    | "toggle"
+    | "turnOff"
+    | "turnOn"
+    | "view";
+
+  export interface Person {
+    readonly name: string;
+    readonly handle?: { type: "phoneNumber" | "emailAddress"; value: string };
+  }
+
+  export interface Placemark {
+    readonly name?: string;
+    readonly coordinate?: [latitude: number, longitude: number];
+    readonly address?: string;
+  }
+
+  /**
+   * A choice of style cancel rejects with AbortError. Swiping the request away answers
+   * the first choice, so the first choice is the one that is safe to take unasked.
+   */
+  export function requestChoice<
+    T extends string | { title: string; style?: IntentChoiceStyle },
+  >(choices: T[], prompt: string, options?: CallOptions): Promise<T>;
+  /** The deny button rejects with AbortError. */
+  export function requestConfirmation(
+    prompt: string,
+    options?: CallOptions & {
+      actionName?:
+        | ConfirmationActionName
+        | { accept: string; deny: string; destructive?: boolean };
+    },
+  ): Promise<void>;
+  export function requestValue(
+    type: "text",
+    prompt?: string,
+    options?: CallOptions & {
+      multiline?: boolean;
+      /** Turns off autocapitalization, autocorrection, spell checking and smart punctuation. */
+      literal?: boolean;
+    },
+  ): Promise<string>;
+  export function requestValue(
+    type: "integer",
+    prompt?: string,
+    options?: CallOptions & { stepper?: boolean; min?: number; max?: number },
+  ): Promise<number>;
+  export function requestValue(
+    type: "number",
+    prompt?: string,
+    options?: CallOptions & { min?: number; max?: number },
+  ): Promise<number>;
+  export function requestValue(
+    type: "date" | "time" | "dateTime",
+    prompt?: string,
+    options?: CallOptions,
+  ): Promise<Date>;
+  export function requestValue(
+    type: "file",
+    prompt?: string,
+    options?: CallOptions,
+  ): Promise<{ name: string; type: string; bytes: Uint8Array }>;
+  export function requestValue(
+    type: "person",
+    prompt?: string,
+    options?: CallOptions,
+  ): Promise<Person>;
+  export function requestValue(
+    type: "placemark",
+    prompt?: string,
+    options?: CallOptions,
+  ): Promise<Placemark>;
+  export function requestDisambiguation(
+    values: string[],
+    prompt: string,
+    options?: CallOptions,
+  ): Promise<string>;
+  export function requestValueConfirmation(
+    value: string,
+    prompt: string,
+    options?: CallOptions,
+  ): Promise<boolean>;
 }
 
 declare module "@swipt/api/localization" {

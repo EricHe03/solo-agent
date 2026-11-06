@@ -26,15 +26,6 @@ extension AppIntent {
             return .index(values.firstIndex(of: chosen) ?? 0)
         case .valueConfirmation(_, let value):
             return .confirmed(try await parameter.requestConfirmation(for: value, dialog: dialog))
-        // Declaring a foreground mode for continueInForeground gives every action an Open When Run switch that starts on
-        // (-[WFLinkAction parameterDefinitions], iOS 27 24A446), so the engine brings the app forward itself.
-        case .foreground(let prompt, let alwaysConfirm):
-            if alwaysConfirm {
-                let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? ""
-                let text = prompt ?? String(localized: "Continue in \(name)?")
-                try await requestConfirmation(actionName: .open, dialog: IntentDialog(.verbatim(text)))
-            }
-            return .none
         }
     }
 }

@@ -3,122 +3,7 @@ import type {
   StandardSchemaV1,
 } from "@standard-schema/spec";
 
-import type { CallOptions, Jsonify } from "./index";
-
-export type IntentChoiceStyle = "default" | "destructive" | "cancel";
-
-export type ConfirmationActionName =
-  | "add"
-  | "addData"
-  | "book"
-  | "buy"
-  | "call"
-  | "checkIn"
-  | "continue"
-  | "create"
-  | "do"
-  | "download"
-  | "filter"
-  | "find"
-  | "get"
-  | "go"
-  | "log"
-  | "open"
-  | "order"
-  | "pay"
-  | "play"
-  | "playSound"
-  | "post"
-  | "request"
-  | "run"
-  | "search"
-  | "send"
-  | "set"
-  | "share"
-  | "start"
-  | "startNavigation"
-  | "toggle"
-  | "turnOff"
-  | "turnOn"
-  | "view";
-
-export interface Person {
-  readonly name: string;
-  readonly handle?: { type: "phoneNumber" | "emailAddress"; value: string };
-}
-
-export interface Placemark {
-  readonly name?: string;
-  readonly coordinate?: [latitude: number, longitude: number];
-  readonly address?: string;
-}
-
-export interface IntentDialog {
-  requestChoice<
-    T extends string | { title: string; style?: IntentChoiceStyle },
-  >(
-    choices: T[],
-    prompt: string,
-    options?: CallOptions,
-  ): Promise<T>;
-  requestConfirmation(
-    prompt: string,
-    options?: CallOptions & {
-      actionName?:
-        | ConfirmationActionName
-        | { accept: string; deny: string; destructive?: boolean };
-    },
-  ): Promise<void>;
-  requestValue(
-    type: "text",
-    prompt?: string,
-    options?: CallOptions & { multiline?: boolean; literal?: boolean },
-  ): Promise<string>;
-  requestValue(
-    type: "integer",
-    prompt?: string,
-    options?: CallOptions & { stepper?: boolean; min?: number; max?: number },
-  ): Promise<number>;
-  requestValue(
-    type: "number",
-    prompt?: string,
-    options?: CallOptions & { min?: number; max?: number },
-  ): Promise<number>;
-  requestValue(
-    type: "date" | "time" | "dateTime",
-    prompt?: string,
-    options?: CallOptions,
-  ): Promise<Date>;
-  requestValue(
-    type: "file",
-    prompt?: string,
-    options?: CallOptions,
-  ): Promise<{ name: string; type: string; bytes: Uint8Array }>;
-  requestValue(
-    type: "person",
-    prompt?: string,
-    options?: CallOptions,
-  ): Promise<Person>;
-  requestValue(
-    type: "placemark",
-    prompt?: string,
-    options?: CallOptions,
-  ): Promise<Placemark>;
-  requestDisambiguation(
-    values: string[],
-    prompt: string,
-    options?: CallOptions,
-  ): Promise<string>;
-  requestValueConfirmation(
-    value: string,
-    prompt: string,
-    options?: CallOptions,
-  ): Promise<boolean>;
-  continueInForeground(
-    prompt?: string,
-    options?: CallOptions & { alwaysConfirm?: boolean },
-  ): Promise<void>;
-}
+import type { Jsonify } from "./index";
 
 export type ActionCaller = "app" | "shortcuts" | "api";
 
@@ -147,7 +32,6 @@ export interface Extension<
 
 export interface RunContext {
   readonly signal: AbortSignal;
-  readonly dialog: IntentDialog;
 }
 
 export interface ActionContext extends RunContext {

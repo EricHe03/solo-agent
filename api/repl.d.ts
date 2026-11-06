@@ -6,7 +6,7 @@ declare global {
   interface Screen extends Readonly<typeof import("@swipt/api/screen")> {}
   const image: typeof import("@swipt/api/image");
   const dataDirectory: import("@swipt/api/file-system").DirectoryHandle;
-  const dialog: import("@swipt/api/swiplet").IntentDialog;
+  const appIntents: typeof import("@swipt/api/app-intents");
   const args: readonly string[];
 
   function show(image: import("@swipt/api/image").RasterImage): void;

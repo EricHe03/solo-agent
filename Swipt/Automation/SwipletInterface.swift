@@ -109,6 +109,7 @@ private final class SwipletRuntime: SwiptHostDelegate {
     var attached = 0
     var broken = false
     private var terminated = false
+    private var dialogs: [String: Task<DialogAnswer, any Error>] = [:]
 
     init(swiplet: String, entry: SwipletEntry, delegate: ExpoReactNativeFactoryDelegate) {
         self.swiplet = swiplet
@@ -129,6 +130,9 @@ private final class SwipletRuntime: SwiptHostDelegate {
     func terminate() {
         guard !terminated else { return }
         terminated = true
+        for dialog in dialogs.values {
+            dialog.cancel()
+        }
         SwiptHostModule.unbind(self)
         factory.terminateJavaScript()
         factory.rootViewFactory.reactHost = nil
@@ -159,6 +163,18 @@ private final class SwipletRuntime: SwiptHostDelegate {
             return place
         }
         return String(decoding: try JSONSerialization.data(withJSONObject: places), as: UTF8.self)
+    }
+
+    func presentDialog(_ id: String, request: String) async throws -> String? {
+        let decoded = try JSONDecoder().decode(DialogRequest.self, from: Data(request.utf8))
+        let dialog = Task { try await ScriptDialogs.shared.present(decoded) }
+        dialogs[id] = dialog
+        defer { dialogs[id] = nil }
+        return try? await dialog.value.json
+    }
+
+    func withdrawDialog(_ id: String) {
+        dialogs[id]?.cancel()
     }
 
     func exit() {

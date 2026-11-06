@@ -41,6 +41,10 @@
       "types": "./image.d.ts",
       "default": "./image.mjs"
     },
+    "./app-intents": {
+      "types": "./app-intents.d.ts",
+      "default": "./app-intents.mjs"
+    },
     "./localization": {
       "types": "./localization.d.ts",
       "default": "./localization.mjs"

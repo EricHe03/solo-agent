@@ -1,6 +1,6 @@
 import { inspect } from "../shared/inspect";
+import { appIntents } from "./app-intents";
 import { chunk } from "./chunks";
-import { createDialog } from "./dialog";
 import { failureOf } from "./errors";
 import { modules } from "./extension";
 import { dataDirectory } from "./files";
@@ -31,7 +31,7 @@ export const replGlobals = () => {
     screen,
     image,
     dataDirectory: dataDirectory(),
-    dialog: createDialog(),
+    appIntents,
     show,
   };
 };

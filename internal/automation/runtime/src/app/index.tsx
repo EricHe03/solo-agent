@@ -13,6 +13,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { createAppIntents } from "../shared/app-intents";
+import { decodeBase64 } from "../shared/base64";
 import { inspect } from "../shared/inspect";
 import {
   createSQLite,
@@ -52,6 +54,8 @@ interface SwiptHost {
   call(action: string, input: string): Promise<string>;
   setServiceEnabled(enabled: boolean): Promise<void>;
   searchPlaces(query: string): Promise<string>;
+  presentDialog(id: string, request: string): Promise<string | null>;
+  withdrawDialog(id: string): void;
   mounted(surface: string): void;
   exit(): void;
   preferredLocalizations(localizations: string[]): string[];
@@ -247,6 +251,34 @@ function interfaceModule(props: Props) {
   });
 }
 
+let lastDialog = 0;
+
+const appIntents = createAppIntents(
+  async <T,>(
+    request: Record<string, unknown>,
+    _inApp: boolean,
+    signal?: AbortSignal,
+  ): Promise<T> => {
+    const id = String(++lastDialog);
+    const withdraw = () => host.withdrawDialog(id);
+    signal?.addEventListener("abort", withdraw, { once: true });
+    try {
+      const answer = await untilAborted(signal, () =>
+        host.presentDialog(id, JSON.stringify(request)),
+      );
+      if (answer === null) {
+        throw Object.assign(new Error("the person dismissed the dialog"), {
+          name: "AbortError",
+        });
+      }
+      return JSON.parse(answer);
+    } finally {
+      signal?.removeEventListener("abort", withdraw);
+    }
+  },
+  decodeBase64,
+);
+
 const modules: Record<string, () => unknown> = {
   react: () => require("react"),
   "react/jsx-runtime": () => require("react/jsx-runtime"),
@@ -312,6 +344,8 @@ function load(props: Props): { Swiplet: ComponentType; close(): void } {
           props.cacheDirectory,
         ),
       ),
+    "@swipt/api/app-intents": () =>
+      exportsOf("@swipt/api/app-intents", { ...appIntents }),
     "@swipt/api/localization": () =>
       exportsOf("@swipt/api/localization", { preferredLocalizations }),
     "@swipt/api/maps": () =>

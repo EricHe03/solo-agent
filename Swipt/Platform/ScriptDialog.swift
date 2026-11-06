@@ -56,10 +56,9 @@ nonisolated enum DialogRequest: Decodable, Sendable {
     case value(prompt: String?, field: Field)
     case disambiguation(prompt: String?, values: [String])
     case valueConfirmation(prompt: String?, value: String)
-    case foreground(prompt: String?, alwaysConfirm: Bool)
 
     private enum CodingKeys: String, CodingKey {
-        case kind, prompt, options, actionName, type, multiline, literal, stepper, min, max, values, value, alwaysConfirm
+        case kind, prompt, options, actionName, type, multiline, literal, stepper, min, max, values, value
     }
 
     init(from decoder: any Decoder) throws {
@@ -96,8 +95,6 @@ nonisolated enum DialogRequest: Decodable, Sendable {
             self = .disambiguation(prompt: prompt, values: try container.decode([String].self, forKey: .values))
         case "valueConfirmation":
             self = .valueConfirmation(prompt: prompt, value: try container.decode(String.self, forKey: .value))
-        case "foreground":
-            self = .foreground(prompt: prompt, alwaysConfirm: try container.decode(Bool.self, forKey: .alwaysConfirm))
         case let kind:
             throw DecodingError.dataCorruptedError(forKey: .kind, in: container, debugDescription: "unknown dialog \(kind)")
         }
@@ -114,7 +111,7 @@ nonisolated enum DialogRequest: Decodable, Sendable {
 
     var prompt: String? {
         switch self {
-        case .choice(let prompt, _), .value(let prompt, _), .disambiguation(let prompt, _), .valueConfirmation(let prompt, _), .foreground(let prompt, _):
+        case .choice(let prompt, _), .value(let prompt, _), .disambiguation(let prompt, _), .valueConfirmation(let prompt, _):
             prompt
         case .confirmation(let prompt, _):
             prompt

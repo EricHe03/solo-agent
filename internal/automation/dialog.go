@@ -39,7 +39,6 @@ func presentDialog(ctx context.Context, call *operation) (any, error) {
 		return nil, E.New("this server runs on a computer, so it can't show dialogs on the device")
 	}
 	var kind struct {
-		Kind string `json:"kind"`
 		Type string `json:"type"`
 	}
 	_ = json.Unmarshal(request, &kind)
@@ -47,7 +46,7 @@ func presentDialog(ctx context.Context, call *operation) (any, error) {
 		if err := call.engine.host.lease.enter(ctx, call, dialog); err != nil {
 			return nil, err
 		}
-		defer call.engine.host.lease.leave(kind.Kind == "foreground")
+		defer call.engine.host.lease.leave()
 	}
 	answer, err := dialog.Ask(ctx, string(request))
 	if err != nil {
@@ -140,12 +139,9 @@ func (l *foregroundLease) bringForward(ctx context.Context, call *operation, dia
 	return nil
 }
 
-func (l *foregroundLease) leave(stay bool) {
+func (l *foregroundLease) leave() {
 	l.access.Lock()
 	defer l.access.Unlock()
-	if stay {
-		l.returnTo = ""
-	}
 	l.release()
 }
 

@@ -25,6 +25,8 @@ public protocol SwiptHostDelegate: AnyObject, Sendable {
   func call(action: String, input: String) async throws -> String
   func setServiceEnabled(_ enabled: Bool) async throws
   func searchPlaces(_ query: String) async throws -> String
+  func presentDialog(_ id: String, request: String) async throws -> String?
+  func withdrawDialog(_ id: String)
   func surfaceDidMount(_ surface: String)
   func exit()
   func log(level: String, message: String)
@@ -223,6 +225,17 @@ public final class SwiptHostModule: Module {
 
     AsyncFunction("searchPlaces") { @MainActor (query: String) async throws -> String in
       try await self.host().searchPlaces(query)
+    }
+
+    AsyncFunction("presentDialog") { @MainActor (id: String, request: String) async throws -> String? in
+      try await self.host().presentDialog(id, request: request)
+    }
+
+    Function("withdrawDialog") { (id: String) in
+      guard let delegate = self.delegate() else { return }
+      Task { @MainActor in
+        delegate.withdrawDialog(id)
+      }
     }
 
     Function("mounted") { (surface: String) in
