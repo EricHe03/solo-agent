@@ -11,12 +11,13 @@ _Last updated: 2026-11-06_
 - Added typed OpenAI-compatible Chat Completions models/client, tool schemas, Keychain API-key storage, and the initial agent controller.
 - Added SwiftUI chat/history, progress, execution logs, Stop, sensitive-action alerts, provider testing, agent limits, and device setup/status screens.
 - Added original Solo Agent branding, bundle ID `io.github.eriche03.soloagent`, icon, `SoloAgent.app`/`SoloAgent.ipa` packaging, installation documentation, and progress instructions.
-- Installed GitHub CLI and Node under `D:\Tools`; portable Bun/Go setup is still being repaired.
+- Installed and verified GitHub CLI 2.103.3, Node 26.13.0, Bun 1.4.4, and Go 1.27.3 under `D:\Tools`; registered their user `PATH` entries.
+- Local check passed: `node dev/check-agent-tools.cjs` validated all 13 required tool schemas; the same check now runs in CI.
 
 ## Current
 
-- Baseline upstream-source IPA build: <https://github.com/EricHe03/solo-agent/actions/runs/42226898947> (in progress; Xcode/Go/Node/Bun setup, dependencies, and physical-iOS LibSwipt succeeded; React Native setup is still running).
-- Committing the first integrated implementation locally, then pushing after the baseline finishes so its run is not cancelled by workflow concurrency.
+- Baseline upstream-source IPA build: <https://github.com/EricHe03/solo-agent/actions/runs/42226898947> (in progress; LibSwipt and React Native setup succeeded; application archive is running).
+- Two integrated implementation commits are ready locally. Push after the baseline finishes so its run is not cancelled by workflow concurrency.
 - Checking the new Go and Swift code through the real macOS build loop.
 
 ## Remaining
@@ -29,7 +30,7 @@ _Last updated: 2026-11-06_
 
 - No iPhone is attached to this Windows environment; all device-control behavior remains unverified.
 - New Go/Swift sources have not compiled yet. `libswipt/agent.go` still needs formatting and build validation.
-- The portable tool installer timed out and produced a partial Bun archive; its retry is running. Tools previously installed by winget under system locations still need relocation cleanup.
+- Portable tool setup recovered from partial downloads. Portable Bun was removed from its old user location; winget removal of duplicate GitHub CLI, Node, and Go system installations failed with installer code `1603`, but the verified `D:\Tools` copies are independent.
 - SideStore signing/provisioning and required App Group behavior are unverified. An unsigned IPA is not directly installable.
 
 ## Technical Decisions
@@ -43,5 +44,6 @@ _Last updated: 2026-11-06_
 ## Git / Actions
 
 - Upstream baseline SHA: `a9e7c64` (`Add basic vphone support`).
-- Latest commit: `10a1aa5` (`ci: build unsigned iOS IPA without release publishing`).
-- Actions: baseline run `42226898947`, queued. No IPA artifact has been verified yet.
+- Latest local commit: `0090752` (`fix: harden agent execution and cache builds`), plus this progress update.
+- Previous commits: `67390d6` (integrated agent), `10a1aa5` (minimal IPA workflow).
+- Actions: baseline run `42226898947`, application archive in progress. No IPA artifact has been verified yet.
