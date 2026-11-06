@@ -1,4 +1,4 @@
-name: Build
+name: Build iOS IPA
 
 on:
   push:
@@ -6,424 +6,72 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  calculate_version:
-    name: Calculate version
-    runs-on: ubuntu-latest
-    outputs:
-      app_changed: ${{ steps.outputs.outputs.app_changed }}
-      build_number: ${{ steps.outputs.outputs.build_number }}
-      library_hash: ${{ steps.outputs.outputs.library_hash }}
-      packages_changed: ${{ steps.outputs.outputs.packages_changed }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-        with:
-          fetch-depth: 1
-      - name: Set outputs
-        id: outputs
-        run: |-
-          source .github/github.sh
-          PREVIOUS=0
-          APP_CHANGED=true
-          if retry git fetch --depth=1 origin tag nightly; then
-            PREVIOUS=$(git tag -l --format='%(contents:subject)' nightly)
-            RELEASED=$(curl -fsSL --retry 3 "https://github.com/$GITHUB_REPOSITORY/releases/download/nightly/metadata.json" | jq -r .build || true)
-            if [ "$GITHUB_EVENT_NAME" = push ] && [ "$RELEASED" = "$PREVIOUS" ] && git diff --quiet 'nightly^{commit}' HEAD -- . \
-              ':!.github' ':!cli' ':!cmd' ':!*.md' ':!LICENSE' ':!.gitignore' ':!.golangci.yml' ':!.prettierignore' ':!dev/strings.mjs' ':!*_test.go'; then
-              APP_CHANGED=false
-            fi
-          fi
-          PACKAGE_PATHS=(api cli cmd/swipt-server internal go.mod go.sum ':!internal/automation/runtime' ':!internal/cmd' ':!*_test.go')
-          PACKAGES_CHANGED=true
-          PUBLISHED=$(npm view @swipt/api@nightly gitHead 2> /dev/null || true)
-          if [ "$GITHUB_EVENT_NAME" = push ] && [ -n "$PUBLISHED" ] && git fetch --depth=1 origin "$PUBLISHED" 2> /dev/null \
-            && git diff --quiet "$PUBLISHED" HEAD -- "${PACKAGE_PATHS[@]}" && git diff --quiet 'nightly^{commit}' HEAD -- "${PACKAGE_PATHS[@]}"; then
-            PACKAGES_CHANGED=false
-          fi
-          echo "app_changed=$APP_CHANGED packages_changed=$PACKAGES_CHANGED"
-          echo "app_changed=$APP_CHANGED" >> "$GITHUB_OUTPUT"
-          echo "packages_changed=$PACKAGES_CHANGED" >> "$GITHUB_OUTPUT"
-          echo "build_number=$((PREVIOUS + 1))"
-          echo "build_number=$((PREVIOUS + 1))" >> "$GITHUB_OUTPUT"
-          echo "library_hash=${{ hashFiles('go.mod', 'go.sum', 'libswipt/**', 'internal/**', '!internal/automation/runtime/**', '!internal/cmd/**', 'internal/cmd/build_libswipt/**', '!**/*_test.go') }}" >> "$GITHUB_OUTPUT"
-  build_apple_library:
-    name: Build Apple library
-    if: needs.calculate_version.outputs.app_changed == 'true'
+  build_ios_ipa:
+    name: Build iOS ARM64 IPA
     runs-on: xcode-27
-    needs:
-      - calculate_version
     steps:
-      - name: Cache library
-        id: library
-        uses: actions/cache@v4
-        with:
-          path: Frameworks/LibSwipt.xcframework
-          key: libswipt-ios-arm64-${{ needs.calculate_version.outputs.library_hash }}
-          lookup-only: true
       - name: Checkout
-        if: steps.library.outputs.cache-hit != 'true'
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
-          fetch-depth: 1
-      - name: Select Xcode
-        if: steps.library.outputs.cache-hit != 'true'
+          submodules: true
+
+      - name: Select stable Xcode
         run: .github/select_xcode.sh
-      - name: Get Go version
-        id: go
-        if: steps.library.outputs.cache-hit != 'true'
-        run: echo "version=$(sed -n 's/^go //p' go.mod)" >> "$GITHUB_OUTPUT"
-      - name: Cache Go toolchain
-        if: steps.library.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.tool_cache }}/go/${{ steps.go.outputs.version }}
-          key: go-toolchain-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.version }}
-      - name: Setup Go
-        if: steps.library.outputs.cache-hit != 'true'
+
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache: false
-      - name: Cache Go modules
-        if: steps.library.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-${{ hashFiles('go.sum') }}
-          restore-keys: go-mod-
-      - name: Cache Go build
-        if: steps.library.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/go-build
-          key: go-build-libswipt-ios-arm64-${{ needs.calculate_version.outputs.library_hash }}
-          restore-keys: go-build-libswipt-ios-arm64-
-      - name: Build library
-        if: steps.library.outputs.cache-hit != 'true'
-        run: go run ./internal/cmd/build_libswipt -target ios/arm64
-  build_ios_ipa:
-    name: Build iOS (IPA)
-    runs-on: xcode-27
-    needs:
-      - calculate_version
-      - build_apple_library
-    steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-        with:
-          fetch-depth: 1
-          submodules: true
-      - name: Select Xcode
-        run: .github/select_xcode.sh
-      - name: Restore library
-        uses: actions/cache/restore@v4
-        with:
-          path: Frameworks/LibSwipt.xcframework
-          key: libswipt-ios-arm64-${{ needs.calculate_version.outputs.library_hash }}
-          fail-on-cache-miss: true
-      - name: Setup Node
+
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Setup Bun
+
+      - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Get Xcode version
-        id: xcode
-        run: echo "build=$(xcodebuild -version | tail -1 | cut -d ' ' -f 3)" >> "$GITHUB_OUTPUT"
-      - name: Cache React Native artifacts
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/ReactNative/spm-artifacts
-          key: react-native-spm-${{ hashFiles('node_modules/react-native/package.json') }}
-      - name: Cache runtime bundle
-        id: runtime_bundle
-        uses: actions/cache@v4
-        with:
-          path: build/runtime
-          key: runtime-bundle-${{ hashFiles('package.json', 'bun.lock', 'internal/automation/runtime/**', '!**/node_modules/**') }}
-      - name: Keep runtime bundle
-        if: steps.runtime_bundle.outputs.cache-hit == 'true'
-        run: touch build/runtime/main.jsbundle
-      - name: Restore ExpoModulesCore
-        id: expo_modules_core
-        uses: actions/cache/restore@v4
-        with:
-          path: |-
-            build/expo-modules-core/inputs
-            build/expo-modules-core/jsi/Products
-            node_modules/expo-modules-core/prebuilds/output/*/xcframeworks/ExpoModulesCore.xcframework
-          key: expo-modules-core-${{ steps.xcode.outputs.build }}-${{ hashFiles('dev/expo-modules-core.mjs', 'node_modules/expo-modules-core/package.json', 'node_modules/expo-modules-core/spm.config.json', 'node_modules/expo-modules-core/ios/**', 'node_modules/expo-modules-core/common/**', 'node_modules/expo-modules-jsi/package.json', 'node_modules/expo-modules-jsi/apple/**', 'node_modules/expo-modules-macros/package.json', 'node_modules/react-native/package.json') }}
-      - name: Set up React Native
+
+      - name: Build LibSwipt for physical iOS devices
+        run: go run ./internal/cmd/build_libswipt -target ios/arm64
+
+      - name: Set up React Native frameworks
         run: bun dev frameworks
-      - name: Save ExpoModulesCore
-        if: steps.expo_modules_core.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |-
-            build/expo-modules-core/inputs
-            build/expo-modules-core/jsi/Products
-            node_modules/expo-modules-core/prebuilds/output/*/xcframeworks/ExpoModulesCore.xcframework
-          key: ${{ steps.expo_modules_core.outputs.cache-primary-key }}
-      - name: Cache Swift packages
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/SourcePackages
-          key: spm-${{ steps.xcode.outputs.build }}-${{ hashFiles('Swipt.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
-          restore-keys: spm-${{ steps.xcode.outputs.build }}-
-      - name: Cache Swift compilation
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/CompilationCache
-          key: swift-ios-${{ steps.xcode.outputs.build }}-${{ hashFiles('Swipt/**', 'Swipt.xcodeproj/**', 'bun.lock', 'internal/automation/runtime/patches/**', 'internal/automation/runtime/modules/**', 'Frameworks/LibSwipt.xcframework/ios-arm64/LibSwipt.framework/Versions/A/Headers/**', 'Frameworks/LibSwipt.xcframework/ios-arm64/LibSwipt.framework/Versions/A/Modules/**') }}
-          restore-keys: swift-ios-${{ steps.xcode.outputs.build }}-
-      - name: Build
+
+      - name: Archive unsigned IPA
         run: make archive_ios_ipa altstore_icon
         env:
-          XCODEBUILD_FLAGS: -clonedSourcePackagesDirPath ${{ runner.temp }}/SourcePackages CURRENT_PROJECT_VERSION=${{ needs.calculate_version.outputs.build_number }} COMPILATION_CACHE_ENABLE_CACHING=YES COMPILATION_CACHE_CAS_PATH=${{ runner.temp }}/CompilationCache COMPILATION_CACHE_LIMIT_SIZE=2G
+          XCODEBUILD_FLAGS: CURRENT_PROJECT_VERSION=${{ github.run_number }}
+
       - name: Package dSYMs
         run: ditto -c -k --keepParent build/Swipt-iOS.xcarchive/dSYMs build/Swipt-iOS.dSYMs.zip
+
       - name: Write metadata
-        run: |-
+        run: |
           INFO_PLIST=build/Swipt-iOS.xcarchive/Products/Applications/Swipt.app/Info.plist
           VERSION=$(plutil -extract CFBundleShortVersionString raw "$INFO_PLIST")
           BUILD=$(plutil -extract CFBundleVersion raw "$INFO_PLIST")
-          printf '{"version":"%s","build":%s}\n' "$VERSION" "$BUILD" > build/metadata.json
-      - name: Upload build
+          printf '{"version":"%s","build":%s,"sha":"%s"}\n' "$VERSION" "$BUILD" "$GITHUB_SHA" > build/metadata.json
+
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: Swipt-iOS-IPA
-          path: |-
+          name: Solo-Agent-iOS-IPA
+          path: |
             build/Swipt.ipa
             build/Swipt-iOS.dSYMs.zip
             build/metadata.json
             build/altstore
           if-no-files-found: error
-  build_server:
-    name: Build server (${{ matrix.cpu }})
-    if: needs.calculate_version.outputs.app_changed == 'true' || needs.calculate_version.outputs.packages_changed == 'true'
-    runs-on: xcode-27
-    needs:
-      - calculate_version
-    strategy:
-      matrix:
-        include:
-          - { arch: arm64, cpu: arm64 }
-          - { arch: amd64, cpu: x64 }
-    steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-        with:
-          fetch-depth: 1
-      - name: Select Xcode
-        run: .github/select_xcode.sh
-      - name: Get Go version
-        id: go
-        run: echo "version=$(sed -n 's/^go //p' go.mod)" >> "$GITHUB_OUTPUT"
-      - name: Cache Go toolchain
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.tool_cache }}/go/${{ steps.go.outputs.version }}
-          key: go-toolchain-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.version }}
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: false
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-${{ hashFiles('go.sum') }}
-          restore-keys: go-mod-
-      - name: Cache Go build
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/go-build
-          key: go-build-server-darwin-${{ matrix.arch }}-${{ hashFiles('go.mod', 'go.sum', 'cmd/swipt-server/**', 'internal/**', '!internal/automation/runtime/**', '!**/*_test.go') }}
-          restore-keys: go-build-server-darwin-${{ matrix.arch }}-
-      - name: Build
-        run: go build -trimpath -ldflags "-s -w -buildid=" -o build/swipt-server-darwin-${{ matrix.cpu }} ./cmd/swipt-server
-        env:
-          CGO_ENABLED: "1"
-          GOOS: darwin
-          GOARCH: ${{ matrix.arch }}
-      - name: Upload build
-        uses: actions/upload-artifact@v4
-        with:
-          name: swipt-server-darwin-${{ matrix.cpu }}
-          path: build/swipt-server-darwin-${{ matrix.cpu }}
-          if-no-files-found: error
-  publish_packages:
-    name: Publish packages
-    if: github.ref == 'refs/heads/main' && needs.calculate_version.outputs.packages_changed == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    needs:
-      - calculate_version
-      - build_server
-    steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-        with:
-          fetch-depth: 0
-      - name: Download servers
-        uses: actions/download-artifact@v4
-        with:
-          pattern: swipt-server-*
-          merge-multiple: true
-          path: build
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-      - name: Publish
-        run: |-
-          npm install -g npm@latest
-          BASE=$(node -p "require('./api/package.json').version")
-          CURRENT=$(npm view @swipt/api@nightly version 2> /dev/null || true)
-          NUMBER=1
-          if [[ "$CURRENT" == "$BASE-nightly."* ]]; then
-            PUBLISHED=$(npm view "@swipt/api@$CURRENT" gitHead 2> /dev/null || true)
-            if [ "$PUBLISHED" = "$GITHUB_SHA" ]; then
-              NUMBER=${CURRENT##*.}
-            elif [ -n "$PUBLISHED" ] && git cat-file -e "$PUBLISHED^{commit}" 2> /dev/null && git diff --quiet "$PUBLISHED" HEAD -- api cli cmd/swipt-server internal go.mod go.sum ':!internal/automation/runtime' ':!internal/cmd' ':!*_test.go'; then
-              echo "the packages are unchanged since $CURRENT"
-              exit 0
-            else
-              NUMBER=$(( ${CURRENT##*.} + 1 ))
-            fi
-          fi
-          VERSION="$BASE-nightly.$NUMBER"
-          for cpu in arm64 x64; do
-            mkdir -p "build/server-darwin-$cpu"
-            install -m 755 "build/swipt-server-darwin-$cpu" "build/server-darwin-$cpu/swipt-server"
-            jq -n --arg cpu "$cpu" --arg version "$VERSION" '{name: "@swipt/server-darwin-\($cpu)", version: $version, license: "GPL-3.0-or-later",
-              repository: {type: "git", url: "https://github.com/swipt-automation/swipt.git", directory: "cmd/swipt-server"},
-              os: ["darwin"], cpu: [$cpu], bin: {"swipt-server": "swipt-server"}, files: ["swipt-server"], publishConfig: {access: "public"}}' \
-              > "build/server-darwin-$cpu/package.json"
-          done
-          PACKAGES="api build/server-darwin-arm64 build/server-darwin-x64 cli"
-          for package in api cli; do
-            npm version "$VERSION" --no-git-tag-version --prefix "$package"
-          done
-          npm pkg set "peerDependencies.@swipt/api=$VERSION" "optionalDependencies.@swipt/server-darwin-arm64=$VERSION" "optionalDependencies.@swipt/server-darwin-x64=$VERSION" --prefix cli
-          for package in $PACKAGES; do
-            cp LICENSE "$package/"
-            PACKAGE=$(node -p "require('./$package/package.json').name")
-            if npm view "$PACKAGE@$VERSION" version > /dev/null 2>&1; then
-              echo "$PACKAGE@$VERSION is already published"
-            else
-              npm publish "./$package" --tag nightly
-            fi
-          done
-          for package in $PACKAGES; do
-            PACKAGE=$(node -p "require('./$package/package.json').name")
-            case "$(npm view "$PACKAGE@latest" version 2> /dev/null)" in
-              *-*) npm dist-tag add "$PACKAGE@$VERSION" latest ;;
-            esac
-          done
-  publish_nightly:
-    name: Publish nightly
-    if: github.ref == 'refs/heads/main' && !cancelled() && !failure() && needs.calculate_version.outputs.app_changed == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    needs:
-      - calculate_version
-      - build_ios_ipa
-      - build_server
-    steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-        with:
-          fetch-depth: 0
-      - name: Download builds
-        uses: actions/download-artifact@v4
-        with:
-          pattern: Swipt-*
-          merge-multiple: true
-          path: build
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: false
-      - name: Build AltStore source
-        run: go run ./internal/cmd/build_altstore_source
-      - name: Publish
-        run: |-
-          source .github/github.sh
-          if RELEASE=$(retry gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name); then
-            NOTES=$(git log --format='* %s' "$RELEASE..")
-          else
-            NOTES=$(git log --format='* %s')
-          fi
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" tag -a -f nightly -m "$BUILD_NUMBER" "$GITHUB_SHA"
-          retry git push -f origin refs/tags/nightly
-          DRAFT=$(retry create_draft nightly-draft --prerelease --target "$GITHUB_SHA" --title "Nightly build" --notes "$NOTES" \
-            build/Swipt.ipa build/Swipt-iOS.dSYMs.zip build/metadata.json build/altstore/altstore.json build/altstore/icon.png)
-          if PREVIOUS=$(retry gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" --jq .url); then
-            retry delete "$PREVIOUS"
-          fi
-          retry gh api -X PATCH "$DRAFT" -f tag_name=nightly -F draft=false > /dev/null
-        env:
-          BUILD_NUMBER: ${{ needs.calculate_version.outputs.build_number }}
-          GH_TOKEN: ${{ github.token }}
-  move_nightly:
-    name: Move nightly
-    if: github.ref == 'refs/heads/main' && needs.calculate_version.outputs.app_changed != 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    needs:
-      - calculate_version
-      - build_server
-    steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-        with:
-          fetch-depth: 1
-      - name: Move tag
-        run: |-
-          source .github/github.sh
-          retry git fetch --depth=1 origin tag nightly
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" tag -a -f nightly -m "$(git tag -l --format='%(contents:subject)' nightly)" "$GITHUB_SHA"
-          retry git push -f origin refs/tags/nightly
-  prune_caches:
-    name: Prune caches
-    if: github.ref == 'refs/heads/main' && !cancelled() && (needs.calculate_version.outputs.app_changed == 'true' || needs.calculate_version.outputs.packages_changed == 'true')
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      contents: read
-    needs:
-      - calculate_version
-      - build_ios_ipa
-      - build_server
-    steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-        with:
-          fetch-depth: 1
-      - name: Delete superseded caches
-        run: |-
-          source .github/github.sh
-          CACHES=$(retry gh cache list --ref "$GITHUB_REF" --limit 1000 --json id,key \
-            --jq 'group_by(.key | sub("-[^-]*$"; "")) | map(.[1:]) | flatten | .[].id')
-          for cache in $CACHES; do
-            retry delete "repos/$GITHUB_REPOSITORY/actions/caches/$cache"
-          done
-        env:
-          GH_TOKEN: ${{ github.token }}
