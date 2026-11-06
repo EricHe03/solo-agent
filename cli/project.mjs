@@ -753,7 +753,7 @@ export function sourceCommand(root, given) {
   const dist = path.join(root, "dist");
   fs.rmSync(dist, { recursive: true, force: true });
   fs.mkdirSync(dist, { recursive: true });
-  const entries = [...swiplets.keys()].sort().map((id) => {
+  const entries = [...swiplets.keys()].map((id) => {
     const { manifest, data } = swiplets.get(id);
     const name = `${id}.swiplet`;
     fs.writeFileSync(path.join(dist, name), data);
