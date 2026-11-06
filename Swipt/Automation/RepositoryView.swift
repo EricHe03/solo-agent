@@ -6,6 +6,7 @@ struct RepositoryView: View {
     let url: String
     @Binding var isImported: Bool
 
+    @State private var isLoaded = false
     @State private var alert: AlertState?
 
     private let swiplets = SwipletStore.shared
@@ -20,14 +21,20 @@ struct RepositoryView: View {
                             row(swiplet, in: repository)
                         }
                     }
-                } else {
+                } else if isLoaded {
                     Text("No Swiplets in This Repository")
                         .foregroundStyle(.secondary)
+                } else {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
                 }
             }
             .navigationTitle(Text(verbatim: repository?.title ?? ""))
             .refreshable { await refresh(force: true) }
-            .task { await refresh(force: false) }
+            .task {
+                await refresh(force: false)
+                isLoaded = true
+            }
             .alert($alert)
         }
     }

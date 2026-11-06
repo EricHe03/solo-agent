@@ -35,11 +35,13 @@ final class SwipletStore {
     private var checked: [String: Date] = [:]
 
     private init() {
+        var stored: [Repository] = []
         do {
-            repositories = try SwipletDatabase.repositories()
+            stored = try SwipletDatabase.repositories()
         } catch {
             AppDirectory.logger.error("load repositories: \(error, privacy: .public)")
         }
+        repositories = [stored.first(where: \.isOfficial) ?? .official] + stored.filter { !$0.isOfficial }
     }
 
     func reload() {
@@ -452,6 +454,11 @@ nonisolated struct SwipletPreview: Identifiable, Sendable {
 }
 
 nonisolated struct Repository: Identifiable, Sendable {
+    static let official = Repository(
+        url: "https://github.com/swipt-automation/official-swiplets/releases/download/nightly/swiplets.json",
+        name: String(localized: "Official Swiplets"), localizedNames: nil, icon: RepositorySwiplet.Icon(color: nil, symbol: "checkmark.seal.fill"),
+        image: nil, etag: "", swiplets: [])
+
     let url: String
     let name: String
     let localizedNames: [String: String]?
@@ -461,6 +468,8 @@ nonisolated struct Repository: Identifiable, Sendable {
     let swiplets: [RepositorySwiplet]
 
     var id: String { url }
+
+    var isOfficial: Bool { url == Self.official.url }
 
     var title: String {
         SwipletStore.preferredName(name, localized: localizedNames ?? [:])

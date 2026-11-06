@@ -33901,6 +33901,310 @@
         }
       }
     },
+    "Official Swiplets" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplet الرسمية"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Официални Swiplet"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "অফিসিয়াল Swiplet"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplets oficials"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Oficiální Swiplety"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Officielle Swiplets"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Offizielle Swiplets"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Επίσημα Swiplet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplets oficiales"
+          }
+        },
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplets oficiales"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Viralliset Swipletit"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplets officiels"
+          }
+        },
+        "fr-CA" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplets officiels"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "અધિકૃત Swiplet"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "מאגר ה-Swiplet הרשמי"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "आधिकारिक Swiplet"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Službeni Swiplets"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Hivatalos Swiplet-gyűjtemény"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplet Resmi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplet ufficiali"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "公式Swiplet"
+          }
+        },
+        "kk" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ресми Swiplet"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ಅಧಿಕೃತ Swiplet"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "공식 Swiplet"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Oficiali „Swiplet” saugykla"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ഔദ്യോഗിക Swiplet"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "अधिकृत Swiplet"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplet Rasmi"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Offisielle Swiplets"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Officiële Swiplets"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ଆଧିକାରିକ Swiplet"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ਅਧਿਕਾਰਤ Swiplet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Oficjalne Swiplety"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplets Oficiais"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplets oficiais"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplet-uri oficiale"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Официальные Swiplet"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Oficiálne Swiplets"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Uradni Swiplets"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Officiella Swiplets"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "அதிகாரப்பூர்வ Swiplet"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "అధికారిక Swiplet"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplet อย่างเป็นทางการ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Resmi Swiplet’ler"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Офіційні Swiplet"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "آفیشل Swiplet"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Swiplet chính thức"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "官方 Swiplet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "官方 Swiplet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "官方 Swiplet"
+          }
+        }
+      }
+    },
     "Open LocalDevVPN" : {
       "localizations" : {
         "ar" : {
