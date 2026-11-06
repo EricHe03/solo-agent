@@ -19,7 +19,8 @@ _Last updated: 2026-11-06_
 - Baseline upstream-source IPA build passed: <https://github.com/EricHe03/solo-agent/actions/runs/42226898947> in 18m1s.
 - Downloaded baseline artifact `Solo-Agent-iOS-IPA`: real `Swipt.ipa` (43,601,500 bytes; SHA-256 `5F41E6F093EE99380A765AC6279B53D829BC259D83A0569D7270E7BEAC24C9AB`), dSYMs, icon, and metadata for commit `10a1aa5`, version 0.1.0 build 1.
 - Integrated run `42229591276` failed only at the Swift archive after Go/framework setup succeeded. Actual errors were invalid `LibSolo Agent` identifiers in `PairingSession.swift` caused by over-broad rebranding; restored all five to `LibSwipt` in `7cdc811`.
-- Rebuild the corrected Swift sources and inspect the next compiler errors, if any.
+- Run `42231503204` advanced to the agent Swift sources but failed on two `Section` title-plus-footer builder type-inference errors (`AgentSettingsView.swift:14`, `AgentDeviceView.swift:47`). Converted both to explicit header/footer builders.
+- Rebuild after the SwiftUI section fix and inspect any remaining errors.
 
 ## Remaining
 
@@ -45,6 +46,6 @@ _Last updated: 2026-11-06_
 ## Git / Actions
 
 - Upstream baseline SHA: `a9e7c64` (`Add basic vphone support`).
-- Latest local commit: `7cdc811` (`fix: restore LibSwipt identifiers after rebranding`); latest pushed commit before this fix: `459e308`.
+- Latest pushed commit before this SwiftUI fix: `c7a1cde`; previous fixes: `7cdc811`, `0090752`.
 - Integrated implementation commits: `67390d6`, `0090752`, `97db01a`; baseline workflow: `10a1aa5`.
-- Actions: baseline run `42226898947` succeeded and was downloaded. Integrated run `42229591276` failed at `Archive unsigned IPA` with `LibSolo Agent` Swift syntax/module errors; corrected locally in `7cdc811`. No integrated IPA yet.
+- Actions: baseline `42226898947` succeeded and was downloaded. Integrated runs `42229591276` (LibSwipt naming errors) and `42231503204` (SwiftUI Section builder errors) failed at archive; fixes are committed locally. No integrated IPA yet.

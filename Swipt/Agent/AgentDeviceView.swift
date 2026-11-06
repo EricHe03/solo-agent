@@ -44,7 +44,7 @@ struct AgentDeviceView: View {
                 } footer: {
                     Text("Enable Developer Mode in iOS Settings › Privacy & Security. Pair this iPhone with itself, then keep one compatible loopback packet-tunnel VPN active. Only one iOS packet-tunnel VPN can normally be active at a time.")
                 }
-                Section("Background Operation") {
+                Section {
                     NavigationLink {
                         BackgroundView()
                     } label: {
@@ -55,6 +55,8 @@ struct AgentDeviceView: View {
                     } label: {
                         Label("Automatic Unlock", systemImage: "lock.open")
                     }
+                } header: {
+                    Text("Background Operation")
                 } footer: {
                     Text("Solo Agent reuses Swipt’s audio/location keep-active mechanisms while a task runs. iOS can still suspend or terminate the app; uninterrupted background execution is not guaranteed.")
                 }

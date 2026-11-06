@@ -11,7 +11,7 @@ struct AgentSettingsView: View {
     var body: some View {
         WithPerceptionTracking {
             Form {
-                Section("AI Provider") {
+                Section {
                     TextField("API base URL", text: Binding(get: { settings.baseURL }, set: { settings.baseURL = $0 }))
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
@@ -44,6 +44,8 @@ struct AgentSettingsView: View {
                         Label(testResult, systemImage: testSucceeded ? "checkmark.circle" : "exclamationmark.triangle")
                             .foregroundStyle(testSucceeded ? Color.green : Color.red)
                     }
+                } header: {
+                    Text("AI Provider")
                 } footer: {
                     Text("Use an OpenAI-compatible Chat Completions endpoint with tool calling. Consumer chat subscriptions do not necessarily include API access. The key is stored only in this device’s Keychain.")
                 }
